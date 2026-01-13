@@ -1,0 +1,309 @@
+sprt -u  // -u: 중복제거
+
+which
+whereis
+whatis (명령어 확인)
+type (외부/내부 명령어 확인)
+
+root@localhost:/home/roror# cat ./infile.txt | tr '\\:' '/|'    // :을 |로 바꿈
+drive|path/name
+c|/Users/Default/file.txt
+
+awk -F  :   공백
+
+root@localhost:/home/roror# grep "root\|roror" ./passwd    // |을 문자로 보내기 위해서 \을 붙여줌
+root:x:0:0:Super User:/root:/bin/bash
+operator:x:11:0:operator:/root:/usr/sbin/nologin
+roror:x:1000:1000:roror:/home/roror:/bin/bash
+root@localhost:/home/roror# grep -E "root|roror" ./passwd   // \대신 -E
+root:x:0:0:Super User:/root:/bin/bash
+operator:x:11:0:operator:/root:/usr/sbin/nologin
+roror:x:1000:1000:roror:/home/roror:/bin/bash
+root@localhost:/home/roror# egrep "root|roror" ./passwd   // \대신 egrep
+root:x:0:0:Super User:/root:/bin/bash
+operator:x:11:0:operator:/root:/usr/sbin/nologin
+roror:x:1000:1000:roror:/home/roror:/bin/bash
+root@localhost:/home/roror# grep "root|roror" ./passwd   // \를 붙이지 않으면 grep이 인식하지 못해서 결과값 출력 안됨
+
+- Source compile
+configrue (설정, 경로,,,,,,  Makefile  생성)
+make (컴파일)
+make install (복사)
+
+# [[ -d /home/backup ]] || { echo "디렉토리가 없습니다.!"; sleep 1; echo "새로 생성중..."; sleep 1; mkdir /home/backup; }
+#
+
+root@localhost:/home/roror# if [ "$?" -eq 0 ];then echo "OK"; else echo "error"; fi  // $?이 0이면 OK출력
+OK
+root@localhost:/home/roror# cat /etc/passwd | grep rororr   // rororr은 passwd에 없음 $? 뭐지...
+root@localhost:/home/roror# if [ "$?" -eq 0 ];then echo "OK"; else echo "error"; fi  // 어쨋든 에러남..
+error
+root@localhost:/home/roror# cat /etc/passwd | grep -q roror   // roror은 $? 0
+root@localhost:/home/roror# if [ "$?" -eq 0 ];then echo "OK"; else echo "error"; fi  // OK출력
+OK
+root@localhost:/home/roror# cat /etc/passwd | grep -q rororr   // 다시 rororr하면
+root@localhost:/home/roror# if [ "$?" -eq 0 ];then echo "OK"; else echo "error"; fi  // error출력
+error
+
+$? : 직전에 실행한 명령어의 종료 상태(exit status)
+
+
+grep option
+-A3
+-E
+-i
+-v
+-n
+-H
+-q 검색결과 출력하지 않음(ture false는 출력..?)
+
+
+c.t	cat, apricot, cute, locate
+c[ai]t  catalyst, citation, incapacitate, Piscataway
+s[^aeiou]ri  airstrip, describe, offspring
+at*r	atrocious, award, attribute
+sa.*re	massacre, sacred, sapphire, satire
+s[ao]*r	classroom, censor, emissary, soar
+sa.*re$	massacre, satire
+^sa.*.re	sacred, satire
+
+
+root@localhost:/home/roror/test# find /home -perm -4000 -or -perm 2000 -ls
+root@localhost:/home/roror/test# find /home \( -perm -4000 -or -perm 2000 \) -ls
+ 68061938      4 -rwsr-sr-x   1 root     root            6  9월 19 11:46 /home/roror/test/go
+ 68061936      4 -rwsr-xr-x   1 root     root            6  9월 19 11:45 /home/roror/test/cls
+   108532      4 -rwsrwsrwx   1 root     root            6  9월 19 11:49 /home/roror/test/gogo
+root@localhost:/home/roror/test# ls 
+cls  go  gogo  run
+root@localhost:/home/roror/test# find /home \( -perm -4000 -or -perm -2000 \) -ls
+ 68061938      4 -rwsr-sr-x   1 root     root            6  9월 19 11:46 /home/roror/test/go
+ 68061936      4 -rwsr-xr-x   1 root     root            6  9월 19 11:45 /home/roror/test/cls
+ 68061153      4 -rwxr-sr-x   1 root     root            6  9월 19 11:45 /home/roror/test/run
+   108532      4 -rwsrwsrwx   1 root     root            6  9월 19 11:49 /home/roror/test/gogo
+
+root@localhost:/home/roror/test# find /etc -type f -print | xargs grep -H "roror" /dev/null
+이게뭐임...
+
+
+find -name ‘*.c’
+find -user roror (roror 사용자의파일이나디렉토리를찾는다)
+find -perm 600
+find -type l : 심폴릭링크인파일을찾는다.
+find . -type d
+find .  현재디렉토리와하위디렉토리를포함하여모든파일이나디렉토리를찾는다.
+find . -type f -name “*.txt” (f 일반파일)
+find / -type f -perm +6000 -ls   (Set-UID,Set-GID 파일을출력한다)
+find / -nouser -o -nogroup : 소유자나소유그룹이없는파일들을찾는다, -o는 or의역할
+find . -name ‘*.txt’ -type -f -exec rm {} \; 현재디렉토리에서 *.txt 파일을찾아삭제한다.
+find / -ctime -2 -ctime +1 -ls : 이틀 전에서 하루이후에 수정된 파일을 찾는다.
+find / -mtime +7 : 변경된지(Modify) 7일이상이된파일을찾는다.
+find -size +10000c -size -32000c : 10000 바이트보다는크지만 32000바이트보다작은파일
+find -name test.txt -ok chmod 755 {} \;  <chmod …. /test.txt>? y 를입력해야실행한다.
+find -name ‘[ab]*’   a 또는 b로시작하는파일이나디렉토리를찾는다.
+find ! -type f    (!는 not기능을하는데, 파일이아닌것을찾는다.)
+find /etc -name “*.conf” -exec ls -l {} \;
+find –name “test*” –exec cp {} ./aaa \;
+find –name “test*” –exec rm –rf {} \;
+find / -empty -exec ls -l {} \;
+find / -uid 500 -exec ls -l {} \;
+find / -user user1 -print
+find /home/user1 -name *.dat -exec ls -l {} \;
+find / -name access_log -exec rm -f {} \;
+find / -size +100M -exec ls -lh {} \;
+find / -perm 4750 -exec ls -l {} \;
+find -newermt "2020-01-01" -ls (특정 날짜 이후 모든 파일 찾기)
+find / \( -perm -2000 -o –perm –4000 \) -ls | awk '{print $3}’
+#find ./ -name "*" -exec grep -H hack {} \;
+#find ./ -type f -print | xargs grep -H "hack" /dev/null   
+#find ./ -type f -exec grep 'hack' {} /dev/null  (/dev/null는 여러 파일 지정시 경로 표시)
+# find / -user 427 -print (전체 디렉토리에서 소유자의 uid 427 파일 찾기)
+# find / -ctime -5 (최근 5분안에 생성되거나 업데이트 된 파일 찾기)
+# find / -perm -0002 -type d -print (일반 유저가 쓰기 권한이 있는 디렉토리를 보여준다)
+# find / -perm -0002 -type f -print (일반 유저가 쓰기 권한이 있는 파일을 보여준다.)
+# find / -nouser -o -nogroup -print (유저나 그룹이 없는 파일을 보여준다.)
+# find / -mtime 2 -o -ctime 2 (지난 2일 사이에 변경되거나 생성된 파일을 보여준다.)
+# find / -user root -type f \( -perm -4000 -o -perm -2000 \) -exec ls -al {} \;
+ -o 또는 –a 뒤에 –exec 등이 오거나 뒤에 다른 명령이 오면 \( \)에 넣어준다.
+
+
+
+nslookup google.co.kr (windows에서 사용 가능)
+dig google.co.kr
+host google.co.kr
+리눅스는 다 사용 가능
+
+
+/etc/hosts  // 도메인 들어있다고? dns라고? 여기서 도메인 확인하고 ip반환..?
+
+hosts 파일에는 도메인에 대한 ip 주소가 저장되어 있다.
+C:\Windows\System32\drivers\etc
+
+
+
+DNS(Domain Name System)에서의 "재귀적 질의"와 "순환 질의"는 둘 다 
+DNS 클라이언트가 DNS 서버에게 도메인 이름을 해석하는 과정에서 발생하는 다른 유형의 질의를 가리킨다.
+
+재귀적 질의(Recursive Query)
+의미 : 클라이언트가 DNS 서버에 요청하면, DNS 서버가 모든 과정을 대신 처리해 최종 IP 주소를 반환.
+클라이언트가 DNS 서버에게 특정 도메인 이름의 IP 주소를 요청한다.
+DNS 서버는 이 요청을 받으면, 다른 DNS 서버에게 이 요청을 전달하고, 계속해서 하위 도메인에 대한 정보를 찾아가며 최종적으로 도메인 이름에 대한 IP 주소를 찾는다.
+이 과정에서 DNS 서버는 요청을 보낸 클라이언트에게 전체적인 해결 과정을 숨기고, 최종적으로 찾은 IP 주소를 반환한다.
+ 
+순환 질의(Iterative Query)
+의미 : 클라이언트가 DNS 서버에 요청하면, 서버는 알고 있는 만큼만 알려주고, 나머지는 클라이언트가 직접 다른 DNS 서버에 질의.
+클라이언트가 DNS 서버에게 특정 도메인 이름의 IP 주소를 요청한다.
+DNS 서버는 이 요청을 받으면, 클라이언트에게 도메인 이름의 일부 정보를 제공하거나, 다른 DNS 서버의 주소를 알려준다.
+클라이언트는 이 정보를 기반으로 다시 DNS 서버에게 질의를 보내고, 이 과정을 반복하여 최종적으로 IP 주소를 찾는다.
+순환 질의에서는 클라이언트가 여러 DNS 서버에 대한 정보를 받고, 직접적으로 각각의 DNS 서버에 요청을 보내고 응답을 기다린다.
+재귀적 질의는 DNS 서버가 클라이언트를 대신하여 전체적인 도메인 해석 과정을 처리하는 반면, 순환 질의는 클라이언트가 직접적으로 여러 DNS 서버에 질의를 보내어 해석 과정을 수행한다.
+
+
+
+DNS PORT
+53/UDP : TCP 2가지 외 나머지는 모두 UDP사용
+53/TCP  : . Zone Transfer 1,2차 네임서버 존파일 동기화 ,  또는 512kbyte 넘을경우 사용
+
+ROOT DNS 
+전세계 13개 존재 14개라면 메세지 사이즈가 512kbyte를 넘는다 그래서 13개이다
+ #dig lsof.co.kr +trace
+
+네임서버가 Recursive 모드로 동작할 때에는, 클라이언트(이를 Stub Resolver 라 한다)의 요청에 대해 Namespace를 검색한후 결과를 전달한다. 
+하지만 Iterative 모드에서는 알 수 없는 질의(자신이 관리하지 않는 도메인에 대한 요청)에 대해, 응답 가능한 NS의 목록을 전달한다. 
+대부분의 네임서버는 Recursive 모드로 동작하며, Iterative 모드는 루트서버와 같이 네임서버를 위한 네임서버(네임서버간의 통신에는 Iterative 모드가 사용됨)에서 과다한 트래픽을 막기위해 사용한다. 
+또한, 클라이언트는 Iterative 모드로 설정된 네임서버를 사용할 수 없으므로, 네임서버 목록(예:resolv.conf, 윈도우의 DNS 찾기목록)에 추가하여서는 안 된다. 
+BIND-4에서는 부트파일에 'options no-recursion'을 추가함으로써, Iterative 모드로 전환할 수 있고, BIND-8의 경우엔 options 엔트리에 'recursion no;'를 설정한다.
+Recursion 허용시 DNS 반사 증폭공격 (Amplification)에 악용될 수 있다.
+실제로 상당한 서버가 Recursion 이 허용되어 운영되고 있다.    큰 문제가 되면서 DDoS 공격의 증폭용도로 악용되어 큰문제가 되면서 fix하게 되었고
+점차 숫자가 줄어들고 있다.
+
+
+rpm (프로그램 설치)
+rpm -qa   (Redhat 설치된 패키지를 출력)
+rpm -ql
+rpm -qc
+rpm -qf
+
+include -  외부의 문서를 읽어 올때
+
+roror@localhost:/var$ sudo dnf install bind bind-utils
+
+# vi /etc/named.conf
+listen-on port 53 { 10.0.0.200; 127.0.0.1; };
+allow-query     { any; };
+
+
+zone "roror.co.kr" IN {
+        type primary;
+        file "roror.co.kr.zone";
+        allow-update { none; };
+};
+
+zone "200.0.0.10.in-addr.arpa" IN {
+        type primary; 
+        file "200.0.0.10.db";
+        allow-update { none; };
+};
+
+# cd /var/named
+# cp -a named.localhost roror.co.kr.zone -a
+# cp -a named.loopback 200.0.0.10.db
+
+
+# vi roror.co.kr.zone
+$TTL 1D
+@       IN SOA  @ admin.roror.co.kr. (
+                                        0       ; serial
+                                        1D      ; refresh
+                                        1H      ; retry
+                                        1W      ; expire
+                                        3H )    ; minimum
+        NS      @
+        A       10.0.0.200
+www     A       10.0.0.200
+web     A       10.0.0.200
+kali    A       10.0.0.130
+
+# vi 200.0.0.10.db
+$TTL 1D
+@       IN SOA  @ admin.roror.co.kr. (
+                                        0       ; serial
+                                        1D      ; refresh
+                                        1H      ; retry
+                                        1W      ; expire
+                                        3H )    ; minimum
+        NS      @
+        A       10.0.0.200
+200     PTR     roror.co.kr.
+200     PTR     www.roror.co.kr.
+
+# systemctl enable --now named
+   systemctl enable named
+   systemctl start named
+   systemctl restart named
+   systemctl reload named
+
+
+- 파일 속성 변경(관리자도 포함 적용)
+# chattr +i /etc/resolv.conf   ( -a  추가만 가능, -i : 추가 삭제 불가)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

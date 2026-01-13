@@ -1,0 +1,310 @@
+라우터 문제 정리
+
+ip route 네트워크주소 서브넷 마스크 상대방(라우터IP) 또는 나의 장치명
+ip route 192.168.0.0 255.255.255.0 10.0.0.1
+ip route 192.168.0.0 255.255.255.0 serial 0/1(자신의 인터페이스)
+ip route 0.0.0.0 0.0.0.0 10.0.0.1 (Default Static Routing)
+ 아 잠온다스테틹?!라우팅!//라우터..알월?알ㅊ파드라이브원 뭔 쓰라고?
+
+ip route 233.234.201.0 255.255.255.0 192.168.150.2
+
+
+bandwidth 웩..
+
+transport input ssh
+
+ip domain-name ICQA
+
+ip default-gateway ~
+
+ip dhcp pool ICQA
+
+route rip
+v 2
+network ~
+
+route ospf 1
+network 192.168.0.0 0.0.0.255 area 0
+
+------------------강사님 필기--------------------------------------
+- 암기
+ip route 네트워크주소 서브넷 마스크 상대방(라우터IP) 또는 나의 장치명
+ip route 192.168.0.0 255.255.255.0 10.0.0.1
+            상대방 네트워크 주소      상대방(인접한 라우터 주소)
+ip route 192.168.0.0 255.255.255.0 serial 0/1(자신의 인터페이스)
+ip route 0.0.0.0 0.0.0.0 10.0.0.1    ( Default Static Routing, 자동화 개념)
+ip route (상대방네트워크) (서브넷마스크) (상대방 라우터 아이피)
+
+route rip
+(버전 2로 명시 되어 있다면 v 2 입력)
+network 192.168.0.0  (자신의 인터페이스 주소이다. 네트워크 주소 가능)
+
+route ospf 1   (1번은 프로세스를 구분하기 위한 값, 임의 지정 가능)
+network 192.168.0.0 0.0.0.255 area 0     ( area 0 은 지정 또는 임의값 0)
+ - network (주소는 자신의 인터페이스 주소 사용해도 된다)
+
+RIP - R1
+route rip
+(아무런 설명이 없으면 v 2 생략)
+network 192.168.150.1  (자신의 인터페이스 주소, 사용 가능)
+network 151.15.0.0 (네트워크 주소 사용 가능 Classless 방식)
+
+OSPF -   
+1) route ospf (숫자값을 지정해 주어야 한다. 또는 임의 값 입력 지시)
+2) network 인터페이스주소 와일드카드 area 0  (area 0 도 지정해준다 없으면, 0 입력)
+   서브넷 마스크 또는 와일드카드 지시 없으면 0.0.0.0 입력
+--------------------------------------------------------------------------------------
+
+
+SQL기초(구축)
+
+함수
+printf("Hello word!");
+정의된 함수 eve(), system()
+
+http
+from태그 
+<form action="" nethod="">
+action 버튼 클릭 시
+method body data 
+
+vi common.php
+  7         function mysql_conn() {
+  8                 $host = "127.0.0.1";
+  9                 $id = "roror";
+ 10                 $pw = "qhdks12";
+ 11                 $db = "pentest";
+ 12 
+ 13                 $db_conn = new mysqli($host, $id, $pw, $db);
+ 14 
+ 15                 return $db_conn;
+ 16         }
+
+vi action.php
+  4         include ( './common.php' )
+  7         $db_conn = mysql_conn();
+ 92                 $result = $db_conn->query($query);
+ 41                 $query = "insert into {$tb_name}(title, id, writer, password, content, file, se    cret, regdate) values('{$title}', '{$id}', '{$writer}', '{$password}', '{$content}', '{$uploadF    ile}', '{$secret}', now())";
+ 42                 $db_conn->query($query);
+
+vi list.php
+  4   $db_conn = mysql_conn();
+ 12     $query = "select * from {$tb_name}";
+ 31   $result = $db_conn->query($query);
+ 32   $num = $result->num_rows;
+
+
+
+field (필드) → 하나의 속성, 열(column)
+record (레코드) → 여러 필드가 모인 하나의 행(row)
+table (테이블) → 여러 레코드로 구성된 전체 표
+
+CRUD는 대부분의 컴퓨터 소프트웨어가 가지는 기본적인 데이터 처리 기능인 
+Create(생성), Read(읽기), Update(갱신), Delete(삭제)를 묶어서 일컫는 말이다. 
+사용자 인터페이스가 갖추어야 할 기능(정보의 참조/검색/갱신)을 가리키는 용어로서도 사용된다.
+
+
+
+- 접속 방법
+mysql -u 계정 -p(엔터)  : 패스워드 입력
+mysql -u 계정 -p'password'
+mysql -u 계정 -p'password' dvwa   (로그인후 use dvwa; 와 동일)
+mysql -u 계정 -p'password' -h 10.0.0.200 (DB 서버 주속)(권한 있어야함)
+mysql -u 계정 -p -h 10.0.0.200 -P 3306(포트 지정 접속)
+
+- 데이터베이스에 외부에서 접속시 host(접속 IP)를 지정해 주어야 한다.
+  계정@'%' 는 모든곳에서 접근 허용하겠다는 뜻.
+  DB 서버 자신의 주소가 아닌 접속(Client)주소이다.
+
+MariaDB [mysql]> select host, user from user;
+MariaDB [mysql]> describe user;
+SELECT host, user, password, plugin, ssl_type, ssl_cipher, authentication_string FROM user;
+
+
+
+root@roror:/home/roror# lsof -i:3306
+COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+mariadbd 1286 mysql   25u  IPv4  14916      0t0  TCP *:mysql (LISTEN)
+mariadbd 1286 mysql   26u  IPv6  14917      0t0  TCP *:mysql (LISTEN)
+
+root@roror:/home/roror# ss -tuanp | grep 3306
+tcp   LISTEN 0      80           0.0.0.0:3306      0.0.0.0:*    users:(("mariadbd",pid=1286,fd=25))                                                                    
+tcp   LISTEN 0      80              [::]:3306         [::]:*    users:(("mariadbd",pid=1286,fd=26))   
+
+root@roror:/home/roror# lsof -u mysql
+/*~~*/
+
+root@roror:/home/roror# systemctl status firewalld
+
+MariaDB [(none)]> grant all privileges on *.* to roror@'%';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> drop user 'roror'@'%';
+Query OK, 0 rows affected (0.011 sec)
+
+MariaDB [mysql]> create user 'roror'@'%';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> GRANT all privileges ON *.* TO hacker@'%' IDENTIFIED BY 'qhdks12' require ssl;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+
+kali@kali:~$ sudo -s su - root                
+root@kali:~# 
+
+
+
+
+------------------------------------강사님필기------------------------------------------------------------------------------------------------------------------------
+함수
+ printf()
+- 정의된 함수  eve(), system()....... 
+- 사용자 함수 int jeong() { 내용 }
+
+- common.php
+function mysql_conn() {
+ $db_conn = new mysqli($host, $id, $pw, $db);
+
+- list.php
+$db_conn = mysql_conn(); 
+$query = "select * from {$tb_name}";
+$result = $db_conn->query($query);
+$num = $result->num_rows;
+
+field (필드) → 하나의 속성, 열(column)
+record (레코드) → 여러 필드가 모인 하나의 행(row)
+table (테이블) → 여러 레코드로 구성된 전체 표
+
+CRUD는 대부분의 컴퓨터 소프트웨어가 가지는 기본적인 데이터 처리 기능인 
+Create(생성), Read(읽기), Update(갱신), Delete(삭제)를 묶어서 일컫는 말이다. 
+사용자 인터페이스가 갖추어야 할 기능(정보의 참조/검색/갱신)을 가리키는 용어로서도 사용된다.
+
+
+
+- 접속 방법(3306)
+mysql -u 계정 -p(엔터)  : 패스워드 입력
+mysql -u 계정 -p'password'
+mysql -u 계정 -p'password' dvwa   (로그인후 use dvwa; 와 동일)
+mysql -u 계정 -p'password' -h 10.0.0.200 (DB 서버 주속)
+mysql -u 계정 -p -h 10.0.0.200 -P 3306(포트 지정 접속)
+
+- 데이터베이스에 외부에서 접속시 host(접속 IP)를 지정해 주어야 한다.
+  계정@'%'  는   모든곳에서 접근 허용하겠다는 뜻이다.
+  DB 서버 자신의 주소가 아닌 접속(Client) 주소이다.
+
+MariaDB [mysql]> select host, user from user;
+MariaDB [mysql]> describe user;
+SELECT host, user, password, plugin, ssl_type, ssl_cipher, authentication_string FROM user;
+
+
+- 특정 프로그램(포트)이 작동하고 있는지 확인 하는 방법중 일부!!!!
+
+- 포트가 개방되어 있는가(LISTEN...)
+  출력값(화면에 출력이 된다면) 해당 포트는 누군가 사용을 하고 있다.
+# ss -tuanp | grep 3306
+# netstat -antup | grep 3306
+# ps -ef | grep mysql         // 프로세스 실행 되고 있는가(데몬)
+# lsof -i:3306
+# lsof -u mysql
+
+- 재부팅시 활성화/비활성화 검색? list
+# systetmctl status firewalld
+
+list-units
+list-unit-files
+# systemctl list-unit-files | grep httpd
+# systemctl list-unit-files --state=enabled | grep httpd
+# firewall-cmd --list-all   (services, ports)
+
+- 최근 클라이언트에서 접속시 인증서관련(엄격하게 적용됨) 설정을 해주어야 한다.
+  SSL 적용시
+- 원격에서 접속하기 위해서는 사용자 설정
+$ mysql -u'user' -p -h 10.0.0.201 --ssl-mode=DISABLED  
+$ mysql -u'user' -p -h 10.0.0.201 --ssl=0
+$ mysql -uhacker -p -h roror.co.kr --skip-ssl-verify-server-cert
+
+--------------------------
+사용자 생성 및 권한 적용
+방법 1
+> create user 'roror'@'%' identified by 'qhdks12';
+> grant all privileges on *.* to 'roror'@'%';
+
+방법 2
+> grant all privileges on *.* to 'roror'@'%' identified by 'qhdks12';
+-------------------------
+
+
+
+----------------------------
+- SSL 사용자 추가(평문/암호화 가능)
+> drop user roror@'%';
+> GRANT all privileges ON *.* TO roror@'%' IDENTIFIED BY 'qhdks12';        // 평문, SSL 가능
+> flush privileges;
+
+- SSL 사용자 추가(hacker 사용자는 암호화 통신만 가능하다.)
+> drop user hacker@'%';
+> GRANT all privileges ON *.* TO hacker@'%' IDENTIFIED BY 'qhdks12' require ssl;     //  SSL 만 가능
+> flush privileges;
+-----------------------------------
+
+
+- 서버에서 SSL 을 사용하지 않고 있다
+$ mysql -uhacker -p -h roror.co.kr --skip-ssl-verify-server-cert  (접속 불가) --> SSL 사용자로 생성
+$ mysql -uroror -p -h roror.co.kr --skip-ssl-verify-server-cert (접속 가능)
+
+
+- Kali (최근 Client 버전) - 서버에서는 아직 적용이 안되어 있음(미래?.... )
+1) 서버 평문
+(접속불가)$ mysql -uhacker -p -h roror.co.kr --skip-ssl-verify-server-cert
+(접속가능)$ mysql -uroror -p -h roror.co.kr --skip-ssl-verify-server-cert  (--ssl=0)
+
+2) 서버 암호화
+(접속가능)$ mysql -uahcker -p -h roror.co.kr --skip-ssl-verify-server-cert
+(접속가능)$ mysql -uroror -p -h roror.co.kr --skip-ssl-verify-server-cert 
+
+3) 지정 해서 접속
+$ mysql -uhacker -p -h roror.co.kr --ssl-ca=.ssh/ca.pem
+
+4) 또는 파일에 설정하고 접속
+$ vi .my.cnf
+[client]
+ssl=1
+ssl-ca=/home/kali/.ssh/ca.pem
+#ssl-mode=VERIFY_CA
+
+$ mysql -uhacker -p -h roror.co.kr
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,61 @@
+- L3 Switch
+ 서로 다른 네트워크간 통신
+ gateway 통해서 패킷전달
+ Switch 는 gateway 설정 한적이 없다!
+ 라우터는 인터페이스(랜)에 IP 적용
+- L3 Switch는 interface vlan  적용한다.
+
+Switch(config)#interface vlan 10
+Switch(config-if)#ip add 10.0.10.1 255.255.255.0
+
+Switch(config-if)#interface vlan 20
+Switch(config-if)#ip add 10.0.20.1 255.255.255.0
+
+C:\>ping 10.0.10.2
+L3 스위치의 VLAN 에 IP를(gateway)를 설정 했다고 서로 다른 네트워크간 통신이 되는건 아니다.
+Switch(config)#ip routing 명령을 이용해서 라우팅을 허용해 주어야 한다.
+
+
+
+--------------------------------
+1. gateway (192.168.0.1)
+2. Router 와 연결된 포트에 IP 설정(10.10.10.1)
+
+Router1
+interface fa0/0
+Router(config-if)#ip add 10.10.10.2 255.255.255.252
+Router(config-if)#no sh
+Router#sh ip int br
+
+
+Switch(config)#int g1/0/1 // 오류 발생
+Switch(config-if)#ip add 10.10.10.1 255.255.255.252
+
+Switch#sh vlan
+Switch(config)#int vl 1
+Switch(config-if)#ip add 192.168.0.1 255.255.255.0
+Switch(config-if)#no sh
+
+Switch(config)#int g1/0/1
+Switch(config-if)#no switchport   // 스위치 포트를 사용하지 않고 라우트 인터페이스로 사용하겠다.
+Switch(config-if)#ip add 10.10.10.1 255.255.255.252
+Switch(config-if)#no sh
+
+Switch(config)#ip routing
+
+- 라우터
+Router(config-if)#int  f0/1
+Router(config-if)#ip add 172.16.0.1 255.255.255.0
+Router(config-if)#no sh
+
+
+Router(config)#ip route 192.168.0.0 255.255.255.0 10.10.10.1
+
+Switch(config)#ip route 172.16.0.0 255.255.255.0 10.10.10.2
+
+
+---- 참고사항 ----
+Switch(config)#ip routing    // L3 에서 라우팅이 가능하도록 설정(라우터 기능을 사용시)
+Switch(config-if)#no switchport  // 스위치 포트를 사용하지 않겠다(스위치 포트로 사용하지 않고, 수동으로 IP 설정이 가능하다.)
+Switch(config)#int vl 1   //  게이트웨이 포트로 설정 가능하다. (VLAN 간)
+Switch(config-if)#ip add 192.168.0.1 255.255.255.0

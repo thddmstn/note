@@ -1,0 +1,283 @@
+input {
+  file {
+    path => "/var/log/suricata/eve.json"
+    start_position => "beginning"
+    sincedb_path => "/var/lib/logstash/sincedb_eve"
+    codec => json
+    stat_interval => "1 second"
+  }
+}
+
+filter {
+  # 1. 공통 처리: 타임스탬프 정규화
+  date {
+    match => [ "timestamp", "ISO8601" ]
+    target => "@timestamp"
+  }
+
+  # 2. event_type별 처리 (else if로 성능 최적화)
+  if [event_type] == "alert" {
+    mutate {
+      copy => { "[alert][severity]" => "alert_level" }
+      copy => { "[alert][signature]" => "alert_msg" }
+    }
+  }
+  else if [event_type] == "flow" {
+    mutate {
+      copy => { "flow_id" => "flow_info" }
+    }
+  }
+  else if [event_type] == "stats" {
+    mutate {
+      copy => { "[stats][decoder][pkts]" => "pkts_total" }
+      copy => { "[stats][decoder][bytes]" => "bytes_total" }
+    }
+  }
+
+  # 3. GeoIP 처리 (src_ip)
+  if [src_ip] and [src_ip] !~ /^(127|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.)/ {
+    geoip {
+      source => "src_ip"
+      target => "geoip"
+      database => "/etc/logstash/GeoLite2-Country.mmdb"
+      tag_on_failure => ["_geoip_src_fail"]
+    }
+  }
+
+  # 4. GeoIP 처리 (dest_ip - 8.8.8.8 등 외부 목적지 분석)
+  if [dest_ip] and [dest_ip] !~ /^(127|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.)/ {
+    geoip {
+      source => "dest_ip"
+      target => "dest_geoip"
+      database => "/etc/logstash/GeoLite2-Country.mmdb"
+      tag_on_failure => ["_geoip_dest_fail"]
+    }
+  }
+
+  # 5. 빈 값 및 실패 태그 정리 루틴 (중요!)
+  ruby {
+    code => "
+      ['geoip', 'dest_geoip'].each do |field|
+        if event.get(field).nil? || (event.get(field).is_a?(Hash) && event.get(field).empty?)
+          event.remove(field)
+        end
+      end
+    "
+  }
+  
+  # 실패 태그가 있으면 보기 싫으므로 제거 (선택 사항)
+  mutate {
+    remove_tag => ["_geoip_src_fail", "_geoip_dest_fail", "_geoip_lookup_failure"]
+  }
+}
+output {
+  if [event_type] == "alert" {
+    elasticsearch {
+      hosts => ["https://elk.roror.co.kr:9200"]
+      index => "suricata-alerts-%{+YYYY.MM.dd}"
+      user => "elastic"
+      password => "qhdks12"
+      ssl_enabled => true
+      ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+      ssl_verification_mode => "full"
+      data_stream => false
+    }
+  }
+  else if [event_type] == "flow" {
+    elasticsearch {
+      hosts => ["https://elk.roror.co.kr:9200"]
+      index => "suricata-flows-%{+YYYY.MM.dd}"
+      user => "elastic"
+      password => "qhdks12"
+      ssl_enabled => true
+      ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+      ssl_verification_mode => "full"
+      data_stream => false
+    }
+  }
+  else if [event_type] == "stats" {
+    elasticsearch {
+      hosts => ["https://elk.roror.co.kr:9200"]
+      index => "suricata-stats-%{+YYYY.MM.dd}"
+      user => "elastic"
+      password => "qhdks12"
+      ssl_enabled => true
+      ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+      ssl_verification_mode => "full"
+      data_stream => false
+    }
+  }
+  # 디버깅용 (문제가 해결될 때까지 켜두는 것을 추천)
+  # 모든 문제 해결후 주석처리
+  stdout { codec => rubydebug }
+}
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+root@elk:~/elk-certs# mkdir -p ~/elk-certs && cd $_
+root@elk:~/elk-certs# /usr/share/elasticsearch/bin/elasticsearch-certutil ca --pem --out ~/elk-certs/ca.zip
+root@elk:~/elk-certs# unzip ca.zip 
+// ca 생성
+
+
+root@elk:~/elk-certs/ca# vi /etc/systemd/resolved.conf 
+DNS=10.0.0.200
+FallbackDNS=8.8.8.8
+
+root@elk:~/elk-certs/ca# systemctl restart systemd-resolved
+
+
+
+
+
+root@elk:~/elk-certs# vi instances.yml
+instances:
+  - name: node1
+    dns:
+      - node1
+      - elk.roror.co.kr
+      - localhost
+    ip: 
+      - 10.0.0.222
+      - 127.0.0.1
+  - name: node2
+    dns:
+      - node2
+      - www.roror.co.kr
+    ip: 
+      - 10.0.0.200
+
+
+root@elk:~/elk-certs/ca# vi /etc/hosts
+10.0.0.222 elk.roror.co.kr elk node1
+10.0.0.200 roror.co.kr
+10.0.0.200 www.roror.co.kr node2
+
+alma vi /etc/hosts
+10.0.0.222 elk.roror.co.kr elk node1
+10.0.0.200 www.roror.co.kr node2
+
+
+root@elk:~/elk-certs# /usr/share/elasticsearch/bin/elasticsearch-certutil cert --pem --ca-cert ~/elk-certs/ca/ca.crt --ca-key ~/elk-certs/ca/ca.key --in ~/elk-certs/instances.yml --out ~/elk-certs/cluster-certs.zip --multiple
+// 인증서 발급 
+
+root@elk:~/elk-certs# unzip cluster-certs.zip 
+
+
+
+
+ca가 뭐고 cert가 뭐지.........
+
+
+root@elk:~/elk-certs# mkdir certs
+root@elk:~/elk-certs# mv node1 certs/
+root@elk:~/elk-certs# mv node2 certs/
+root@elk:~/elk-certs# cp certs/node1/* ca/ca.crt /etc/elasticsearch/certs/
+root@elk:~/elk-certs# chown -R elasticsearch: /etc/elasticsearch/certs
+root@elk:~/elk-certs# chmod 600 /etc/elasticsearch/certs/*
+root@elk:~/elk-certs# cp ca/ca.crt /etc/kibana/certs/
+root@elk:~/elk-certs# chown kibana: /etc/kibana/certs/ca.crt
+
+
+우분투의 ~/elk-certs/certs/node2/* 랑 /ca/ca.crt를 alma /home/roror/cert로 복사
+
+root@elk:~/elk-certs# scp certs/node2/* ca/ca.crt roror@10.0.0.200:/home/roror/certs
+
+
+
+
+
+root@roror:/home/roror# vi /etc/elasticsearch/elasticsearch.yml 
+ 17 cluster.name: my-secure-cluster
+ 23 node.name: node2
+ 56 network.host: 0.0.0.0
+ 70 discovery.seed_hosts: ["10.0.0.222", "10.0.0.200"]
+ 97 xpack.security.http.ssl:
+ 98   enabled: true
+ 99   certificate: certs/node2.crt
+100   key: certs/node2.key
+101   certificate_authorities:
+102     - certs/ca.crt
+106 xpack.security.transport.ssl:
+107   enabled: true
+108   verification_mode: certificate
+109   certificate: certs/node2.crt
+110   key: certs/node2.key
+111   certificate_authorities:
+112     - certs/ca.crt
+113   keystore.path: certs/transport.p12
+114   truststore.path: certs/transport.p12
+117 cluster.initial_master_nodes: ["node1","node2"]
+
+
+
+cluster.name: my-secure-cluster
+node.name: node1
+network.host: 0.0.0.0
+discovery.seed_hosts: ["10.0.0.222", "10.0.0.200"]
+xpack.security.http.ssl:
+  enabled: true
+  certificate: certs/node1/node1.crt
+  key: certs/node1/node1.key
+  certificate_authorities:
+    - certs/ca.crt
+xpack.security.transport.ssl:
+  enabled: true
+  verification_mode: certificate
+  certificate: ~/elk-certs/certs/node1/node1.crt
+  key: ~/elk-certs/certs/node1/node1.key
+  certificate_authorities:
+    - ~/elk-certs/ca/ca.crt
+  keystore.path: certs/transport.p12
+  truststore.path: certs/transport.p12
+cluster.initial_master_nodes: ["node1","node2"]
+
+
+
+
+echo -e '-Xms3g\n-Xmx3g' > /etc/elasticsearch/jvm.options.d/jvm-heap.options
+
+# systemctl daemon-reload
+# systemctl enable --now elasticsearch
+
+
+Elasticsearch의 xpack.security.transport.ssl 설정 시, 인증서를 로드하는 방식은 크게 두 가지로 나뉜다 두방식을 한 설정 안에 섞어서 사용하면 시스템은 어떤 인증서를 신뢰해야 할지 결정할 수 없어 부팅을 거부한다
+PEM(crt,key) 방식과 Keyston(.p12,.jks) 방식중 하나만 사용해야 한다,  
+
+
+- (Ubuntu)패스워드 변경
+# /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i 
+
+
+- kibana 추가(설정 중복 확인)
+elasticsearch.ssl.certificateAuthorities: ["/etc/kibana/certs/ca.crt"]
+elasticsearch.ssl.verificationMode: certificate
+
+- 테스트
+# curl --cacert /etc/kibana/certs/ca.crt https://elk.roror.co.kr:9200
+# curl -k https://elk.roror.co.kr:9200 -u elastic
+# curl -k https://node2.roror.co.kr:9200 -u elastic
+
+# getent hosts node1
+
+
+
+9200/9300 Open
+GET /_cat/nodes?v=true
+GET /_cat/health
+GET /_cluster/health
+
+
+GET /_cat/shards?v=true
+GET /_cat/shards?v=true&h=index,shard,prirep,state,node
+
+
+※ 샤드(Shard) 분산
+인덱스는 기본적으로 5개의 샤드(primary shards) 로 나뉘며
+노드가 여러 개 있으면 Elasticsearch가 자동으로 샤드를 노드별로 분산 배치한다
+
+

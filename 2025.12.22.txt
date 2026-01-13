@@ -1,0 +1,424 @@
+1. PAM 이란
+
+2. PAM 공유 라이브러리 위치 및 로그인 과정 이해
+
+3. password-auth, login, system-auth  파일의 이해
+
+4. 패스워드 복잡성 credit 이해
+
+5. (실습)pam_securetty.so  모듈 이해
+
+6. (실습)pam_listfile.so 모듈 이해  (su, sshd 에 적용 및 문제점 파악)
+
+7. pam_access.so 모듈 이해(접근제어)
+  참고 - iptables,  tcp-wrapper   차이점
+  - 관리자(root)는 로컬, 원격 에서 접속불가(ssh 접속후 su를 이용하여 관리자로 접근 금지)
+  - 관리자 명령어는 특정 사용자(rororlocal)만 사용
+  - su 는 rororlocal 만 사용 가능
+
+8. fail2ban 을 이용하여 접근 차단 방법(적용 범위 파악)
+
+9. 계정 잠금 임계값 설정 모듈 이해
+- 버전별 차이점 pam_tally, pam_tally2, pam_faillock 의 이해
+- pam_faillock.so 수동으로 적용 방법 : 각 로그인 환경에 따라 적용범위 및 흐름 이해
+
+10. authselect 사용방법 및 프로그램 이해
+ - 파일, 프로파일, 기능 활성화/비활성화, 적용, 기능 추가
+ - 계정 잠금 임계값 설정
+
+11. LDAP 이해 및 실습
+ - 사용자·그룹·비밀번호 같은 계정 정보를 한곳(중앙 서버)에 모아 관리하고 조회하는 표준 프로토콜?
+ - 회사·학교에서 사용자, PC, 권한, 정책을 중앙에서 관리하는 윈도우 기반 디렉터리 서비스?
+ - Kerberos : 실제 로그인 인증, DNS, GPO 등 기타 구성 요소
+ - oddjobd 서비스 이해
+
+ - 내부적으로는 realmd가 AD/LDAP 탐색·가입·SSSD 설정을 자동 처리해 준다.
+ - realm 명령어는 realmd를 통해 리눅스를 AD/LDAP 도메인에 가입·관리하며, 인증 자체는 SSSD와 Kerberos/LDAP이 수행한다.
+ - SSSD (System Security Services Daemon)는 리눅스가 AD/LDAP 같은 “외부 계정 서버”를 로컬 계정처럼 쓰게 해주는 중간 관리자 데몬이다. (계정 정보 조회, 인증연동, PAM/NSS 연결)
+  ssh user@domain > PAM > pam_sss.so > SSSD > Kerberos (인증) > LDAP (사용자/그룹 조회)
+ - (참고)pam_unix → 로컬 계정 (/etc/passwd, /etc/shadow)
+ - (참고)pam_sss → 중앙 계정 (AD/LDAP)
+
+
+
+Password complexity (암호 복잡성 설정)
+ - 이전 버전 사용 방법
+password requisite pam_cracklib.so retry=3 minlen=8 difok=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1
+pam_pwquality 사용 방법 : 설정 pwquality.conf   //  /etc/security/pwquality.conf
+
+root@roror:/etc/security# vi pwquality.conf
+ 11 minlen = 10   // 최소길이 설정
+
+ 20 ucredit = 2   // upper??  아 대문자 2개 까지 1 크리딧을 추가해준다..
+ 20 ucredit = -2   // 대문자 2개 포함되어야함.
+eogksals!2  --> 10 크리딧
+EOgksals    --> 10 크리딧  // 대문자
+
+EOGksal
+
+
+- 7버전 까지의 패스워드 재사용 금지
+   # vi /etc/pam.d/system-auth
+   password    requisite     pam_pwquality.so try_first_pass local_users_only retry=3 authtok_type=
+   password    requisite     pam_pwhistory.so remember=5 use_authtok    # 해당 위치에 추가(Rocky 는 필요 없다.)
+   password    sufficient    pam_unix.so sha512 shadow nullok try_first_pass use_authtok
+
+
+authconfig --passminlen=10 --passminclass=4 --passmaxrepeat=4 --enablerequpper --enablereqdigit --update
+
+
+
+
+
+
+
+
+
+#include <security/pam_appl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define PORT 5555
+
+static int pam_conv_func(int num_msg,
+                         const struct pam_message **msg,
+                         struct pam_response **resp,
+                         void *appdata_ptr)
+{
+    struct pam_response *reply = calloc(num_msg, sizeof(struct pam_response));
+    if (!reply) return PAM_CONV_ERR;
+
+    for (int i = 0; i < num_msg; i++) {
+        if (msg[i]->msg_style == PAM_PROMPT_ECHO_OFF) {
+            reply[i].resp = strdup((char *)appdata_ptr);
+        }
+    }
+
+    *resp = reply;
+    return PAM_SUCCESS;
+}
+
+int main() {
+    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    struct sockaddr_in addr = {0};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(PORT);
+
+    bind(server_fd, (struct sockaddr *)&addr, sizeof(addr));
+    listen(server_fd, 5);
+
+    printf("[+] PAM server listening on %d\n", PORT);
+
+    int client = accept(server_fd, NULL, NULL);
+
+    FILE *fp = fdopen(client, "r+");
+    char user[64], pass[128];
+
+    if (!fgets(user, sizeof(user), fp)) return 1;
+    if (!fgets(pass, sizeof(pass), fp)) return 1;
+
+    user[strcspn(user, "\n")] = 0;
+    pass[strcspn(pass, "\n")] = 0;
+
+    printf("[+] user=%s\n", user);
+
+    pam_handle_t *pamh = NULL;
+    struct pam_conv conv = { pam_conv_func, pass };
+
+    int ret = pam_start("remote_auth", user, &conv, &pamh);
+    if (ret != PAM_SUCCESS) goto out;
+
+    ret = pam_authenticate(pamh, 0);
+    if (ret != PAM_SUCCESS) {
+        fprintf(fp, "AUTH FAIL\n");
+        goto out;
+    }
+
+    ret = pam_acct_mgmt(pamh, 0);
+    if (ret != PAM_SUCCESS) {
+        fprintf(fp, "ACCOUNT FAIL\n");
+        goto out;
+    }
+
+    fprintf(fp, "AUTH OK\n");
+
+out:
+    pam_end(pamh, ret);
+    fclose(fp);
+    close(server_fd);
+    return 0;
+}
+
+
+
+
+auth     required pam_unix.so
+account  required pam_unix.so
+
+
+
+- 접근통제(DAC,MAC,RBAC)
+SELinux(Security-Enhanced Linux)란 
+리눅스 보안 모듈 구조체(Linux Security Modules(LSM) framework)를 이용하여 
+리눅스 커널에 의무 접근 제어(Mandatory Access Control - MAC)를 구현하는 것이다
+
+
+
+
+
+Selinux 장점
+HTTP 데몬이 취약점을 통해 권한을 휙득해도 아파치 같은 서버는 낮은 동급의 권한을 부여 받으므로 공격자는 일반 사용자의 홈 디렉터리를 읽을 수 없고 /tmp에 파일을 쓸 수 없다.
+MySQL 와 삼바를 사용한다면 삼바의 취약점을 이용 권한 획득후 MySQL DB에 접근 시도시 Selinux에서는 삼바와 MySQL은 별도의 도메인으로 격리되어 동작되므로 접근할 수 없다.
+
+Selinux 단점
+자료부족, 에러 발생시 원인을 알기 어렵다
+보안에 대해 그리 심각하게 생각하지 않고 문제가 발생시 대처하면 된다는 생각
+
+Selinux 의 한계
+주요 목표는 잘못된 설정이나 프로그램의 보안 버그로 인해 시스템이 공격 당해도 시스템과 데이터를 보호하고 2차 피해를 막는 것이다.
+하지만 Firewall/IDS/IPS/백신 이 아니다
+
+
+접근통제를 할 때는 원칙을 지켜서 정책과 모델을 구현해야 한다.
+1) 최소 권한 부여 : 업무 수행 시 꼭 필요한 권한만 부여한다.
+2) 최대 권한의 정책 : 데이터 공유의 장점으로 가용성을 관리한다.
+3) 직무 분리의 원칙 : 보안, 감사 관리 등 직무의 권한을 분리한다.
+
+1. 벨-라파듈라(Bell-Lapadula, BLP)는 정부 및 군용 응용 시스템의 접근 제어를 보장하기 위해 제안되었고, 수학적 모델을 사용한 유한 상태 머신에 근간한 모델이다.
+ 1) 상위 읽기 불가, 상위 쓰기 가능, 하위 읽기 가능, 하위 쓰기 불가
+ 2) 기밀성을 지키는 모델로서, 군대에서 장군은 거의 모든 데이터를 읽을 수 있지만, 장군이 만드는 데이터는 중요한 데이터이므로 일반 병사가 읽을 수 있는 영역에 넣지 못하게 하는 No Write Down이 핵심이다. 
+
+2. 비바(Biba)는 낮은 비밀 등급에서 높은 비밀 등급으로 쓰지 못하도록 한다. 상업적 접근 제어인 비바는 낮은 비밀 등급에서 높은 비밀 등급으로 쓰지 못하도록 한다.
+그래서 높은 수준의 데이터가 낮은 수준의 데이터와 합쳐져 무결성이 오염되는 것을 방지하는 모델이다.
+ 1) 상위 읽기 가능, 상위 쓰기 불가, 하위 읽기 불가, 하위 쓰기 가능
+ 2) 벨-라파튤라 모델과는 방대의 원리를 가지는 형태로서, 무결성을 지키는 모델이다.
+ 3) 회사의 임원진이 매번 전 직원의 의견 데이터를 모두 모아서 중요한 의사결정을 수행한다고 하자, 이때 산업스파이를 침투시켜 잘못된 의견을 추가하면 어떻게 될것인가?
+ 4) 중요한 데이터 영역은 권한이 있는 사람만 작업해서 공유하도록 하는 방식이 필요하다. (예 : 공지사항 게시판, 관리자만 주요 내용을 전달)
+
+DAC : ID 기반
+MAC : 주체와 객체 기반
+RBAC : 역할 기반
+
+
+
+참조모니터 : 접근 행렬의 모니터 검사 기구를 추상화한 것으로 보안의 핵심 부분. 일반적으로는 흐름 제어도 그 대상으로 한다.
+
+운영체제의 참조 모니터(Reference Monitor)는 컴퓨터 시스템에서 보안 정책을 강제하는 기본적인 메커니즘이다.
+이는 보안에 매우 중요한 부분으로, 모든 접근 시도를 감시하고 통제하여 시스템의 보안을 유지하는 역할을 한다. 
+
+- 참조 모니터의 주요 특징과 기능은 다음과 같다.
+1. 접근 제어: 참조 모니터는 사용자나 프로세스가 시스템의 자원에 접근하려 할 때, 이를 검사한다. 접근 권한이 있는지, 허용된 동작인지를 확인하고 결정한다.
+2. 정책 강제: 시스템의 보안 정책을 강제한다. 이 정책은 보통 최소 권한 원칙(minimal privilege)이나 필요한 정보만 접근(need-to-know basis)과 같은 원칙에 기반한다.
+3. 감사 및 로깅: 접근 시도와 시스템 활동을 기록하며, 이를 감사(audit) 목적으로 사용할 수 있다. 이는 비정상적인 활동을 탐지하고 분석하는 데 중요하다.
+4. 보안성과 신뢰성: 참조 모니터는 시스템의 가장 신뢰할 수 있는 부분에 위치해야 하며, 보안상 중요한 역할을 하므로 높은 신뢰성과 보안성을 가져야 한다.
+5. 투명성: 일반 사용자나 프로세스에게는 보이지 않게 작동해야 한다. 사용자는 참조 모니터의 존재를 인식하지 못하며, 그것의 작동에 영향을 줄 수 없어야 한다.
+6. 효율성: 참조 모니터는 시스템 성능에 최소한의 영향을 주도록 설계되어야 한다. 시스템의 모든 접근 시도를 검사해야 하기 때문에, 높은 성능과 효율성이 요구된다.
+
+참조 모니터는 운영체제의 핵심 보안 구성 요소 중 하나이며, 시스템의 보안과 신뢰성을 유지하는 데 중추적인 역할을 한다.
+
+
+
+1. MAC 시스템은 (DAC)위와 같은 빠져있는 요소들을 제공한다. 
+1) 보안 정책을 모든 프로세스나 객체에 대하여 관리차원으로 규정 지을 수 있다. 
+2) 커널에 SELinux를 구현하면, 모든 프로세스와 객체를 제어할 수 있다. 
+3) 결정은 단지 인증된 사용자(user identity)에 의해서가 아니라 이용 가능한 (available) 모든 보안 관련 정보에 근거하여 이뤄진다.
+
+2. SELinux하에서 MAC는 
+모든 주체(subjects – 사용자, 프로그램, 프로세스)와 객체(파일, 디바이스)에 대해서 
+국부적(세부적)으로 허가(granular permissions)해 줄 수 있다. 
+응용프로그램에서 불필요한 부분은 제외하고 오직 필요한 기능에 대해서만 사용 권한을 안전하게 부여한다.
+
+
+MAC
+- SELinux는 강제 접근 제어(MAC) 모델을 구현하여 시스템의 모든 프로세스와 사용자에 대해 엄격한 정책을 적용한다.
+- MAC은 보안 정책을 중앙에서 정의하며, 사용자가 이를 무시하거나 수정할 수 없다.
+- SELinux는 사전 정의된 정책에 따라 파일, 프로세스, 네트워크 리소스에 대한 접근 권한을 결정한다.
+
+RBAC
+RBAC는 사용자에게 역할(roles)을 할당하고, 그 역할에 따라 접근 권한을 부여하는 접근 제어 방식이다.
+SELinux는 RBAC의 기능도 일부 포함할 수 있지만, 근본적으로 강제적 접근 제어를 중심으로 설계되었다.
+
+
+
+AWS IAM (Identity and Access Management) 는 RBAC(Role-Based Access Control) 를 구현할 수 있지만, 정확히 말하면 
+정책 기반 액세스 제어(Policy-Based Access Control) 모델에 더 가깝다
+AWS IAM은 다양한 접근 제어 모델을 지원하며, RBAC는 그중 하나로 구현될 수 있다
+
+SELinux 구현은 역할과 유형 시행(Type Enforcement - TE)에 기초하여 
+추상적 사용자 수준 제어(abstracted user-level control)를 제공하는 역할 기반 접근 제어(role-based access control – RBAC)를 사용한다. 
+TE는 접근제어를 처리하기 위해서 테이블(매트릭스)을 이용한다. 
+주체는 영역(domain)을 갖고 객체는 유형을 갖으므로, 매트릭스에서 교차조회하여 이들의 상호작용을 규정한다. 이는 
+리눅스 시스템에 있는 모든 동작자(actor)에 대하여 극단적으로 국부 제어를 가능케 한다.
+
+- 매트릭스는 시스템 내의 다양한 엔티티(예: 사용자와 그들의 도메인, 객체와 그 유형) 간의 상호 작용을 매핑하고 정의하기 위해 사용되는 구조화된 형식을 의미한다
+
+역할 기반 접근 통제(Role-Based Access Control, RBAC)는 사용자의 역할에 따라 시스템 자원에 대한 접근 권한을 제어하는 방법이다.
+이 방식은 사용자 개개인에게 개별적인 권한을 부여하는 대신, 사용자를 특정 역할에 할당하고 그 역할에 필요한 권한을 부여함으로써 보안 관리를 단순화한다.
+
+- RBAC은 다음과 같은 구성요소로 이루어져 있다.
+1. 역할(Role): 특정 작업을 수행하는 데 필요한 권한의 집합이다. 
+   예를 들어, '급여 관리자'라는 역할은 급여 관련 자료에 접근할 수 있는 권한을 가지고 있을 것이다.
+2. 사용자(User): 시스템에 접근하는 개인이나 시스템 계정이다. 사용자는 하나 이상의 역할에 할당될 수 있다.
+3. 권한(Permission): 자원에 대한 접근을 허용하는 권리이다. 권한은 자원에 대한 읽기, 쓰기, 수정, 삭제와 같은 구체적인 동작을 포함할 수 있다.
+3. 세션(Session): 사용자가 시스템에 로그인하여 특정 역할을 활성화하는 기간이다.
+
+- RBAC은 세 가지 주요 모델로 구분될 수 있다.
+1. 기본 RBAC (Core RBAC): 가장 기본적인 형태로, 사용자, 역할, 권한 간의 관계만을 정의한다.
+2. 계층적 RBAC (Hierarchical RBAC): 역할 간의 상속 구조를 통해 상위 역할이 하위 역할의 권한을 모두 가질 수 있도록 한다.
+3. 제약 조건 RBAC (Constrained RBAC): 동적 분리, 정적 분리와 같은 제약 조건을 추가하여, 예를 들어, 특정 역할을 동시에 수행할 수 없도록 하는 규칙을 설정할 수 있다.
+
+- RBAC의 이점은 다음과 같다.
+1. 보안 강화: 권한을 역할에 근거하여 관리함으로써 불필요한 접근을 최소화할 수 있다.
+2. 관리의 효율성: 역할 기반으로 권한을 관리하기 때문에 사용자가 많은 대규모 시스템에서도 관리가 용이하다.
+3. 책임 분명: 각 역할에 대한 권한이 명확히 정의되어 있어 감사 및 추적이 용이하다.
+4. 유연성과 확장성: 역할에 따라 권한을 조정함으로써 조직의 변화나 정책 변경에 신속하게 대응할 수 있다.
+
+RBAC는 많은 조직에서 중요한 보안 메커니즘으로 사용되며, 특히 권한 관리가 복잡한 환경에서 그 효율성이 높게 평가된다.
+
+
+
+
+
+
+
+Selinux 아키텍처
+Selinux는 리눅스 커널의 일부이며 시스템 콜은 Selinux 보안 모듈을 통해 보안 정책을 질의한후 처리되며, 
+모든 시스템 콜에 대해 Selinux가 보안 정책을 확인해 접근해야 접근 허용 여부를 판단해야 하므로 이를 빠르게 처리하기 위해 캐시를 활용하며, 
+이를 AVC라고 한다.   AVC는 질의에 최적화 되어 있다(추가/변경은 시간이 오래 걸린다.)
+
+SELinux 설정 방법
+SELinux를 설정하여 시스템을 보호할 수 있는 몇 가지 방법이 있다. 
+가장 일반적인 방법은 타겟 정책 또는 다단계 보안(Multi-Level Security, MLS)이다.
+타겟 정책은 기본 옵션으로서 다양한 프로세스와 태스크 및 서비스를 처리한다. MLS는 매우 복잡할 수 있으며 보통 정부 기관에서만 사용한다.
+/etc/sysconfig/selinux 파일을 보면 시스템이 어떤 방법으로 실행되어야 하는지 알 수 있다. 파일에는 SELinux가 허용 모드인지 실행 모드인지 아니면 비활성화 모드인지와 어떤 정책을 로드해야 하는지를 보여주는 섹션이 있다.
+
+
+1. NSA 에서 개발하였다.
+2. 주체(사용자, 프로세스, 애플리케이션) 이 객체(시스템자원/파일,디바이스,네트워크)에 대한 액세스 요청
+3. 셀 정책을 빠르게 하기위해 캐시를 활용하며 이것을 AVC라 한다.
+4. 셀리눅스는 주체의 보안 컨텍스트를 확인하고 정책에 따라 허용 또는 거부
+5. 거부 avc: denied 메시지가 messages 로그 또는 auth.log에 기록된다.
+
+- 레이블 유형 및 selinux 보는 방법
+- /etc/sysconfig/selinux --->  /etc/selinux/config
+root@roror:/etc/selinux# vi config 
+ 22 SELINUX=enforcing  // enforcing, permissive, disabled
+SELINUXTYPE policy type : 특정 대상 및 프로세스를 보호하는 targeted를 사용하면 무난하다.
+ - 변경할 수 있는 값은 mls 및 minimum 
+
+
+root@roror:/etc/selinux# rpm -qa | grep selinux
+root@roror:/etc/selinux# dnf install selinux-policy-mls   // ????
+root@roror:/etc/selinux# sealert -a /var/log/audit/audit.log
+
+
+
+[root@rocky roror]# dnf install -y policycoreutils-python-utils
+[root@rocky roror]# audit2why < /var/log/audit/audit.log
+
+
+root@roror:/etc/selinux# sestatus
+
+
+-------------강사님 메모--------------------------------------------------
+
+# dnf install -y policycoreutils-python-utils
+audit (작동시 확인)
+# audit2why < /var/log/audit/audit.log
+# sealert -a /var/log/audit/audit.log
+# sestatus
+current mode에서 현재 enforce 모드로 작동됨을 알수 있다.
+ - Disable모드는  SELinux가 꺼져 있고 액세스 제어의 기본 방식인 DAC가 사용되며 고급 보안이 필요 하지 않는 환경에서 사용된다.
+ - Permissive모드는 SELinux가 켜져 있고 다만 보안 정책 규칙은 강제되지 않는다. 보안 정책에 위반이 되어도 액세스는 허용되지만 메시지 /var/log/audit에 로그파일로 기록을 남긴다.
+ - Enforce 모드는 SELinux가 켜져 있고 모든 보안 정책 규칙이 강제 된다.
+
+# getenforce
+# setenforce 0, 1   (permissive, enforce)
+
+# semanage permissive -l
+
+- 주의 : Selinux 를 중지후 일정기간 경과후 활성화 시키면 오류가 발생 한다.
+ setenforce 1 을 실행하거나.
+1) # mount -o renount,rw /
+2) # touch /.autorelabel
+   # vi /etc/selinux/config  - SELINUX=permissive로 수정(재부팅하면 정상 적용)
+ 안전모드 진입하여 컨텍스트 초기화 해주면 된다. ( .authrelabel 빈파일 생성, Selinux 컨텍스트 변경 확정하기 위한 파일)
+
+------------------------------------------------------------------------------
+
+
+root@roror:/var/www/html# cp /etc/passwd ./ -a
+root@roror:/var/www/html# ls -lZ passwd
+root@roror:/var/www/html# restorecon -rv /var/www/html
+root@roror:/var/www/html# semanage permissive -a httpd_t
+root@roror:/var/www/html# semanage permissive -l
+root@roror:/var/www/html# vi /var/log/messages
+Dec 22 16:23:30 roror cupsd[1250]: REQUEST localhost - - "POST / HTTP/1.1" 200 184 Renew-Subscription client-error-not-found
+
+// ?????????
+
+root@roror:/home/roror# vi /etc/ssh/sshd_config
+root@roror:/home/roror# semanage port -a -t ssh_port_t -p tcp 22022
+
+root@roror:/home/roror# semanage login -l
+root@roror:/home/roror# semanage user -l
+
+
+
+----------강사님 메머---------------------------------------------------------
+
+  • SELinux 사용자(SELinux User)는 시스템 관리자가 지정한다. 
+   일반적으로 SELinux 사용자는 리눅스 사용자 계정과 매핑되어 있으며, 이 매핑은 semanage 명령으로 설정하거나 수정할 수 있다.
+  • 새 사용자 계정을 생성할 때, 기본적으로 __default__ 규칙에 따라 SELinux 사용자가 매핑된다
+
+1. 보안 컨텍스트(Security Context) : user:role:type:level  // ls -lZ 로 확인?
+
+2. 누가 어떤 역할을 가지고 있는지 확인 및 설정 : semanage login -l
+(SELinux 사용자로 명시적으로 매핑되지 않은 모든 계정은 unconfined_u 이다.)
+  • __default__ 매핑은 명시적으로 설정되지 않은 모든 리눅스 계정에 적용된다.
+  • __default__가 unconfined_u로 매핑된 것을 확인할 수 있다. 이는 특별히 매핑되지 않은 모든 계정이 unconfined_u로 동작함을 의미한다.
+  • 기본 SELinux 사용자는 일반적으로 unconfined_u 또는 특정 설정에 따라 달라질 수 있다
+(# ls -lZ) SELinux 레이블 유형 및 레이블을 보면
+ • root 및 일반 사용자에 매핑되는 unconfined_u(무제한)는 모든 항목에 제한을받지 않는 사용자라고 볼 수 있다. 
+  또한 실제 액세스 제어에 사용되는 도메인도 unconfined_t되고 거의 제한을 받지 않는다.
+ • RBAC은 시스템 관리자 나 Web 관리자, DB 관리자와 같은 역할이라는 역할에 따른 권한을 사용자에게 부여하여 액세스 제어 할 수있는 기능이다.  로그인 사용자에 대해 조작 할 수있는 범위를 제한 할 수 있다. 
+
+3. Selinux 사용자가 어떤 보안 역할과 범위를 가지고 있는지 확인 및 설정 : senamage user -l
+
+ • sysadm_u: 시스템 관리자용.
+ • staff_u: 제한적 관리 작업용.
+ • user_u: 일반 사용자용.
+ • guest_u: 임시 계정용.
+ • xguest_u: 웹 브라우징 전용 계정용.
+ • unconfined_u: 제한 없는 관리자용.
+
+------------------------------------------------------------------------------------
+
+root@roror:/home/roror# useradd user
+root@roror:/home/roror# passwd user
+root@roror:/home/roror# semanage user -a -R "user_r" -r s0 my_roror_u
+root@roror:/home/roror# semanage login -a -s my_roror_u user
+// user게정에 my_roror_u 룰을 지정?
+root@roror:/home/roror# semanage login -l   // user 생김
+
+semanage login -d user
+
+root@roror:/home/hacker# restorecon -Rv /home
+
+
+
+
+
+
+
+
+
+
+
+

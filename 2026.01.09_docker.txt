@@ -1,0 +1,566 @@
+*** 출력 형식을 변경시 format 옵션을 사용 ***
+1. docker 는 내부적으로 Go 템플릿 엔진을 사용하여 JSON 객체를 탐색한다.
+ # docker ps -a --format '{{.ID}}'   에서   .   은
+ 1) . 현재 context (기본적으로 하나의 컨테이너 정보)
+ 2) . 필드 해당 필드에 접근
+ 3) . 필드.서브필드 중첩 필드 접근
+ 4) docker ps -a --format "{{json .}}" 같은 {{ }} 구문은 단지 Docker 전용이 아니라,      Go 템플릿(Go text/template) 문법이다.
+  {{ . }}  현재 객체
+  {{ .Field }}  해당 필드
+  {{ if ... }} / {{ else }}  조건문
+  {{ range .Items }}  반복문
+  {{ printf "%s" .Name }}  포맷팅
+
+2.  아래의 .는 전체 JSON 객체 (컨테이너 또는 이미지 정보)를 의미
+# docker ps -a --format "{{json .}}"     // JSON 출력 활용, key 값을 확인 하여 사용
+옵   션  :  .ID, .Image, .Command, .CreatedAt, .RunningFor, .Ports, .Status, .Size, .Labels, .Label
+사용법  :  # docekr ps -a --format "옵션"
+# docker ps -a --format "{{.ID}}: {{.Status}}"
+# docker ps -a --format "talble {{.ID}}:\t {{.Status}}"  (table 사용)
+# docker rm `docker ps -a -q`
+
+
+---------------------------------------------------------------------------------------
+
+
+roror@roror:~$ docker run -itd --name ubuntu ubuntu /bin/bash
+roror@roror:~$ docker ps -a
+
+roror@roror:~$ docker create -i -t --name bWAPP raesene/bwapp
+roror@roror:~$ docker ps
+roror@roror:~$ docker ps -a
+
+roror@roror:~$ docker rm bWAPP
+roror@roror:~$ docker ps -a
+
+roror@roror:~$ docker network ls
+roror@roror:~$ docker logs ubuntu
+roror@roror:~$ docker ps -q
+d437ef77a6f6
+roror@roror:~$ docker stop `docker ps -q`
+
+roror@roror:~$ docker run -itd raesene/bwapp
+
+
+[root@rocky roror]# docker run -itd --restart=always --name ubuntu ubuntu /bin/bash
+// exit해도 안꺼짐
+
+
+root@b157d53b5755:/etc/init.d# /etc/init.d/apache2 start
+// apache2 install하고 실행
+
+[root@rocky roror]# docker commit -a "ubuntu_24.04" ubu thddmstn/ubuntu:01
+// 이미지 생성
+[root@rocky roror]# docker run -itd --name ubuntu thddmstn/ubuntu:01 /bin/bash
+root@997a2cc0cb9a:/# /etc/init.d/apache2 start
+// apache2 install되어있는 상태이기 때문에 바로 실행 가능
+
+
+-----------------------------------------------------------------------------------
+
+
+1. # docker run -it --name "centos7" centos:7 /bin/bash( /bin/bash 실행가능 )
+  --------------------------------------
+  docker run : 컨테이너 생성 및 실행  (create를 하지 않고 바로 생성 가능)
+  -it : 콘솔에 결과 출력, [-it] : 프로그램에 대한 컨테이너의 실시간 입출력 허용
+  --name "centos7" : 컨테이너 명
+  centos:7 : 이미지명(docker images,REPOSITORY)
+  /bin/bash : 컨테이너에서 실행하는 커맨드
+  -------------------------------------
+  # exit
+  # docker start centos7
+  # docker attach centos7
+  Ctrl + P,Ctrl + Q(exit 종료시 시스템이 중지가 되지만, P,Q는 유지된다.)
+  # docker stop centos7
+  # docker rm centos7
+  # docker ps -a
+
+2. 참고 명령어
+docker start  컨테이너 ID 또는 이름 (예 : # docker start centos7 )
+docker attach CONTAINER ID(NAME)
+docker stop CONTAINER ID(NAME)
+docker rm CONTAINER ID(NAME)
+docker rmi IMAGE ID(REPOSITORY:TAG)
+
+1. 구동 
+/etc/init.d/   ---> script (데몬 구동)
+
+
+--> 포터블(설치하지 않고 실행)
+2. source    
+
+- container --> image
+# docker commit -a "ubuntu_24.04" ubu fix1004/ubuntu:01
+
+- 이미지 복사
+# docker tag ubuntu:latest fix1004/ubuntu:24.04
+
+
+- 이미지를 파일로 복사
+# docker save -o my_ubuntu.tar fix1004/ubuntu:01
+# docker rmi fix1004/ubuntu:01
+
+- 파일을 이미지로 불러오기
+# docker load -i ./my_ubuntu.tar
+
+- 컨테이너를 파일로 저장
+# docker run -itd --name linux fix1004/ubuntu:01 /bin/bash
+# docker export linux > my_ubuntu.tar
+
+- 파일을 이미지로 불러오기
+# docker import ./my_ubuntu.tar ubuntu:2.0
+
+export : 컨테이너 동작에 필요한 파일이 모두 압축된다. 
+save : 레이어의 구조까지 포함한 형태로 압축된다.
+
+
+-------------------------------------------------------------------------
+
+[root@rocky roror]# docker network create my_network
+[root@rocky roror]# docker network rm my_network
+[root@rocky roror]# docker network ls
+
+[root@rocky roror]# docker network prune
+// 초기화
+
+
+--------------------------------------------------------------------------------
+
+
+docker run -itd --name "meta" -p 8080:80 tleemcjr/metasploitable2
+-p 호스트포트:컨테이너포트 
+(여러개 지정 가능) -p 호스트포트:컨테이너포트  -p 호스트포트:컨테이너포트 
+
+
+# docker run -itd --name meta --network host tleemcjr/metasploitable2
+
+# docker run -itd --name bwapp -p 8181:80 raesene/bwapp
+
+- host network 설명
+  위 명령어를 사용하면 컨테이너는 Docker의 가상 네트워크를 사용하지 않고, 호스트 머신의 네트워크 스택을 그대로 공유하게 된다.
+  장점  1) 네트워크 성능이 향상될 수 있으며, 네트워크 설정이 간소화된다  2) 컨테이너 내부에서 사용하는 포트가 호스트의 포트와 동일하게 되므로, 포트 매핑 없이도 접근이 가능하다.
+ 주의사항:  1) 호스트의 네트워크 인터페이스를 공유하기 때문에 보안 측면에서 주의가 필요하다.  2) 다른 네트워크 격리 기능(예: 네트워크 분리)이 적용되지 않아, 컨테이너 간의 충돌 가능성이 있을 수 있다.
+  3) 호스트 네트워크 모드는 여러 컨테이너에 동시에 지정할 수 있지만, 포트 관리와 보안 설정에 주의해야
+
+
+--------------------------------------------------------------------------------
+
+[root@rocky home]# docker network create myNetwork
+[root@rocky home]# docker network ls
+[root@rocky home]# docker network inspect myNetwork
+
+[root@rocky home]# docker run -itd --network myNetwork --name nginx1 nginx
+[root@rocky home]# docker run -itd --network myNetwork --name nginx2 nginx
+[root@rocky home]# docker exec -it nginx1 /bin/bash
+root@bbf416ad8071:/# curl -v nginx2
+root@bbf416ad8071:/# curl -v nginx1
+
+
+[root@rocky home]# docker network create -d macvlan -o macvlan_mode=bridge --subnet=10.0.0.0/24 --gateway=10.0.0.1 -o parent=ens160 net_sec
+
+# docker run -itd --name meta --network net_sec --ip 10.0.0.111 tleemcjr/metasploitable2
+# docker run -itd --name bwapp --network net_sec --ip 10.0.0.123 raesene/bwapp
+
+
+-------------------------------------------------------------------------------
+
+1. Docker Swarm은 컨테이너 오케스트레이션(여러 컨테이너를 자동으로 관리, 배포, 확장) 도구 중 하나인데, 최근 실무에서는 Kubernetes에 비해 상대적으로 덜 사용되는 편이다.
+  실무 vs 테스트 용도
+ 1) 테스트/개인 프로젝트 용도로 많이 사용
+     Swarm은 설정이 간단해서, 빠르게 클러스터 환경을 테스트하거나 데모 환경을 만들 때 많이 사용한다.
+ 2) 실무/프로덕션에서는 Kubernetes가 대세
+    대규모 서비스, 복잡한 운영에선 Kubernetes가 더 많은 기능(자동 복구, 롤링 업데이트, 네트워크/보안 설정 등)을 제공해서 기업에서 주로 사용한다.
+ 3) Swarm의 안전성/한계
+    Swarm도 기본적인 안전성(HA, 서비스 복구) 기능은 갖고 있다. 하지만 Kubernetes보다 기능이 적고, 커뮤니티/지원도 약하다.
+    → 대규모 장애 대응, 보안, 커스텀 작업에서 한계가 있음
+ 4) 공식적인 개발/기능 추가도 사실상 정체됨 (Docker가 Kubernetes로 무게를 옮김)
+
+----------------------------------------------------------------------------------
+
+[root@rocky home]# docker swarm init --advertise-addr 10.0.0.201
+
+docker swarm join --token SWMTKN-1-56tf9ti4coaxsjko558ujp4c5rtd89wy7bvrwenvhe3229rur3-cyyvnpnw2di6668kfo5bxb8q7 10.0.0.201:2377
+
+
+--------------------------------------------------------------------------------------
+
+
+
+1) Docker Swarm 초기화
+ - almalinux 에서 설정
+ # hostnamectl set-hostname alma   (노드명을 호스트 이름으로 지정한다.)
+ 오버레이 네트워크는 Swarm 모드에서 동작하므로, 먼저 Swarm 모드를 초기화해야 한다.
+ Swarm 클러스터가 Host 10.0.0.133(kali)에서 초기화되고, Host Alma가 조인할 수 있는 토큰과 명령어가 출력된다.
+
+# docker swarm init --advertise-addr 10.0.0.201
+    - docker swarm init을 하면 자동으로 생성되는 네트워크
+      (참고) ingress(Swarm 서비스의 로드 밸런싱용으로 기본 생성됨)
+      (참고) docker_gwbridge(Swarm 내부 통신을 위한 게이트웨이 브리지)
+
+docker swarm join --token SWMTKN-1-43utiur2n11wevw4hgl1otkmoi3zzce5f5oda4g3t3sq6la7us-5oizcnxhcy3h3fatb5ixef318 10.0.0.201:2377
+
+
+# docker network create -d overlay my_overlay
+서비스 생성 시 오버레이 네트워크 지정
+  1) 노드 확인(HOST NAME가 노트명이다.)
+   # docker node ls    (almalinux)
+  2) 'node.hostname == 노드명' 
+  3) 생성한 오버레이 네트워크를 사용하여 서비스를 생성한다.
+  4) Alma Linux(서비스 생성은 매니저 노드에서 실행해야 한다.)
+
+
+# docker service create --name web \
+  --replicas 2 \
+  --publish published=8080,target=80 \
+  --network my_overlay \
+  nginx
+
+# docker service create --name apache_on_rocky \
+  --constraint 'node.hostname == rocky' \    // hostname 확인
+  --network my_overlay \
+  --publish published=80,target=80 \
+  ubuntu sh -c "apt update && apt install -y apache2 && apachectl -D FOREGROUND"
+
+
+# docker service create --name kali_ubuntu \
+  --constraint 'node.hostname == kali' \
+  --network my_overlay \
+  --publish published=8181,target=80 \
+  ubuntu  sh -c "while true; do sleep 3600; done"
+
+ * 참고
+ - Ubuntu 기본 이미지는 자체적으로 지속 실행되는 서비스가 없으므로, 서비스처럼 운영되길 기대하면 아무런 동작을 하지 않거나 곧 종료가된다.
+ - 서비스를 운영하려면, 실제 동작하는 애플리케이션(예: 웹 서버, API 서버 등)을 실행하는 이미지나 커맨드를 사용해야 한다.
+
+
+# Swarm 관리 트래픽 허용
+iptables -A INPUT -p tcp --dport 2377 -j ACCEPT
+
+# 노드 간 통신 허용
+iptables -A INPUT -p tcp --dport 7946 -j ACCEPT
+iptables -A INPUT -p udp --dport 7946 -j ACCEPT
+
+# Overlay 네트워크 트래픽 허용
+iptables -A INPUT -p udp --dport 4789 -j ACCEPT
+
+# 규칙을 적용한 후에 규칙을 저장하십시오.
+service iptables save
+
+
+# MTU 확인
+ip addr show | grep mtu
+
+# MTU 통일
+sudo ip link set dev eth0 mtu 1500
+
+# Checksum offload 끄기
+sudo ethtool -K eth0 tx off
+sudo ethtool -K eth0 tx-checksum-ip-generic off
+sudo ethtool -K docker_gwbridge tx off
+
+
+swarm 제거
+$ docker service rm alma_ubuntu
+$ docker service rm kali_ubuntu
+(워커노드) # docker swarm leave
+(매니저)    # docker swarm leave --force   
+
+
+
+----------------------------------------------------------------------------------
+
+
+  555  docker swarm init --advertise-addr 10.0.0.201
+  556  docker service create --name web   --replicas 2   --publish published=8080,target=80   --network my_overlay   nginx
+  557  docker network create -d overlay my_overlay
+  558  docker service create --name web   --replicas 2   --publish published=8080,target=80   --network my_overlay   nginx
+  559  docker service create --name apache_on_rocky   --constraint 'node.hostname == rocky.co.kr'   --network my_overlay   --publish published=80,target=80   ubuntu sh -c "apt update && apt install -y apache2 && apachectl -D FOREGROUND"
+  560  docker service ls
+  561  docker service rm apache_on_rocky
+  562  docker service create --name apache_on_rocky   --constraint 'node.hostname == rocky'   --network my_overlay   --publish published=80,target=80   ubuntu sh -c "apt update && apt install -y apache2 && apachectl -D FOREGROUND"
+  563  docker service ls
+  564  docker service create --name kali_ubuntu   --constraint 'node.hostname == kali'   --network my_overlay   --publish published=8181,target=80   ubuntu  sh -c "while true; do sleep 3600; done"
+  565  history
+
+
+docker run -itd --name juice -p 3000:3000 bkimminich/juice-shop
+
+
+[root@rocky home]# docker run -itd --name httpd -p 8080:80 -v myData:/var/log/ ubuntu
+
+[root@rocky ~]# docker volume ls
+
+[root@rocky ~]# docker run -it --name ubuntu -v /data:/data ubuntu /bin/bash
+root@ac8ca33375ce:/# cd /data
+root@ac8ca33375ce:/data# cp /etc/passwd ./
+root@ac8ca33375ce:/data# ls
+passwd
+root@ac8ca33375ce:/data# [root@rocky ~]# cd /data
+[root@rocky data]# ls
+passwd
+
+
+-------------------------------------------------------------------------------------
+
+
+
+
+
+
+Docker Storage
+ 1) Docker Storage는 컨테이너와 이미지 데이터를 저장하고 관리하는 시스템으로, 데이터 지속성을 보장한다.
+ 2) 도커 이미지는 여러 개의 읽기 전용 레이어로 구성되며, 컨테이너의 변경된 데이터는 별도의 저장소(볼륨)에 저장된다.
+ 3) 도커 볼륨은 컨테이너가 삭제되더라도 데이터를 유지하고 공유할 수 있도록 지원하며, 스토리지 드라이버를 통해 다양한 저장 방식이 제공된다.이미지 저장소(Docker Hub 등)에서 버전 관리가 가능하며, 볼륨과 스토리지 옵션을 활용해 데이터 보호와 최적화가 가능하다.
+
+
+도커 스토리지 드라이버(Docker Storage Driver)
+   도커 컨테이너와 관련된 파일 시스템을 관리하고, 데이터를 저장하는 방식을 정의하는 컴포넌트
+# docker info --format '{{ .Driver }}'
+ - 일반적인 스토리지 드라이버 이름 : “overlay2”, “aufs”, “devicemapper”, “btrfs”, “zfs” 등
+ # docker info -f '{{json .}}'   ( json 형식으로 . 모두 출력)
+
+# docker inspect -f "{{ .Config.Volumes }}" ubuntu (컨테이너의 데이터 볼륨 경로 확인)# docker inspect -f "{{ .Config }}" ubuntu | grep data
+# docker inspect -f "Status={{.State.Status}}, PID={{.State.Pid}}, Exit={{.State.ExitCode}}" ubuntu# docker inspect ubuntu | jq '.[0].Config'
+# docker inspect ubuntu | jq '.[0].State'# docker inspect ubuntu  (CONTAINER ID 또는 name 으로 검색 가능) - /var/lib/docker/containers 에 컨테이너가 위치 하고 있다.- /var/lib/docker/volumes (해당 위치에 passwd 파일이 있다.)
+
+-v /data
+-v 호스트디렉토리:컨테이너디렉토리
+
+
+특정 위치를 저장소로 사용시(Permission 오류)  - 컨테이너에서 호스트 OS 디렉터리로의 접근 권한이 없을때 설정 방법
+# docker run -it --name ftp -p 21:21 -p 20:20 -v /home/roror/data:/home/data --privileged centos:7 /bin/bash
+
+[컨테이너의 특정 디렉토리만 rw 쓰기권한 / 나머지 전체 공간은 읽기만 가능]
+docker run -it --name "Ubuntu" --read-only=true -v /data:/data ubuntu /bin/bash  (/data 이외의 공간은 파일생성이 안된다.)
+
+
+-------------------------------------------------------------------------------------
+
+
+docker run -itd --name juice -p 3000:3000 bkimminich/juice-shop
+
+root@roror:/usr/local/juice-shop/data/static# scp users.yml roror@10.0.0.201:/home/roror
+
+
+
+[root@rocky juice-shop]# cd data
+[root@rocky data]# ls
+chatbot  datacache.ts  datacreator.ts  mongodb.ts  static  staticData.ts  types.ts
+[root@rocky data]# mkdir /juice
+[root@rocky data]# cp -r ./* /juice
+[root@rocky data]# chmod -R 777 /juice/
+[root@rocky ~]# cd /
+[root@rocky /]# ls
+afs     bin   data  etc   juice  lib64  mnt  proc  run   srv  tmp  var
+backup  boot  dev   home  lib    media  opt  root  sbin  sys  usr
+[root@rocky /]# cd juice/
+[root@rocky juice]# ls
+chatbot  datacache.ts  datacreator.ts  mongodb.ts  static  staticData.ts  types.ts
+
+ docker run -itd --name juice -v /juice:/juice-shop/data -p 3000:3000 bkimminich/juice-shop
+
+[root@rocky roror]# docker cp users.yml juice:/juice-shop/data/static
+
+
+
+
+
+
+  email: bjoern@owasp.org
+  password: 'kitten lesser pooch karate buffoon indoors'
+  customDomain: true
+  key: bjoernOwasp
+  role: 'deluxe'
+  profileImage: '13.jpg'
+  securityQuestion:
+    id: 7
+    answer: 'Zaya' # https://www.youtube.com/watch?v=Lu0-kDdtVf4
+
+
+  email: hacker
+  password: 'qhdks!2'
+  key: hacker
+  role: 'customer'
+  walletBalance: 100 
+  securityQuestion:
+    id: 1
+    answer: 'Samuel' # https://en.wikipedia.org/wiki/James_T._Kirk
+  feedback:
+    comment: 'Great shop! Awesome service!'
+    rating: 4
+  address:
+    - fullName: 'hacker'
+      mobileNum: 523423432
+      zipCode: '1701'
+      streetAddress: 'Room 3F 121'
+      city: 'Deck 5'
+      state: 'USS Enterprise'
+      country: 'Space'
+    - fullName: 'Sam'
+      mobileNum: 1000000783
+      zipCode: 'GSK783'
+      streetAddress: 'Deneva Colony'
+      city: 'Deneva'
+      state: 'Beta Darius System'
+      country: 'United Federation of Planets'
+  card:
+    - fullName: 'hacker'
+      cardNum: 5107891722278705
+      expMonth: 11
+      expYear: 2099
+
+
+
+[root@rocky ~]# mkdir docker
+[root@rocky ~]# cd docker/
+[root@rocky docker]# echo "TEST MyHomepage" > index.html
+[root@rocky docker]# ls
+index.html
+[root@rocky docker]# vi Dockerfile
+FROM almalinux:latest
+RUN dnf install -y httpd
+RUN echo "ServerName www.roror.co.kr" >> /etc/httpd/conf/httpd.conf
+COPY index.html /var/www/html/
+CMD ["/usr/sbin/httpd","-D","FOREGROUND"]
+
+[root@rocky docker]# docker build -t web_sample .
+
+[root@rocky docker]# docker run -itd --name web -p 8080:80 web_sample:latest
+
+[root@rocky docker]# mkdir web_sample
+[root@rocky docker]# mv ./* ./web_sample/
+[root@rocky web_sample]# mkdir log_sample
+[root@rocky web_sample]# cd log_sample/
+[root@rocky log_sample]# vi Dockerfile
+FROM almalinux:latest
+MAINTAINER 0.1 fix1004@naver.com
+RUN ["mkdir","/var/log/httpd"]
+VOLUME /var/log/httpd
+
+[root@rocky log_sample]# docker build -t log-image .
+[root@rocky log_sample]# docker run -itd --restart=always -v /log:/var/log/httpd --name "log-server" log-image
+
+--------------------------------------------------------------------------------
+
+
+
+# docker run -itd --name juice -v /juice:/juice-shop/data -p 3000:3000  bkimminich/juice-shop
+# docker run -itd --name juice -p 3000:3000  bkimminich/juice-shop
+docker cp users.yml juice:/juice-shop/data/static
+docker push fix1004/juice-shop:latest
+docker cp ubuntu:/etc/passwd /backup
+
+
+최초 실행시 Docker repository에서 베이스 이미지를 다운로드해야 하므로 시간이 걸리지만
+ Dockerfile 안의 내용대로 실행되는 것을 알 수 있다. 또한 서로 같은 이미지 ID를 가지고 있다 즉 실체는 같은 이미지이다.
+
+- docker file  명령어
+- (실습은 개론 학습후 진행) -
+1. Dockerfile
+ 1) Docker는 Dockerfile로 인프라를 구성한다.
+이미지에 각종 미들웨어를 설치.설정하고 애프리케이션 실행 모듈을 deploy하여 모든 실행 기반을 dockerfile 안에 저장한다.
+
+ 2) Docker는  코드로 인프라를 구성할 수 있는 기능을 갖고 있다. 인프라 구성 방법을 저장해둔 파일을 Dockerfile이라 한다.
+ 3) Dockerfile은  Docker상에서 동작하는 컨테이너 구성 정보를 저장한 파일이다.
+ 4) Docker는  Docker build 커맨드를 통해 Dockerfile에 저장된 구성 정보를 기반으로 Docker 이미지를 생성한다.
+
+2. [주요 명령어]
+FROM : 베이스 이미지 지정(FROM은 필수 항목이다.)
+MAINTAINER : dockerfile 생성자
+RUN : 커맨드 실행
+CMD : 데몬 실행
+LABEL : 라벨 설정
+EXPOSE : 포트 export
+ENV : 환경변수 설정
+ADD : 파일 및 디렉터리 추가(URL에서 다운로드하고 파일을 자동으로 해제할 수 있다.)
+COPY : 파일 복사(파일의 압축을 해제하지 않는다.)
+VOLUME : 볼륨 마운트
+ENTRYPOINT : 데몬 실행
+USER : 사용자 설정
+WORKDIR : 작업  디렉터리 지정
+ONBUILD : build 완료 후 실행될 명령어
+#코멘트 : 코멘트 작성
+
+
+1. EXPOSE 8080  ( 즉 컨테이너 포트 )
+ 1) EXPOSE는 호스트와 연결할 포트 번호를 설정한다. 
+ 2) docker run 명령의 --expose 옵션과 동일하다.
+ 3) EXPOSE는 호스트와 연결만 할 뿐 외부에 노출은 되지 않는다. 
+ 4) 포트를 외부에 노출하려면 docker run 명령의 -p, -P 옵션을 사용해야 한다
+
+2. 참고로, 한개 이상의 port를 노출시켜줄수 있다. 
+ 1) 조심해야 할 점은, EXPOSE instruction을 지정해주었다고 해서 곧바로 그 포트를 외부에서 접속할수는 없다는 것이다. 
+ 2) 보안상 이유 때문에 docker는 포트를 자동으로 open 하지는 않는다. 
+ 3) Docker container를 실행할때 EXPOSE를 통해서 지정된 포트를 열어주어야 한다.
+
+
+- Dockerfile
+FROM almalinux:latest
+MAINTAINER 0.1 fix1004@naver.com
+RUN ["mkdir","/var/log/httpd"]
+VOLUME /var/log/httpd
+
+# docker build -t log-image .
+docker run -itd --restart=always -v /log:/var/log/httpd --name "log-server" log-image
+
+
+--------------------------------------------------------------------------------
+
+
+[root@rocky docker]# ls
+log_sample  web_sample
+[root@rocky docker]# mkdir webserver
+[root@rocky docker]# cd webserver/
+[root@rocky webserver]# ls
+[root@rocky webserver]# echo "Roror Homepage Test..." > index.html
+[root@rocky webserver]# tar cvf website.tar ./index.html 
+./index.html
+[root@rocky webserver]# ls
+index.html  website.tar
+[root@rocky webserver]# tar tvf ./website.tar 
+-rw-r--r-- root/root        23 2026-01-09 17:08 ./index.html
+[root@rocky webserver]# rm index.html 
+rm: 일반 파일 'index.html'을(를) 제거할까요? y
+[root@rocky webserver]# ls
+website.tar
+[root@rocky webserver]# vi Dockerfile
+FROM almalinux:latest
+MAINTAINER 0.1 thddmstn@naver.com
+ENV myNAME="SONG"
+RUN useradd roror
+RUN id
+USER roror
+RUN id
+USER root
+LABEL title="WebServerImage"
+LABEL version=1.0
+LABEL description="WebServer and JavaEE"
+EXPOSE 22 80 443
+WORKDIR /data/
+ADD index.html /data
+RUN ["dnf","-y","install","httpd"]
+ADD website.tar /var/www/html/
+#CMD ["/usr/sbin/httpd","-D","FOREGROUND"]
+ENTRYPOINT ["/usr/sbin/httpd","-D","FOREGROUND"]
+
+
+(참고)기본 포트 : EXPOSE 22 80 443
+EXPOSE는 컨테이너에서 외부에 노출하려는 포트를 지정하지만, 실제로 포트를 열지는 않는다. 
+포트를 열기 위해서는 docker run 명령어에서 -p 옵션을 사용하여 호스트와 컨테이너 간에 포트를 연결해야 한다.
+
+# docker build -t web-image .
+# docker run -itd --name web-server  -p 80:80 --volumes-from log-server web-image:latest
+
+
+--------------------------------------------------------------------
+
+root@roror:/home/roror/public_html# scp website.tar roror@10.0.0.201:/home/roror
+
+[root@rocky roror]# mv website.tar ~/docker/webserver/
+
+[root@rocky webserver]# ls
+Dockerfile  website.tar
+[root@rocky webserver]# echo "ROROR Homepage" > index.html
+[root@rocky webserver]# docker build -t web-image .
+[root@rocky webserver]# docker run -itd --name web-server  -p 80:80 --volumes-from log-server web-image:latest
+

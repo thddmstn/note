@@ -1,0 +1,590 @@
+--------------------------------필기-------------------------------------------------------------
+xinetd: 슈퍼 데몬에 의해 제어되는 서비스들의 데몬. xinetd 자체는 standalone방식.
+          standalone방식에 비해 상대적으로 느림. 메모리 효율 좋음.
+Standalone: 상시구동. ex) apache(웹) 상시구동하고 있어야 서비스 이용 가능함.
+               xinetd방식에 비해 상대적으로 빠름. 메모리 효율 안좋음.
+
+xinetd
+접근제어 tcp_wrapper에 의해 접근제어. 지금은 없음...
+
+systemd 온디맨드 방식 PID 1 멀티코어 환경을 고려하여 개발됨. 많은 서비스를 동시에 시작하기 때문에 리눅스 부팅 시간이 많이 단축됨.
+------------------------------------------------------------------------------------------------
+dnf install telnet-server
+
+root@roror:/home/roror# firewall-cmd --list-all
+
+root@roror:/home/roror# firewall-cmd --permanent --add-service=telnet
+success
+root@roror:/home/roror# firewall-cmd --reload 
+success
+root@roror:/home/roror# firewall-cmd --list-all
+
+---------------------------------------------필기-------------------------------------------------
+kali
+/etc/init.d/ssh restart  // ssh restart
+/etc/init.d/apache2 restart // apache restart
+레디햇계열은 안됨. 데비안 계열은 됨..?
+-------------------------------------------------------------------------------------------------
+
+
+root@roror:/home/roror# systemctl enable telnet.socket 
+Created symlink '/etc/systemd/system/sockets.target.wants/telnet.socket' → '/usr/lib/systemd/system/telnet.socket'.
+root@roror:/home/roror# systemctl start telnet.socket 
+// telnet은 Xinetd방식 사용
+
+kali@kali:~$ telnet roror.co.kr
+Trying 10.0.0.200...
+Connected to roror.co.kr.
+Escape character is '^]'.
+
+Kernel 6.12.0-55.32.1.el10_0.x86_64 on an x86_64
+roror login: roror
+Password: 
+Last login: Thu Oct  2 09:01:55 on tty2
+roror@roror:~$ netstat -antp | grep 23
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+tcp6       0      0 :::23                   :::*                    LISTEN      -                   
+tcp6       0      0 10.0.0.200:23           10.0.0.134:34418        ESTABLISHED -                   
+roror@roror:~$ ps -ef | grep telnet
+root        4987       1  0 10:27 ?        00:00:00 in.telnetd: ::ffff:10.0.0.134
+roror       5030    4992  0 10:28 pts/1    00:00:00 grep --color=auto telnet
+roror@roror:~$ 
+
+ps -ef | grep telnet   
+ps -ef | grep ssh  
+systemctl enable --now sshd.service    // service 방식 사용(상시구동)(standalone)
+systemctl enable --now sshd.socket     //soket 방식(xinetd) 사용(필요시 구동)
+
+----------------------------------필기--------------------------------------------------------
+CVE : 베포된 상태에서 취약점.
+CWE : 개발단계(배포 전) 취약점.
+-----------------------------------------------------------------------------------------------
+kali에서 meta로 ssh접속
+
+msfadmin@metasploitable:~$ lsb_release -a   // 운영체제 확인.  리눅스가 무슨 배포판, 몇 버전인지 확인
+No LSB modules are available.
+Distributor ID:	Ubuntu
+Description:	Ubuntu 8.04
+Release:	8.04
+Codename:	hardy
+
+alma에서 meta로 ssh접속
+root@roror:/home/roror# ssh msfadmin@10.0.0.143
+Unable to negotiate with 10.0.0.143 port 22: no matching host key type found. Their offer: ssh-rsa,ssh-dss 
+// 에러 메시지(“no matching host key type found. Their offer: ssh-rsa,ssh-dss”)는 클라이언트(당신의 머신)의 OpenSSH가 서버가 제안한 호스트 키 타입(ssh-rsa, ssh-dss)을 허용하지 않아서 발생한 것입니다. 최근 OpenSSH는 SHA-1 기반 ssh-rsa 서명(특히 오래된 방식)을 기본으로 비활성화했고, ssh-dss(DSA)는 더 오래전부터 취약하다고 간주되어 대부분 기본 비허용 상태입니다.
+
+아 배고파
+
+root@roror:/etc/ssh/ssh_config.d# vi 50-redhat.conf 
+ 5         Include /etc/crypto-policies/back-ends/openssh.config
+
+root@roror:/etc/ssh/ssh_config.d# vi /etc/crypto-policies/back-ends
+
+root@roror:/etc/ssh# vi ssh_config
+ 55 Include /etc/ssh/ssh_config.d/*.conf
+
+// sshd : 서버용
+// ssh : 클라이언트용
+
+root@roror:/etc/ssh# update-crypto-policies --show
+DEFAULT
+
+root@roror:/etc/ssh# man update-crypto-policies
+//   --set: Sets the current policy and overwrites the config file.
+//   --show: Shows the currently applied crypto policy.
+
+/etc/crypto-policies/config
+root@roror:/etc/crypto-policies/back-ends# ls -la
+
+root@roror:~# rpm -qa | grep openssh
+openssh-9.9p1-7.el10_0.x86_64
+openssh-clients-9.9p1-7.el10_0.x86_64
+openssh-server-9.9p1-7.el10_0.x86_64
+
+root@roror:~# rpm -ql openssh-clients-9.9p1-7.el10_0.x86_64  // 어디 설치되어있는지 보여줌
+
+root@roror:~# rpm -qc openssh-clients-9.9p1-7.el10_0.x86_64  // 설정파일만 보여줌
+/etc/ssh/ssh_config
+/etc/ssh/ssh_config.d/50-redhat.conf
+
+root@roror:~# rpm -qi openssh-clients-9.9p1-7.el10_0.x86_64
+
+root@roror:~# rpm -qf /etc/ssh/ssh_config
+openssh-clients-9.9p1-7.el10_0.x86_64
+
+root@roror:/etc/ssh# which ssh
+/usr/bin/ssh
+root@roror:/etc/ssh# which sshd
+/usr/sbin/sshd
+
+root@roror:/usr/share/crypto-policies/policies# ls
+DEFAULT.pol  EMPTY.pol  FIPS.pol  FUTURE.pol  LEGACY.pol  modules
+
+DEFAULT.pol   기본 표준 보안 수준을 제공하는 정책
+LEGACY.pol  호환성을 중시한 낮은 보안 정책 (이전 시스템과의 호환성 유지)
+FIPS.pol (미국 연방 표준) 준수를 목표로 한 정책
+FUTURE.pol 보안 강화 방향을 미리 시험해보는 정책 (미래 지향적)
+EMPTY.pol “완전 비활성 / 아무 제한도 없는” 기본 정책 (모두 허용 또는 규칙이 없음)
+
+
+root@roror:/usr/share/crypto-policies/policies# update-crypto-policies --set LEGACY
+Setting system policy to LEGACY
+Note: System-wide crypto policies are applied on application start-up.
+It is recommended to restart the system for the change of policies
+to fully take place.
+root@roror:/usr/share/crypto-policies/policies# cd /etc/crypto-policies/
+root@roror:/etc/crypto-policies# cat config 
+LEGACY
+
+
+dnf install vsftpd
+
+root@kali:/home/kali# ssh -l roror roror.co.kr
+roror@roror:~$ ssh -l roror 10.0.0.200
+roror@roror:~$ ssh roror@roror.co.kr "cat /etc/passwd"
+
+
+root@kali:/home/kali# ssh roror@roror.co.kr "cat /etc/passwd" > pwd.txt
+roror@roror.co.kr's password: 
+root@kali:/home/kali# ls
+Desktop    Downloads  Pictures  Templates  burp.json  java   pwd.txt
+Documents  Music      Public    Videos     burpsuite  paros
+
+root@kali:/home/kali# sftp roror@roror.co.kr   // 파일 가져오거나 할 때 사용
+sftp> get /etc/passwd
+Fetching /etc/passwd to passwd
+passwd                                        100% 2512     1.7MB/s   00:00 
+sftp> ls
+public_html     공개          다운로드    문서          바탕화면    
+비디오       사진          서식          음악          
+sftp> !ls
+Desktop    Downloads  Pictures	Templates  burp.json  java   passwd
+Documents  Music      Public	Videos	   burpsuite  paros  pwd.txt
+
+root@roror:/home/roror# lsof
+root@roror:/home/roror# lsof -i:80
+COMMAND  PID   USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+httpd   1143   root    3u  IPv6  12922      0t0  TCP *:http (LISTEN)
+httpd   1193 apache    3u  IPv6  12922      0t0  TCP *:http (LISTEN)
+httpd   1194 apache    3u  IPv6  12922      0t0  TCP *:http (LISTEN)
+httpd   1195 apache    3u  IPv6  12922      0t0  TCP *:http (LISTEN)
+root@roror:/home/roror# lsof -i:22
+COMMAND    PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+sshd      1040  root    7u  IPv4  13746      0t0  TCP *:ssh (LISTEN)
+sshd      1040  root    8u  IPv6  13748      0t0  TCP *:ssh (LISTEN)
+sshd-sess 3896  root    4u  IPv4  30083      0t0  TCP roror.co.kr:ssh->10.0.0.134:48958 (ESTABLISHED)
+sshd-sess 3901 roror    4u  IPv4  30083      0t0  TCP roror.co.kr:ssh->10.0.0.134:48958 (ESTABLISHED)
+root@roror:/home/roror# lsof -p 1040  // 1040 : pid
+root@roror:/home/roror# lsof -u roror
+
+root@roror:/home/roror# tail -f /var/log/secure  // su, ssh, sudo 등 인증관련 로그가 있다
+
+kali@kali:~$ ssh roror@roror.co.kr 
+roror@roror.co.kr's password: 
+Permission denied, please try again.
+
+Oct  2 12:21:32 roror unix_chkpwd[3987]: password check failed for user (roror)
+Oct  2 12:21:32 roror sshd-session[3985]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=10.0.0.134  user=roror
+Oct  2 12:21:34 roror sshd-session[3985]: Failed password for roror from 10.0.0.134 port 49586 ssh2
+// password check failed for user (roror)
+
+roror@roror.co.kr's password: 
+Web console: https://roror.co.kr:9090/ or https://10.0.0.200:9090/
+
+Last failed login: Thu Oct  2 12:21:34 KST 2025 from 10.0.0.134 on ssh:notty
+There was 1 failed login attempt since the last successful login.
+Last login: Thu Oct  2 12:16:53 2025 from 10.0.0.134
+roror@roror:~$ 
+
+Oct  2 12:22:53 roror sshd-session[3985]: Accepted password for roror from 10.0.0.134 port 49586 ssh2
+Oct  2 12:22:53 roror sshd-session[3985]: pam_unix(sshd:session): session opened for user roror(uid=1000) by roror(uid=0)
+// Accepted password for roror
+// session opened
+
+root@roror:~# dnf install vsftpd
+root@roror:~# firewall-cmd --permanent --add-service=ftp
+Warning: ALREADY_ENABLED: ftp
+success
+root@roror:~# systemctl start vsftpd
+
+root@kali:/home/kali# apt update   
+root@kali:/home/kali# apt install filezilla -y   
+
+root@roror:/home/roror# usermod -s /sbin/nologin roror  // ftp안됨(filezila) ssh도 안됨
+
+root@roror:~# which nologin
+/usr/sbin/nologin
+root@roror:~# ls /sbin/nologin 
+/sbin/nologin
+root@roror:~# vi /etc/shells  // 지원shell목록
+  7 /sbin/nologin  // 추가  --> ftp 가능, ssh 불가
+  8 /bin/false  // 추가   --> 둘 다 안됨.
+
+
+
+- nologin
+1) /etc/shells  (지원 shell 목록)
+  /sbin/nologin   지정
+2) ftp 접속 가능 ,  ssh 접속 불가
+
+root@roror:~# usermod -s /bin/false roror
+root@roror:~# usermod -s /bin/bash roror
+
+root@roror:/home/roror# useradd -s /bin/false user
+root@roror:/home/roror# passwd user
+
+root@roror:~# vi /etc/shells  
+  7 /sbin/nologin 
+  8 /bin/false  // 삭제
+
+
+debian : ssh
+redhat : sshd
+
+
+root@kali:/home/kali/.ssh# systemctl start ssh 
+
+roror@roror:~$ ls -a
+.              .bash_logout   .cache   .images   .mysql_history  .ssh      .vimrc          .wget-hsts   다운로드  비디오  음악
+..             .bash_profile  .config  .local    .npm            .vim      .vscode         public_html  문서      사진
+.bash_history  .bashrc        .dotnet  .mozilla  .pki            .viminfo  .vscode-server  공개         바탕화면  서식
+roror@roror:~$ rm -rf ./.ssh
+// kali로 ssh접속하면 Are you sure you want to continue connecting (yes/no/[fingerprint])? 물어보고 yes입력하면 다시 .ssh생김
+roror@roror:~$ cd .ssh
+roror@roror:~/.ssh$ ls
+known_hosts  known_hosts.old
+roror@roror:~/.ssh$ cat known_hosts
+10.0.0.134 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFBRSVMfIdPNVfdlrwwbRABi/xsnT3o9TauBpoHki5Dr  // 키를 보관함--> 다시 kali에 접속하면 안물어봄.
+
+
+
+
+ssh 공격기법
+사전 대입식(
+무작위 대입법(brute force) 
+
+method
+get 방식 헤더에 데이터가 있다
+host 방식 바디에 데이터가 있다
+
+
+
+
+root@kali:/home/kali# updatedb
+root@kali:/home/kali# locate password
+root@kali:/home/kali# locate password | grep john
+/usr/bin/1password2john
+/usr/share/john/1password2john.py
+/usr/share/john/password.lst
+/usr/share/john/__pycache__/1password2john.cpython-313.pyc
+/usr/share/john/rules/T0XlC-insert_top_100_passwords_1_G.rule
+
+
+
+Brute Force  // 무작위 대입 공격
+Dictionary Attack (Brute Force 에 속해 있다.) // 사전 공격
+
+
+root@kali:/home/kali# updatedb    
+root@kali:/home/kali# locate username
+
+root@kali:/home/kali# locate usernames.lst
+/usr/share/nmap/nselib/data/usernames.lst
+
+
+
+root@kali:/home/kali# apt update   
+sudo apt install python3-sqlalchemy python3-pyqt5 wkhtmltopdf
+root@kali:~# virtualenv -p python3 spartaenv
+root@kali:/home/kali# . /home/kali/spartaenv/bin/activate
+(spartaenv)root@kali:/home/kali# 
+
+(spartaenv)root@kali:~# pip install SQLAlchemy==1.3.24
+(spartaenv)root@kali:/usr/share/sparta# pip install pyqt5   
+(spartaenv)root@kali:/usr/share/sparta# pip install requests  
+(spartaenv)root@kali:/home/kali# deactivate   
+
+root@kali:/home/kali# cd /usr/share            
+root@kali:/usr/share# git clone https://github.com/SECFORCE/sparta.git
+
+
+root@kali:/home/kali# vi sparta
+#!/bin/bash
+. /home/kali/spartaenv/bin/activate
+cd /usr/share/sparta
+./sparta.py
+
+root@kali:/home/kali# mv sparta /usr/bin      
+root@kali:/home/kali# chmod 755 /usr/bin/sparta 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

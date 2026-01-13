@@ -1,0 +1,211 @@
+
+
+root@elk:/home/roror# apt install php
+root@elk:/home/roror# apt install php8.3-*
+root@elk:/home/roror# apt install php8.3-common
+root@elk:/home/roror# apt install php8.3-cli
+root@elk:/home/roror# apt install php8.3-fpm
+root@elk:/home/roror# apt install php8.3-cli php8.3-curl php8.3-mysqlnd php8.3-gd php8.3-opcache php8.3-zip php8.3-intl php8.3-common php8.3-bcmath php8.3-imap php8.3-imagick php8.3-xmlrpc php8.3-readline php8.3-memcached php8.3-redis php8.3-mbstring php8.3-apcu php8.3-xml php8.3-dom php8.3-redis php8.3-memcached php8.3-memcache
+
+
+root@elk:/home/roror# vi /etc/php/8.3/apache2/php.ini
+ 208 short_open_tag = On
+ 880 allow_url_include = On
+
+root@elk:/home/roror# echo "<? phpinfo(); ?>" > /var/www/html/info.php
+root@elk:/home/roror# systemctl restart apache2
+root@elk:/home/roror# a2enmod proxy_fcgi setenvif
+root@elk:/home/roror# a2enconf php8.3-fpm
+root@elk:/home/roror# systemctl restart apache2
+root@elk:/home/roror# systemctl status php8.3-fpm
+root@elk:/etc/php/8.3/fpm# systemctl restart php8.3-fpm
+
+
+root@elk:/etc/php/8.3# mysql_secure_installation 
+
+root@elk:/home/roror# unzip insecure.zip -d /var/www/html/pentest
+
+root@elk:/var/www/html/pentest# mysql < query.txt 
+
+MariaDB [(none)]> create user roror@localhost;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> set password for roror@localhost=password('qhdks12');
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> grant all privileges on pentest.* to roror@localhost;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+
+
+
+vi /var/www/html/index.php
+        <div class="banner">
+           <div class="card-body">
+                   <a href="pentest" rel="nofollow" style="color: white; text-decoration: none;">Pentest</a>
+           </div>
+        </div>
+
+
+
+
+
+002_Ubuntu 기반(IPS)_(배포용)_25.10.19.pdf
+
+iptables
+상태추적 기능 제공
+
+Netfilter..
+
+
+
+
+
+
+프린터 및 주변장치
+LPRng
+lpr,lpq,lprm : BSD계열
+lp, lpstat, cancle : System V계열
+
+CUPS
+애플이 개발한 오픈 소스 프린팅 시스템
+HTTP기반의 IPP
+
+scanadf : 자동문사 공급장치
+
+rpm -iUF
+
+yum
+- 모드
+list
+info
+search
+
+dpkg
+- 옵션
+-I 정보 출력
+-c 패키지 파일에 포함된 파일 정보 출력
+
+
+export = 전역변수 // env로 확인. set으로도 확인 가능
+지역변수 // set으로면 확인 가능 env로는 확인 안됨.
+전역변수는 자식 쉘에서도 확인 가능
+
+chsh -l    // cat /etc/shells 와 같다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

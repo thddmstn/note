@@ -1,0 +1,492 @@
+
+ps -l
+
+vi fork_test.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main(int argc, char** argv){
+        int pid;
+        pid=fork();   // 자식 프로세스 생성( fork()는 두개의 프로세스 생성한다. 부모와 자식)
+        if(pid < 0){  // fork() 호출시 (부모 : 자식 프로세스 pid를 반환, 0보다 큰 PID), 자식은 0을 반환
+                printf("fork() failed!!\n");
+                exit(1);
+        }
+        if(pid > 0){  // 부모 프로세스가 실행하는 코드
+                printf("Parent Process start...\n");
+                printf("[Parent] pid : %d, ppid : %d\n",getpid(),getppid());
+	      // 임의의 부모 프로세스 작업을 가진다.
+                sleep(1000);
+        }else{   // 자식 프로세스가 실행하는 코드
+                printf("child Process start...\n");
+                printf("[child] pid : %d, ppid : %d\n",getpid(),getppid());
+                sleep(1000);
+        }
+}
+
+위의 소스에는 시그널핸들러가 없다, 부모프로세스는 sigaction와 같은 시스템핸들러를 등록하고, 자식프로세스 종료시  종료상태를 가져와야 한다.
+
+
+root@roror:/home/roror# ps -ef | grep fork
+root        1075       1  0 09:33 ?        00:00:00 /usr/bin/python3 -sP /usr/sbin/firewalld --nofork --nopid
+root        3769    3681  0 09:34 pts/0    00:00:00 ./fork
+root        3771    3769  0 09:34 pts/0    00:00:00 [fork] <defunct>
+root        3775    3681  0 09:34 pts/0    00:00:00 grep --color=auto fork
+
+좀비 ps 표기 : <defunct>
+
+kill -l  // 시그널 종류 출력. 외우기  1, 2, 3, 9, 15, **18**, **19**, **20**, 23   19,20 헷갈림..
+killall -HUP sshd  // 프로세스 재 활성화
+
+kill -15 sshd : 정상종료
+kill -9 sshd : 강제종료
+
+root@roror:/home/roror# killall -9 httpd
+root@roror:/home/roror# pkill httpd
+// 같은 데몬의 여러 프로세스를 한 번에 종료시킬 때 사용.
+
+
+
+#include <signal.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void signalHandler(int sig) {
+    if (sig == SIGQUIT) {
+        printf(" : signal 3, SIGQUIT\n");
+    }
+    if (sig == SIGUSR1) {  // SIGUSR1을 사용하여 SIGTSTP 대체
+        printf(" : signal 20, SIGTSTP (replaced by SIGUSR1)\n");
+    }
+    if(sig==SIGTSTP){
+         printf(" : signal 19, SIGSTOP\n");
+    }
+    if(sig==SIGTSTP){
+             printf(" : signal 20, SIGTSTP\n");
+    }
+    if (sig == SIGINT) {
+        printf(" : signal 2, SIGINT\n");
+        printf(" : this program will stop in 3 seconds..\n");
+        sleep(3);
+        exit(0);
+    }
+    if (sig == SIGHUP) {
+        printf(" : signal 1, SIGHUP\n");
+    }
+    if (sig == SIGUSR2) {
+        printf(" : signal 12, SIGUSR2\n");
+    }
+}
+
+int main() {
+    signal(SIGQUIT, signalHandler);   // Ctrl + \
+    signal(SIGSTOP, signalHandler);
+    signal(SIGTSTP, signalHandler);
+    signal(SIGUSR1, signalHandler);   // 사용자 정의 시그널 사용 (SIGTSTP 대체)
+    signal(SIGINT, signalHandler);    // Ctrl + C
+    signal(SIGHUP, signalHandler);    // Hangup (연결 끊김)
+    signal(SIGUSR2, signalHandler);   // 사용자 정의 시그널 2
+
+    printf("input Ctrl+C or Ctrl+\\\n");
+    printf("Use 'kill -HUP %d' to send SIGHUP\n", getpid());
+    printf("Use 'kill -USR1 %d' to send SIGUSR1 (replacement for SIGTSTP)\n", getpid());
+    printf("Use 'kill -USR2 %d' to send SIGUSR2\n", getpid());
+
+    while (1);
+}
+
+
+ps
+-l : 긴 포멧으로 출력 (출력형식 외우기)
+-e : 모든 프로세스 출력
+-f : 유닉스 스타일로 출력. UID, PID, PPID등이 함께 표시된다.
+
+root@roror:/home/roror# killall -SIGKILL httpd
+root@roror:/home/roror# killall -KILL httpd
+root@roror:/home/roror# killall -HUP httpd
+
+root@roror:/home/roror# ps -e
+root@roror:/home/roror# ps e
+root@roror:/home/roror# ps f  //  트리구조
+root@roror:/home/roror# ps -f  // ?
+
+root@roror:/home/roror# ps -ef
+root@roror:/home/roror# ps -e f
+
+root@roror:/home/roror# ps -l
+root@roror:/home/roror# ps aux
+
+
+%CPU
+VSZ
+RSS
+TTY
+F
+PRI
+NI
+
+프로세스 상태 코드인 STAT의 주요값
+좀비표시 : Z
+sleep : S
+실행 중 : R
+
+pstree // 프로세스 계층 구조 출력
+uptime // 시스템 부하율 점검
+free // 메모리 상태 점검 
+top // 암기
+
+ulimit
+
+
+
+#include <signal.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+
+void signalHandler(int sig) {
+    switch (sig) {
+        case SIGHUP:
+            printf(" : signal 1, SIGHUP\n");
+            break;
+        case SIGINT:
+            printf(" : signal 2, SIGINT\n");
+            printf(" : this program will stop in 3 seconds..\n");
+            sleep(3);
+            exit(0);
+        case SIGQUIT:
+            printf(" : signal 3, SIGQUIT\n");
+            break;
+        case SIGTERM:
+            printf(" : signal 15, SIGTERM\n");
+            break;
+        case SIGCONT:
+            printf(" : signal 18, SIGCONT\n");
+            break;
+        case SIGTSTP:
+            printf(" : signal 20, SIGTSTP (Ctrl+Z)\n");
+            break;
+        case SIGUSR1:
+            printf(" : signal 10, SIGUSR1 (user-defined)\n");
+            break;
+        case SIGUSR2:
+            printf(" : signal 12, SIGUSR2 (user-defined)\n");
+            break;
+        default:
+            printf(" : caught signal %d\n", sig);
+            break;
+    }
+}
+
+int main() {
+    if (signal(SIGHUP, signalHandler) == SIG_ERR)
+        perror("SIGHUP handler error");
+    if (signal(SIGINT, signalHandler) == SIG_ERR)
+        perror("SIGINT handler error");
+    if (signal(SIGQUIT, signalHandler) == SIG_ERR)
+        perror("SIGQUIT handler error");
+    if (signal(SIGTERM, signalHandler) == SIG_ERR)
+        perror("SIGTERM handler error");
+    if (signal(SIGCONT, signalHandler) == SIG_ERR)
+        perror("SIGCONT handler error");
+    if (signal(SIGTSTP, signalHandler) == SIG_ERR)
+        perror("SIGTSTP handler error");
+    if (signal(SIGUSR1, signalHandler) == SIG_ERR)
+        perror("SIGUSR1 handler error");
+    if (signal(SIGUSR2, signalHandler) == SIG_ERR)
+        perror("SIGUSR2 handler error");
+
+    // SIGSTOP은 잡을 수 없으므로 예외 처리
+    if (signal(SIGSTOP, signalHandler) == SIG_ERR) {
+        printf("SIGSTOP cannot be caught, blocked, or ignored.\n");
+    }
+
+    printf("PID: %d\n", getpid());
+    printf("Try:\n");
+    printf("  Ctrl+C  → SIGINT\n");
+    printf("  Ctrl+\\  → SIGQUIT\n");
+    printf("  Ctrl+Z  → SIGTSTP\n");
+    printf("  kill -HUP %d  → SIGHUP\n", getpid());
+    printf("  kill -TERM %d → SIGTERM\n", getpid());
+    printf("  kill -USR1 %d → SIGUSR1\n", getpid());
+    printf("  kill -USR2 %d → SIGUSR2\n", getpid());
+    printf("  kill -STOP %d → SIGSTOP (cannot be handled)\n", getpid());
+    printf("  kill -CONT %d → SIGCONT\n", getpid());
+
+    while (1)
+        pause();  // 시그널 대기 (CPU 점유 없음)
+}
+
+
+
+​dd if=[파일] of=[파일] bs=[block 크기] count=[횟수]
+
+mount -o remount /
+
+iso9660   CD-ROM
+
+
+
+[root@localhost /]# umount /backup
+[root@localhost /]# mount /dev/nvme0n2p1 /backup
+[root@localhost /]# umount /dev/nvme0n2p1
+[root@localhost /]# mount /dev/nvme0n2p1 /backup
+[root@localhost /]# umount /dev/nvme0n2p1 /backup
+umount: /backup: not mounted.   // 오류는 있지만 umount되긴 함
+
+[root@localhost /]# umount /dev/nvme0n2p1
+[root@localhost /]# fsck.xfs /dev/nvme0n2p1
+If you wish to check the consistency of an XFS filesystem or
+repair a damaged filesystem, see xfs_repair(8).
+
+
+[root@localhost /]# xfs_repair /dev/nvme0n2p1   ====   fsck (ext4 까지)
+// Redhat 7 부터 xfs 복구하는 명령어는? 
+// xfs_repair
+
+mkfs --->  lost+found (파일 복구시 임시 사용)
+
+[root@localhost /]# mkfs.xfs -f /dev/nvme0n2p1
+[root@localhost /]# xfs_repair /dev/nvme0n2p1
+
+// dd if=/dev/zero of=/dev/nvme0n2p1 bs=1M count=1 seek=10 conv=notrunc
+
+[root@localhost /]# useradd -D
+GROUP=100
+HOME=/home
+INACTIVE=-1
+EXPIRE=
+SHELL=/bin/bash
+SKEL=/etc/skel
+CREATE_MAIL_SPOOL=yes
+[root@localhost /]# useradd -D -b /home2
+[root@localhost /]# useradd -D
+GROUP=100
+HOME=/home2
+INACTIVE=-1
+EXPIRE=
+SHELL=/bin/bash
+SKEL=/etc/skel
+CREATE_MAIL_SPOOL=yes
+
+[root@localhost /]# useradd user2
+[root@localhost /]# ls /home
+roror
+[root@localhost /]# ls /home2
+test.txt  user2
+[root@localhost /]# useradd user3
+[root@localhost /]# ls /home3
+ls: cannot access '/home3': No such file or directory
+[root@localhost /]# ls /home2
+test.txt  user2  user3
+[root@localhost /]# mkdir /home3
+[root@localhost /]# useradd -d /home3/user4 -m user4
+[root@localhost /]# ls /home3
+user4
+
+
+LVM (Logical Volume Manager) // 논리 볼륨 관리자
+Filesystems
+logical volumes
+volume group
+physical volumes
+partitions
+hard drives
+
+
+[root@localhost roror]# pvdisplay
+[root@localhost roror]# pvscan
+[root@localhost roror]# pvcreate /dev/nvme0n2p1
+  Physical volume "/dev/nvme0n2p1" successfully created.
+[root@localhost roror]# pvscan
+[root@localhost roror]# pvdisplay
+
+[root@localhost roror]# vgscan
+[root@localhost roror]# vgdisplay
+[root@localhost roror]# vgcreate vg_data /dev/nvme0n2p1
+  Volume group "vg_data" successfully created
+[root@localhost roror]# vgscan
+  Found volume group "vg_data" using metadata type lvm2
+  Found volume group "rl" using metadata type lvm2
+[root@localhost roror]# vgdisplay vg_data
+
+[root@localhost roror]# lvscan
+  ACTIVE            '/dev/rl/swap' [6.00 GiB] inherit
+  ACTIVE            '/dev/rl/home' [<17.39 GiB] inherit
+  ACTIVE            '/dev/rl/root' [<35.61 GiB] inherit
+[root@localhost roror]# lvdisplay
+[root@localhost roror]# lvcreate -l 5119 vg_data -n lv_data
+[root@localhost roror]# lvscan
+  ACTIVE            '/dev/vg_data/lv_data' [<20.00 GiB] inherit
+  ACTIVE            '/dev/rl/swap' [6.00 GiB] inherit
+  ACTIVE            '/dev/rl/home' [<17.39 GiB] inherit
+  ACTIVE            '/dev/rl/root' [<35.61 GiB] inherit
+
+pvscan
+pvdisplay 
+# pvdisplay /dev/nvme0n1p2
+# pvcreate /dev/nvme0n2p1
+
+vgscan
+vgdisplay 
+vgcreate <VG이름> 장치
+# vgcreate vg_data /dev/nvme0n2p1
+# vgdisplay vg_data
+
+lvscan
+lvdisplay
+lvcreate -l Total_PE <VG이름> -n lv이름
+# lvcreate -l 5119 vg_data -n lv_data
+// -L 20G
+
+# mkfs -t xfs /dev/mapper/vg_data-lv_data
+# mount -t xfs /dev/mapper/vg_data-lv_data /data
+
+[root@localhost roror]# lsblk -p
+[root@localhost roror]# ls -l /dev/mapper/vg_data-lv_data
+lrwxrwxrwx. 1 root root 7 Nov  4 17:14 /dev/mapper/vg_data-lv_data -> ../dm-3
+[root@localhost roror]# mkfs -t xfs /dev/mapper/vg_data-lv_data
+[root@localhost roror]# mkdir /data
+[root@localhost roror]# mount -t xfs /dev/mapper/vg_data-lv_data /data
+
+[root@localhost roror]# vi /etc/fstab
+/dev/mapper/rl-root     /                       xfs     defaults        0 0
+UUID=1e997741-158e-446e-928f-df4a7a3e0d57 /boot                   xfs     defaults        0 0
+/dev/mapper/rl-home     /home                   xfs     defaults        0 0
+/dev/mapper/rl-swap     none                    swap    defaults        0 0
+/dev/mapper/vg_data-lv_data     /data           xfs     defaults        0 0
+
+
+[root@localhost roror]# cp -a /home/* /data
+// -rp : 소유자?까지 그대로 복사
+
+[root@localhost roror]# cp -Rp /home* /data
+[root@localhost roror]# ls -l /data
+total 0
+drwxr-xr-x. 3 root root 19 Nov  3 16:51 home
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

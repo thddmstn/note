@@ -1,0 +1,215 @@
+
+- 실무(가장 실수를 많이 하는거..  보안 -> 구현(정책해제) -> 끝)
+(보안) : 기본은 차단(Selinux, Firewall)
+ - 구현하기 위해서 차단, 응용프로그램이 실행이 안되는 경우가 많다.
+ - 보안관련 프로그램은 우선순위로 생각하고 있어야 한다.(외부포함)
+
+(구현) : 오류 없이 구동(보안은....?)
+ - Selinux, Firewall 필요없이 구동이 중요하다.
+ - 로컬에서 구동, 원격에서 접속등 구분
+ - 로컬에서 구동시 대부분 네트워크(외부) 요인이 많다.
+
+
+root@roror:/home/roror# getsebool -a | grep samba
+samba_enable_home_dirs --> off
+samba_export_all_ro --> off
+samba_export_all_rw --> off
+
+root@roror:/home/roror# setsebool -P samba_enable_home_dirs 1
+root@roror:/home/roror# setsebool -P samba_export_all_ro on
+root@roror:/home/roror# setsebool -P samba_export_all_rw 1
+// on또는 1 둘 다 가능
+
+root@roror:/var/lib/samba/private# smbpasswd -a roror 
+root@roror:/var/lib/samba/private# smbpasswd -x roror
+root@roror:/var/lib/samba/private# pdbedit --user roror                         
+roror:1000:roror                                                                
+root@roror:/var/lib/samba/private# pdbedit --user roror --delete
+
+
+
+　smb는 삼바 서비스, nmb는 IP 주소를 사용할 수 있도록 이름을 지정하는 서비스다.
+  nmb는 실행해줄 필요는 없지만, 꺼져있다면 윈도우 상의 네트워크에 표시되지 않는다.
+
+
+- groupadd
+- /home/sec   (chgrp sec)
+- smbpasswd -a roror
+  pdbedit -L -v    (--user roror --delete),   smbpasswd -x roror
+
+
+root@roror:/var/lib/samba/private# usermod -aG sec roror
+
+kali@kali:~$ smbclient //10.0.0.200/security -m SMB3 -U 'roror%qhdks12'
+
+ 10 [global]
+ 11         unix charset = UTF-8
+ 12         dos charset = CP949
+ 13         workgroup = WORKGROUP
+ 14         hosts allow = 10.0.0. 127.
+ 15         server string = Samba Server
+ 16         #map to guest = Bad User
+ 17         security = user
+ 18         passdb backend = tdbsam
+ 19 
+ 20         printing = cups
+ 21         printcap name = cups
+ 22         load printers = yes
+ 23         cups options = raw
+
+ 51 [share]
+ 52         path = /home/share
+ 53         read only = no
+ 54         writable = yes
+ 55         guest ok = yes
+ 56         guest only = yes
+ 57         create mode = 0777
+ 58         directory mode = 0777
+ 59         browseable = yes
+ 60         force user = nobody
+ 61 
+ 62 [security]
+ 63         path = /home/sec
+ 64         writable = yes
+ 65         force create mode = 0777
+ 66         force directory mode = 0777
+ 67         guest ok = no
+ 68         valid users = @sec
+ 69         inherit permissions = yes
+
+
+root@kali:/home/kali# mount -t cifs //10.0.0.200/security /share -o user=roror,password=qhdks12
+root@kali:/share# cp /etc/passwd ./1234
+
+
+# mount -t cifs //10.0.0.200/security /share -o user=roror,password=1234    (,user=1000,gid=1001 처럼 지정 접속 가능)
+
+
+SMB (Server Message Block, TCP 445 포트) 취약점 진단
+1.  파일, 프린터, 네트워크 자원 공유에 사용되는 윈도우 기반 프로토콜    TCP 445 포트 사용 (이전엔 139포트 – NetBIOS over TCP/IP)
+
+2. 주요 기능 및 점검 항목
+ 1) 파일 및 프린터 공유 (File & Printer Sharing)
+ 2) 명령 수행 가능 (원격 명령 실행 기능과 결합될 수 있음)
+ 3) 파일 읽기/쓰기 권한 확인 → read, write, execute 권한을 구분해 점검해야 함
+ 4) 공유 목록 탐색 → 접근 가능한 Share (공유 폴더, IPC$ 등) 확인 가능
+
+3. Null Session
+ 1) 사용자 이름과 비밀번호 없이(익명) 로그인 가능
+ 2) 위험 : 인증 없이 접근하여 파일 업로드/다운로드, 사용자 목록, 그룹 정보 수집 가능
+ 3) 방어  - Null session 비활성화
+  - 로컬 정책(Local Security Policy)에서 “네트워크 액세스: 익명 사용자 권한 제한” 설정
+  - 방화벽에서 445 포트 제한
+
+📌4. SMB 취약점 (Exploit Examples)
+ 1) 취약점 코드	이름 / 공격 유형  /  영향
+ 2) MS08-067, Conficker worm 취약점, 원격 코드 실행 (RCE)
+ 3) MS17-010, EternalBlue, WannaCry, NotPetya 공격에 악용
+ 4) SMBGhost (CVE-2020-0796), SMBv3 압축 처리 취약점, RCE, BlueKeep 유사
+ 5) MS15-011, Group Policy 취약점, 악성 코드 배포 가능
+📌
+5. SMB 버전 및 보안 설정
+ 1) SMBv1 : 오래된 버전, 보안 취약 → 반드시 비활성화
+ 2) SMBv2/v3 : 개선된 인증·암호화 지원
+ 3) SMB Signing : 패킷 무결성 확인 기능. MITM(중간자 공격) 방어용 → 단, 속도 약간 저하 가능
+
+6. 보안 점검 및 방어 권장
+ 1) 445 포트 제한 (외부에서 접근 차단)
+✅2) SMBv1 비활성화
+✅3) SMB Signing 활성화
+✅4) 정기적 패치 (Windows Update)
+✅5) 공유 폴더 권한 최소화 (Least Privilege)
+✅6) 익명 접근 차단 (Null Session 금지)
+
+
+
+root@kali:/share# nmap -p 445 -sV -sC -Pn -O -T2 -n --open 10.0.0.200 
+root@kali:/usr/share/nmap/scripts# nmap -p 445 -sV --script="smb-vuln-*" -Pn -n --open 10.0.0.200
+root@kali:/usr/share/nmap/scripts# ls *smb-*
+root@kali:/usr/share/nmap/scripts# nmap -p 445 -sV --script=smb-enum-shares.nse -Pn -n 10.0.0.200
+
+
+
+
+
+SMB 실습/점검 요약
+ Samba 취약점은 대부분 "내부자 위협" 시나리오에서 현실적인 공격 벡터로 사용된다.
+
+1) Samba는 기본적으로 사설망(내부망)에서 동작
+파일 공유 목적이기 때문에 외부에서 접근 열어두는 건 보안상 금기, 외부 방화벽에서 TCP 139/445 차단되어 있음이 일반적, 그래서 공격자가 외부에서 직접 공격하긴 힘듦
+
+2) 내부 사용자의 권한 상승 또는 내부 침투 경로
+ - 내부 직원 PC, IoT, 백도어 감염된 머신 → Metasploitable2와 같은 내부 Samba 서버 스캔 가능
+ - 취약 Samba로 root 권한 획득 후, 다른 서버로 수평 이동 (Lateral Movement)
+ - 특히 Active Directory 환경에서는 윈도우 SMB ↔ 리눅스 Samba 연동 때문에 위험 커짐
+
+3) 실제 침해사고 시나리오
+ - 내부망 스캔 → Samba 포트 열림 감지
+ - trans2open, user_map_script 같은 익스플로잇 → 루트 권한 획득
+ - 이후 ssh-key, passwd, shadow 유출, 다른 시스템으로 pivoting
+
+enum4linux
+- NetBIOS 이름 정보
+- 운영체제 정보 (OS guess)
+- Samba 버전
+- 공유 폴더 목록 (익명 접근 여부 확인)
+- 사용자 계정 목록
+- 정책 정보 (패스워드 정책 등)
+
+smbclient	공유 접근 및 파일 업/다운
+rpcclient	RPC 직접 호출하여 정보 수집
+crackmapexec	계정 크래킹, lateral movement
+nbtscan	NetBIOS 이름 정보만 빠르게 수집
+
+root@kali:/usr/share/nmap/scripts# enum4linux -a 10.0.0.200   
+root@kali:/usr/share/nmap/scripts# netexec smb 10.0.0.200 -u '' -p '' --shares
+
+
+netexec
+SMB 서비스에 로그인 가능한 계정인지 확인하고, 추가 정보를 수집하거나 명령을 실행하는 도구이다. 이미 확보한 계정(아이디/비밀번호)을 넣어서 사용하는 도구이다. 익명/특정 사용자로 원격 명령(또는 세션)을 시도하는 도구들(예: smbexec, crackmapexec 등)과 유사한 흐름이다.
+
+root@kali:/usr/share/nmap/scripts# nmap -p 445 -sV --script=smb-enum-shares -Pn -n 10.0.0.143
+// smb-enum-shares : 대상 SMB 서버에서 공유(share) 목록과 공개 정보(익명 접근 가능 여부 등)를 나열하려 시도.
+root@kali:/usr/share/nmap/scripts# nmap -p 445 -sV --script=smb-enum-users -Pn -n 10.0.0.143 
+// smb-enum-users : SMB로부터 사용자 계정 목록을 얻으려 시도(성공하려면 설정이나 취약점이 필요).
+
+root@kali:/usr/share/nmap/scripts# searchsploit samba smb
+root@kali:/usr/share/nmap/scripts# searchsploit samba  
+
+root@kali:/usr/share/nmap/scripts# msfconsole   
+msf > search usermap_script
+msf exploit(multi/samba/usermap_script) > use exploit/multi/samba/usermap_script
+
+msf exploit(multi/samba/usermap_script) > show info
+msf exploit(multi/samba/usermap_script) > show options
+msf exploit(multi/samba/usermap_script) > set rhosts 10.0.0.143
+rhosts => 10.0.0.143
+msf exploit(multi/samba/usermap_script) > set rport 139
+rport => 139
+
+
+root@kali:/home/kali# smbmap -H 10.0.0.200
+root@kali:/home/kali# smbmap -H 10.0.0.143
+
+
+
+
+
+
+dns 1.1.1.1 ..?
+
+1. sec.co.kr 1년 사용 ---> 업체(대행), 가비아, whois... 등
+2. 로그인 -> DNS주소 (도메인을 관리하는 DNS), 개인 DNS서버가 있나?.. 없으면.. 어캄.. 대부분의 대행업체에서 DMS서버를 제공해줌.
+3. 대행업체 (호스트 주소에 따라 유료)  
+  기본적인 주소만 허용
+  sec.co.kr, www.sec.co.kr 만 지원 ( ftp, pdf... 유료)
+  sec.co.kr (웝서버 주소)
+
+  DNS 서버가 있다면(1.1.1.1) --> ns.sec.co.kr  1.1.1.1, ns1.sec.co.kr  1.1.1.1 
+
+
+
+DDNS – 동적 DNS (Dynamic DNS)
+인터넷 회선의 공인 IP가 자주 바뀌는 환경에서, 자동으로 DNS 기록(A레코드 등)을 업데이트해 도메인이 항상 최신 IP를 가리키게 만드는 기술.
+
+

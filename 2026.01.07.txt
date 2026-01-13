@@ -1,0 +1,475 @@
+
+root@elk:/etc/logstash/conf.d# vi auth_ssh.conf 
+input {
+  file {
+    path => "/var/log/auth.log"             # 모니터링할 로그 파일 경로
+    start_position => "beginning"            # 파일의 처음부터 읽기 시작
+    # sincedb_path => "/dev/null"          # sincedb 파일 사용하지 않음 (주석 처리됨)
+    add_field => { "type" => "secure_log" }  # 이벤트에 'type' 필드 추가
+  }
+}
+
+filter {
+  if [message] =~ /sshd/ {                # 'message' 필드에 'sshd'가 포함된 경우에만 필터 적용
+    grok {
+      match => {
+        "message" => "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} sshd\[%{NUMBER:pid}\]: %{GREEDYDATA:ssh_message}"
+      }
+      overwrite => [ "message" ]         # 원본 'message' 필드를 파싱된 내용으로 덮어쓰기
+    }
+    date {
+      match => [ "timestamp", "MMM dd HH:mm:ss" ]  # 'timestamp' 필드의 형식을 지정하여 '@timestamp'로 변환
+      target => "@timestamp"                          # 변환된 시간을 '@timestamp' 필드에 저장
+    }
+  } else {
+    drop { }                                          # 조건에 맞지 않는 이벤트는 삭제
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://elk.roror.co.kr:9200"]         # Elasticsearch 호스트 설정
+    ssl_enabled => true                             # SSL 연결 활성화
+    ssl_verification_mode => "full"                   # SSL 인증서 검증 모드 설정
+    cacert => "/etc/logstash/http_ca.crt"            # 신뢰할 수 있는 CA 인증서 경로 지정
+    user => "elastic"                                # Elasticsearch 사용자명
+    password => "비밀번호를 입력하세요"             # Elasticsearch 비밀번호 (실제 비밀번호로 교체)
+    index => "auth_ssh-%{+YYYY.MM.dd}"           # 인덱스 이름 패턴 설정
+  }
+}
+
+
+---------------------
+
+input {
+  file {
+    path => "/var/log/auth.log"             # 모니터링할 로그 파일 경로
+    start_position => "beginning"           # 파일의 처음부터 읽기 시작
+    # sincedb_path => "/dev/null"           # sincedb 파일 사용하지 않음
+    add_field => { "type" => "secure_log" } # 이벤트에 'type' 필드 추가
+  }
+}
+
+filter {
+  if [message] =~ /sshd/ {                  # 'message' 필드에 'sshd'가 포함된 로그 처리
+    grok {
+      match => {
+        "message" => "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} sshd\[%{NUMBER:pid}\]: %{GREEDYDATA:ssh_message}"
+      }
+      overwrite => [ "message" ]            # 원본 'message' 필드 덮어쓰기
+    }
+    # 접속 성공 로그 필터링
+    if [ssh_message] =~ /Accepted password|Accepted publickey/ { 
+      mutate {
+        add_field => { "auth_status" => "success" }  # 접속 성공 로그에 'auth_status' 추가
+      }
+    }
+    # 접속 실패 로그 필터링
+    else if [ssh_message] =~ /Failed password/ {    
+      mutate {
+        add_field => { "auth_status" => "failure" }  # 접속 실패 로그에 'auth_status' 추가
+      }
+    }
+    # 접속 시도 로그 필터링 (예: 키 교환 또는 로그인 시도)
+    else if [ssh_message] =~ /Connection from|Connection closed|Disconnected/ {
+      mutate {
+        add_field => { "auth_status" => "attempt" }  # 접속 시도 로그에 'auth_status' 추가
+      }
+    }
+    # 타임스탬프 필드 변환
+    date {
+      match => [ "timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
+      target => "@timestamp"
+    }
+  } else {
+    drop { }                                       # 조건에 맞지 않는 로그 삭제
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://elk.roror.co.kr:9200"]      # Elasticsearch 호스트 설정
+    ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+    ssl_enabled => true              # SSL 활성화
+    ssl_verification_mode => "full"    # SSL 검증 모드 설정 (full: 전체 검증)
+    user => "elastic"
+    password => "비밀번호를 입력하세요"            # Elasticsearch 비밀번호 (실제 비밀번호로 교체)
+    index => "auth_ssh-%{+YYYY.MM.dd}"             # 인덱스 이름 패턴 설정
+  }
+}
+
+-----------------------------
+input {
+  file {
+    path => "/var/log/auth.log"
+    start_position => "beginning"
+    # sincedb_path => "/dev/null" # 테스트 중이라면 이 주석을 풀고 다시 실행해 보세요.
+    add_field => { "type" => "secure_log" }
+  }
+}
+
+filter {
+  # [수정] Grok 파싱 전에 'Failed password'가 있는지 먼저 확인
+  if "Failed password" in [message] {
+    
+    # 여기서만 Grok을 실행하여 필드를 쪼갭니다.
+    grok {
+      match => {
+        "message" => "%{SYSLOGTIMESTAMP:timestamp} %{HOSTNAME:hostname} sshd\[%{NUMBER:pid}\]: Failed password for %{GREEDYDATA:ssh_message}"
+      }
+    }
+    
+    mutate {
+      add_field => { "auth_status" => "failure" }
+    }
+
+    date {
+      match => [ "timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
+      target => "@timestamp"
+    }
+    
+  } else {
+    # 'Failed password'가 없는 모든 로그는 여기서 삭제
+    drop { }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://elk.roror.co.kr:9200"]
+    ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+    ssl_enabled => true
+    ssl_verification_mode => "full"
+    user => "elastic"
+    password => "비밀번호를 입력하세요"
+    index => "auth_ssh_failure-%{+YYYY.MM.dd}"
+  }
+  # [추가] 디버깅을 위해 콘솔에도 출력 (로그가 잘 들어오는지 확인용)
+  stdout { codec => rubydebug }
+}
+
+
+--------------------suricata
+input {
+  file {
+    path => "/var/log/suricata/eve.json"
+    start_position => "beginning"
+    sincedb_path => "/dev/null"      # 항상 처음부터 읽기 (테스트용, 운영 시 경로 분리 권장)
+    codec => json {
+      target => "event"               # JSON 필드를 event 하위로 저장하여 필드 충돌 방지
+    }
+  }
+}
+
+# eve.json 전체를 넣고 싶으면 filter 제거
+filter {
+  if [event][event_type] == "alert" {
+    if [event][severity] {
+      mutate {
+        add_field => {
+          "alert_level" => "%{[event][severity]}"  # 이벤트 심각도 필드 복사
+        }
+      }
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://elk.roror.co.kr:9200"]
+    index => "suricata-logs-%{+YYYY.MM.dd}"        # 인덱스 날짜별 분리
+    ssl_enabled => true
+    ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+    ssl_verification_mode => "full"
+    user => "elastic"
+    password => "패스워드"     # "${ELASTIC_PASSWORD}" 처럼 보안을 위해 환경 변수 사용 (권장)
+  }
+}
+
+
+
+
+-------------------
+
+input {
+  file {
+    path => "/var/log/suricata/eve.json"
+    start_position => "beginning"
+    sincedb_path => "/var/lib/logstash/sincedb_eve"
+    codec => json  # ← target 제거! JSON이 루트로 올라오게 함
+  }
+}
+
+filter {
+  # alert 처리
+  if [event_type] == "alert" {
+    mutate {
+      add_field => {
+        "alert_level" => "%{severity}"
+        "alert_msg"   => "%{[alert][signature]}"
+      }
+    }
+  }
+
+  # flow 처리
+  if [event_type] == "flow" {
+    mutate {
+      add_field => {
+        "flow_info" => "%{flow_id}"
+        "proto"     => "%{proto}"
+      }
+    }
+  }
+
+  # stats 처리
+  if [event_type] == "stats" {
+    mutate {
+      add_field => {
+        "pkts_total"  => "%{[stats][decoder][pkts]}"
+        "bytes_total" => "%{[stats][decoder][bytes]}"
+      }
+    }
+  }
+
+  # GeoIP
+  if [src_ip] and [src_ip] != "" {
+    geoip {
+      source => "src_ip"
+      target => "geoip"
+      database => "/etc/logstash/GeoLite2-Country.mmdb"
+    }
+  }
+
+  # 필드 정리 (원할 경우 사용)
+  # prune {
+  #   whitelist_names => [
+  #     "event_type", "timestamp", "src_ip", "dest_ip", "geoip",
+  #     "alert_level", "alert_msg",
+  #     "flow_info", "proto",
+  #     "pkts_total", "bytes_total"
+  #   ]
+  # }
+}
+
+output {
+  if [event_type] == "alert" {
+    elasticsearch {
+      hosts => ["https://elk.roror.co.kr:9200"]
+      index => "suricata-alerts-%{+YYYY.MM.dd}"
+      ssl_enabled => true
+      ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+      ssl_verification_mode => "full"
+      user => "elastic"
+      password => "qhdks12"
+    }
+  }
+
+  if [event_type] == "flow" {
+    elasticsearch {
+      hosts => ["https://elk.roror.co.kr:9200"]
+      index => "suricata-flows-%{+YYYY.MM.dd}"
+      ssl_enabled => true
+      ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+      ssl_verification_mode => "full"
+      user => "elastic"
+      password => "qhdks12"
+    }
+  }
+
+  if [event_type] == "stats" {
+    elasticsearch {
+      hosts => ["https://elk.roror.co.kr:9200"]
+      index => "suricata-stats-%{+YYYY.MM.dd}"
+      ssl_enabled => true
+      ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+      ssl_verification_mode => "full"
+      user => "elastic"
+      password => "qhdks12"
+    }
+  }
+
+  stdout { codec => rubydebug }
+}
+
+
+
+
+
+
+
+참고사항
+Filebeat는 가볍고 빠르게 로그를 수집하여 Elasticsearch로 전달하는 데 적합하며, 사전 정의된 Suricata 모듈로 간단한 설정만으로 로그를 시각화할 수 있다. 반면, Logstash는 데이터의 복잡한 변환 및 가공이 필요하거나, 다중 데이터 소스를 처리해야 할 때 적합하다.
+
+Logstash와 Filebeat를 함께 사용하는 방식도 일반적이며, Filebeat로 데이터를 수집하고 Logstash에서 추가로 변환하여 Elasticsearch로 전달하는 구조를 사용할 수 있다.
+
+
+https://github.com/grokify/kibana-tutorial-go
+
+
+
+
+PUT /logstash-2015.05.18
+{
+  "mappings": {
+    "properties": {
+      "geo": {
+        "properties": {
+          "coordinates": {
+            "type": "geo_point"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+PUT /logstash-2015.05.19
+{
+  "mappings": {
+    "properties": {
+      "geo": {
+        "properties": {
+          "coordinates": {
+            "type": "geo_point"
+          }
+        }
+      }
+    }
+  }
+}
+PUT /logstash-2015.05.20
+{
+  "mappings": {
+    "properties": {
+      "geo": {
+        "properties": {
+          "coordinates": {
+            "type": "geo_point"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+PUT /shakespeare
+{
+  "mappings": {
+    "properties": {
+    "speaker": {"type": "keyword"},
+    "play_name": {"type": "keyword"},
+    "line_id": {"type": "integer"},
+    "speech_number": {"type": "integer"}
+    }
+  }
+}
+
+-----------------------------------------------------------------------------------
+
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/bank/account/_bulk?pretty' --data-binary @accounts.json
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/shakespeare/_bulk?pretty' --data-binary @shakespeare.json
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/_bulk?pretty' --data-binary @logs.jsonl
+
+
+-------------------------------------------------------------------------------------
+
+
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/bank/_bulk?pretty' --data-binary @accounts.json
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/shakespeare/_bulk?pretty' --data-binary @shakespeare.json
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/_bulk?pretty' --data-binary @logs.jsonl
+
+
+curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -XPOST 'https://elk.roror.co.kr:9200/suricata/_bulk?pretty' --data-binary @eve.json
+
+
+
+
+
+
+--- alma linux ---
+# vi /etc/yum.repos.d/elastic.repo
+[elastic-9.x]
+name=Elastic repository for 9.x packages
+baseurl=https://artifacts.elastic.co/packages/9.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+
+
+
+
+
+# vi /etc/filebeat/filebeat.yml
+- type: filestream
+...
+  enabled: true
+
+# ======================= Elasticsearch 데이터 스트림 설정 =======================
+# 직접 index: "name-..."을 쓰는 대신 data_stream 설정을 사용.
+setup.data_stream:
+  enabled: true
+  namespace: "default"  # 필요 시 변경 (예: prod, dev)
+# 인덱스 템플릿 설정 (데이터 스트림 이름의 기반이 됨)
+setup.template.name: "rocky-index"
+setup.template.pattern: "rocky-index-*"
+
+setup.kibana:
+  host: "https://elk.roror.co.kr:5601"
+  protocol: "https"
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+
+output.elasticsearch:
+  hosts: ["https://elk.roror.co.kr:9200"]
+  preset: balanced
+  protocol: "https"
+  username: "elastic"
+  password: "qhdks12"
+  ssl.certificate_authorities: "/etc/filebeat/http_ca.crt"
+  ssl.verification_mode: "full" # 보안을 위해 가급적 full 권장
+  index: "rocky-index-%{[agent.version]}-%{+yyyy.MM.dd}"
+
+
+
+
+- 인증서 복사
+
+
+
+ # filebeat modules enable apache
+ # filebeat modules enable system
+ # vi /etc/filebeat/modules.d/apache.yml  (설정)
+
+- 설정 체크
+ # /usr/share/filebeat/bin/filebeat test config -c /etc/filebeat/filebeat.yml
+ # /usr/share/filebeat/bin/filebeat test output -c /etc/filebeat/filebeat.yml
+
+# systemctl enable --now filebeat
+# filebeat setup --dashboards
+
+
+
+- 인덱스 생성 확인
+ # curl -X GET "https://elk.roror.co.kr:9200/_index_template/rocky-index?pretty" -u elastic --cacert /etc/filebeat/http_ca.crt
+
+- 확인(ubuntu)
+Management -> Data -> Index Management ( Data Streams ) 
+
+- 기존 레지스트리 초기화 (테스트 중이라면 이전에 읽었던 로그 정보를 지워야 새로 읽는다)
+# systemctl stop filebeat
+# rm -rf /var/lib/filebeat/registry
+# systemctl start filebeat
+
+- 인덱스 생성 확인 및 데이터 뷰 등록
+- Discover 
+  [ 검색 ] log.file.path : *message*   
+          log.file.path : *secure*     또는 log.file.path : *secure
+          event.dataset : "system.auth"
+
+

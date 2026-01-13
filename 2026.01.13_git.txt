@@ -1,0 +1,223 @@
+- 원격 저장소를 제공하며 개발자간 협업이 가능하게 한다. 
+- 오픈소스 프로젝트 기반 원격 저장소 제공 또는  비공개 사용시 과금, 또는 gitlab 사용
+- 저장소
+Local Repository (지역저장소)
+Remote Repository (원격저장소, 온라인 상의 중앙 저장소, 협업, 백업)
+
+
+동작원리
+데이터를 가져오거나 프로젝트를 저장할 때마다  그 시점의 파일에 대해서 스냅샷 저장
+변경되지 않은 파일은 다시 파일을 저장하지 않고 이전에 지정한 동일한 파일을 링크
+데이터를 저장하기 전에 체크섬을 구하고 이 체크섬을 통해 데이터를 관리
+SHA-1 해쉬 사용(16진수 문자 40개로 구성,  파일의 내용 또는 디렉토리 구조를 기반으로 계산)
+파일 이름이 아닌 컨텐츠의 해쉬 값을 저장(파일명이 변경되도 내용이 동일하면 같은 해쉬)
+
+Working Directory :  Checkout the project(즉 원격 저장소의 리포지터리를 클론시) 
+Stagin Area : 파일을 생성시(ADD)
+Repository : Commit 시 저장된다.
+
+
+$ git init  (git 초기화)
+
+- local(지역)/
+git config user.name
+git config user.email
+
+- global(전역)
+--global 추가
+
+git config -l
+
+
+
+
+
+
+
+echo "# myweb" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/thddmstn/myweb.git
+git push -u origin main
+
+
+git remote add origin https://github.com/thddmstn/myweb.git
+git branch -M main
+git push -u origin main
+
+
+
+
+
+
+github
+Watch : 관심있는 프로젝트의 변경사항 알림이 오도록 설정  (unwatch)
+Star : 좋아요
+fork : 프로젝트 가지고 오기(종속)
+프로젝트가 복제 되므로 지역 저장소에 다운및 수정이 가능하다(GitHub, 오픈소스, 비공개는 제외)
+fork 가 많을 수록 관심이 많다고 생각 할 수 있다.
+Code : Source 위치 하는곳
+issues : 이슈관리,(이슈 트래킹 도구), 협업시 이력관리, 소스의 변경 관리등 유용하게 사용
+Pull Request : fork 후 버그, 기능추가등 설정후 Pull Request 하면 기존(base) 프로젝트 진행자가 기존 프로젝트에 추가 할 수 있다.
+Wiki : 메뉴얼
+insights (Pulse, Graphs)
+Pulse : 해당 프로젝트의 변화들과 외부에서 주는 관심들을 보여준다.
+Graphs : 프로젝트 현황을 시각화
+
+commits : 몇개의 버전이 존재하는가 (클릭 확인)
+releases : 정식버전
+contributors : 등록 사용자(수정가능자)
+
+
+
+- github
+기본 페이지 (즉 index.html)   README.md  파일이 기본 파일이다.
+
+echo "# myweb" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M master
+git remote add origin git@github.com:fix1004/myweb.git
+git push -u origin master
+
+
+…or push an existing repository from the command line
+git remote add origin git@github.com:fix1004/myweb.git
+git branch -M master
+git push -u origin master
+
+
+Markdown(마크다운)
+# 대제목
+## 중제목
+### 소제목
+안녕하세요 여기는 내용을 적으면 됩니다.
+>note : GitHub 어디에 써먹을까요?
+Blog : [Lsof.co.kr](http://www.lsof.co.kr) - memobox.kr
+|Site|URL|
+|--|--|
+|GitHub|https://github.com/fix1004|
+<img src="https://www.kali.org/wp-content/uploads/2015/02/offsec-logo-gray-trans.png">
+
+
+
+
+git add .
+git commit -m "test " .
+
+
+
+.gitignore : 기본적으로 생성되는 OS파일등 필요가 없는 파일 제외
+ https://github.com/github/gitignore (샘플 파일 제공)
+1) *.a  :  확장자가 .a인 파일 무시
+2) ! 사용시(!lib.a ) 확장자가 .a인 파일은 무시하지만 lib.a는 제외
+3) build/  :  build/ 디렉토리에 있는 모든 파일은 무시
+4) doc/*.txt  :  doc/notes.txt 파일은 무시하고 doc/server/arch.txt 파일은 무시하지 않음
+5) doc/**/*.txt  :  doc 디렉토리 아래의 모든 .txt 파일을 무시
+
+
+
+-----------------------------------------------------------------------------
+
+
+echo "# almalinux" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin git@github.com:thddmstn/almalinux.git
+git push -u origin main
+
+
+
+  918  cd /var/www/html
+  919  git init
+  920  ls
+  921  git log
+  922  git config -l
+  923  git config --global -l
+  924  ls -al ./git
+  925  ls -al .git
+  926  git config user.name thddmstn
+  928  git config user.email thddmstn03@naver.com
+  929  git config -l
+  930  git log
+  931  git branch -l
+  932  cd
+  933  ssh-keygen -t rsa -b 4096 -C thddmstn03@naver.com
+  934  cd .ssh
+  935  ls
+  936  cat id_rsa.pub   // 복사해서 git에 ssh key 생성하기
+  937  cd /var/www/html
+  938  git remote -v
+  939  git remote add origin git@github.com:thddmstn/almalinux.git
+  940  git remote -v
+  941  git remote remove origin
+  942  git remote -v
+  943  git remote add origin git@github.com:thddmstn/almalinux.git
+  944  git remote -v
+  945  git add .
+  946  git status
+  947  git rm --cached
+  948  git rm --cached .
+  949  git rm -r --cached .
+  950  git rm --cached . -r
+  951  git rm --cached . -r -f
+  952  git status
+  953  vi .gitignore
+  954  git add .
+  955  git status
+  956  ls
+  957  git rm --cached . -r -f
+  958  ls
+  959  vi .gitignore
+  960  git add
+  961  git status
+  962  ls
+  963  git .gitignore
+  964  vi .gitignore 
+  965  vi .gitignore 
+  966  git add .
+  967  git status
+  968  git add .
+  969  git status
+  970  git commit -m "add file" .
+  971  git branch -l
+  972  git push -u origin master
+  973  git fatch --all
+  974  git fetch --all
+  975  git push -u origin master
+  976  git pull origin master
+  977  git push -f origin master
+  978  git pull origin
+  979  git pull origin master
+  980  ls
+  981  git pull origin master
+  982  ls
+  983  vi index.php 
+  984  systemctl restart apache2
+  985  systemctl restart httpd
+  986  vi index.php 
+  987  systemctl restart php-fpm
+  988  vi index.php 
+  989  rm -rf .git
+  990  ls -al
+  991  vi .gitignore 
+  992  git init
+  993  git config user.name thddmstn
+  994  git config user.email thddmstn03@naver.com
+  995  echo "# almalinux" >> README.md
+  996  git add .
+  997  git commit -m "first commit"
+  998  git branch -l
+  999  git remote add origin git@github.com:thddmstn/almalinux.git
+ 1000  git push -u origin master
+ 1001  git pull origin master
+ 1002  git pull origin master
+ 1003  git pull origin master
+
+
+

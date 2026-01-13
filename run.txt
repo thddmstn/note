@@ -1,0 +1,99 @@
+#!/bin/bash
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "$(id -u)로 로그인 하였습니다. ! 루트로 로그인 하세요"
+    exec sudo bash "$0" "$@"
+    exit
+fi
+
+run_snort() {
+    local config_file=$1
+    local additional_opts=$2
+    echo "Snort 실행: $config_file"
+    xterm -fg black -bg white -fn *-fixed-*-*-*-20-* -e \
+        "echo \"snort $additional_opts -c $config_file\"; \
+        snort $additional_opts -c $config_file; bash"
+    killall -9 snort
+}
+
+apply_netplan_config() {
+    local config_file=$1
+    echo "Network 설정 적용: $config_file"
+    cp -af /root/backup/$config_file /etc/systemd/network/
+    systemctl restart systemd-networkd
+}
+
+apply_iptables_config() {
+    local config_file=$1
+    cp -af /root/backup/$config_file /etc/iptables/
+    netfilter-persistent flush 2> /dev/null
+    netfilter-persistent reload 2> /dev/null
+}
+
+apply_snort_config() {
+    local config_file=$1
+    ln -sf /root/backup/$config_file /etc/snort/rules/local.rules
+}
+
+# 메뉴 출력
+echo "
+ ======= Rules ======= 
+ 1) Roror's Snort Rules (IDS)
+ 2) Roror's Local Rules (IDS)
+ 3) Roror's Snort Rules (IPS)
+ 4) Roror's Snort NFQ (NAT) 
+
+ ======= MODE ======= 
+ 5) Roror's IPS MODE
+ 6) Roror's IDS MODE
+ 7) Roror's NAT MODE
+"
+
+#read -p "choice : " num
+echo "입력(5초 안에 입력이 없으면 IDS로 넘어갑니다): "
+if read -p "choice : " -t 5 num; then
+
+
+# 사용자 입력 처리
+case "$num" in
+    1)
+        run_snort "/etc/snort/snort.conf" "-A console -q -u snort -g snort"
+        ;;
+    2)
+        run_snort "/etc/snort/snort_ids.conf" "-A console -q -u snort -g snort"
+        ;;
+    3)
+        run_snort "/etc/snort/snort_af.conf" "-Q -A console -q -u snort -g snort -i ens33:ens36 -N"
+        ;;
+    4)
+        run_snort "/etc/snort/snort_nfq.conf" "-Q -A console -q -u snort -g snort"
+        ;;
+    5)
+        apply_netplan_config "network/ips/*"
+	apply_iptables_config "iptables/ips/*"
+	apply_snort_config "snort/ips/local.rules"
+	systemctl stop isc-dhcp-server
+        ;;
+    6)
+        apply_netplan_config "network/ids/*"
+	apply_iptables_config "iptables/ips/*"
+	apply_snort_config "snort/ids/local.rules"
+	systemctl stop isc-dhcp-server
+        ;;
+    7)
+        apply_netplan_config "network/nat/*"
+	apply_iptables_config "iptables/nat/*"
+	apply_snort_config "snort/ips/local.rules"
+	systemctl start isc-dhcp-server
+        ;;
+
+    *)
+        echo "잘못된 선택입니다. 숫자를 입력하세요."
+        ;;
+esac
+
+
+else
+    echo "입력 시간 초과 —  Local Rules IDS MODE."
+    run_snort "/etc/snort/snort_ids.conf" "-A console -q -u snort -g snort"
+fi

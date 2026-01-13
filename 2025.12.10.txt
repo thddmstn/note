@@ -1,0 +1,160 @@
+
+vi /etc/roundcubemail/config.inc.php
+
+$config['db_dsnw'] = 'mysql://roundcube:qhdks12@localhost/roundcubemail';  // 패스워드 변경
+$config['imap_host'] = 'localhost:143';  // IMAP (로그인용)
+$config['default_port'] = 143;
+$config['smtp_host'] = 'tls://mail.roror.co.kr';   // 587 + STARTTLS 방식
+$config['smtp_port']  = 587;
+$config['smtp_crypto'] = 'tls';
+$config['smtp_user'] = '%u';
+$config['smtp_pass'] = '%p';                     // SMTP 서버에 로그인할 때 사용할 비밀번호
+$config['smtp_auth_type'] = 'LOGIN';             // SMTP 인증 유형 지정 (LOGIN, PLAIN, CRAM-MD5)
+$config['smtp_helo_host'] = 'mail.roror.co.kr';     // SMTP HELO 호스트 지정
+$config['product_name'] = 'Roror Roundcube Webmail';  // 서비스 정보
+$config['mail_domain']  = 'roror.co.kr';           // 도메인 이름 지정
+$config['useragent']    = 'ROROR Webmail';      // UserAgent 지정
+
+/* IMAP */
+$config['imap_conn_options'] = [
+    'ssl' => [
+        'verify_peer'  => true,  // 인증서의 유효성을 검사
+        'verify_peer_name' => true,
+        'CN_match' => 'roror.co.kr',  // 서버의 공용 이름을 지정(인증서와 동일)
+        'allow_self_signed' => true,  // 자체 서명된 인증서를 허용
+        'ciphers' => 'HIGH:!SSLv2:!SSLv3',  // 안전한 암호화 방식만 허용
+    ],
+];
+
+/* SMTP */
+$config['smtp_conn_options'] = [
+    'ssl' => [
+        'verify_peer'  => false,
+        'verify_peer_name' => false,
+        //'CN_match' => 'roror.co.kr',
+        //'allow_self_signed' => true,
+        //'ciphers' => 'HIGH:!SSLv2:!SSLv3',
+    ],
+];
+
+
+
+기본 특징 
+-펄 호환 정규표현식 (Perl Comaptible Regular Expression) 
+-스노트 패턴 탐지 옵션 Content를 보완하고 정확도를 높이는 데 사용 
+-PCRE는 메타문자, 수량자, 클래스, 추가 옵션들로 구성 
+-PCRE의 시작과 끝은 구분자(/)로 결정 -> pcre:”/표현식/옵션”; 
+[실습사이트]
+https://regexr.com/
+Regex101.com
+debuggex.com
+https://www.debuggex.com 
+http://www.nextree.co.kr/p4327/
+
+
+
+
+
+  1 #!/bin/bash
+  2 
+  3 if [ "$1" == "$$" ];then
+  4         echo "Recived literal \$\$ -> script: $$"
+  5 else
+  6         echo "Recived value: $1"
+  7 fi
+
+
+
+
+a?b = 0,1
+a+b = 1, * 
+
+
+matches  (?i)
+
+
+1. 참고사항
+ 1) 아스키코드 : 256개의 문자조합 제공 1바이트 문자 인코딩 방식, 영어권 0~127, 비영어권 128~255 코드 번호 사용
+
+
+2. 수정자 (ignore case, global, multi line, single line)
+ 1) i :  ignore case 대소문자 무시
+
+ 2) g : global 일치하는 모든 문자열 검사
+  (1) /regular expression/g  인경우 문서 전체에서 regular expression 를 찾는다.
+  (2) g 해제시 : 첫번째 regular expression 만 찾는다.
+
+ 3) m : 앵커문자 모든 줄에 ^, $ 의 줄 구분 해제/설정    
+  (1) g 없이 m 만 설정시 첫번째 값만 탐지한다. 줄의 위치는 상관 없이 첫번째 매칭된 내용이 탐지
+  (2) 결국 m 수정자는  ^ 또는 $ 를 각 줄마다 표시하고 각각의 라인의 문자열을 검색 가능하다.
+        ^.{3}    처음 3글자
+
+ 4) s : 메타문자  . 의 검사 범위에 줄바꿈 문자를 포함한다. 즉  $ 을 포함하여 검색한다.
+  (1) regular(줄끝)expression(다음줄) 경우 s 설정시 $를 . 으로 표현 가능 (s 설정시 regular.expression 탐지됨)
+  (2) Wireshark를 이용하여 테스트 가능 http.host contains "사이트"  ->  \r \n   ->  16진수로는 0D 0A
+  (3) [Linux VIM 으로 테스트] :set hlsearch, :set nohlsearch, :nohlsearch
+    - VIM 줄바꿈문자  :     /\n (set hlsearch, set list)
+    -  VIM 싱글라인 모드 메타문자 :       \_
+      hello, world 가 서로 다른 줄에 있을경우 /hello\_.*world 처럼 검색 가능(멀티라인 set magic)
+      검색에서    .*  를 입력시 줄바꿈( $ ) 는 선택(흰색)되지 않는다,  (vim  ->  set list   ->    /    ->  .*   또는 \_.*    후 확인)
+  (4) 자바스크립트는 싱글라인 수정자를 지원하지 않는다(현재)
+
+
+
+Intercept and modify a request
+Set up the intercept as noted above and then submit the form/request below by clicking the submit button. When your request is intercepted (hits the breakpoint), modify it as follows.
+
+Change the Method to GET
+
+Add a header 'x-request-intercepted:true'
+
+Remove the request body and instead send 'changeMe' as a query string parameter and set the value to 'Requests are tampered easily' (without the single quotes)
+
+Then let the request continue through (by hitting the play button).
+
+The two play buttons behave a little differently, but we’ll let you tinker and figure that out for yourself.
+
+
+
+
+POST Connection: keep-alive
+
+http.request.full_uri matches "(?)DVWA"
+http matches "(?i)\\.(zip|txt|exe)"
+http matches "(?ism)^POST.*Connection:\\skeep-alive"
+
+
+(수량자 예외 표시)VIM 표시 방법
+VIM은 PCRE와 달리 + 를 순수문자로 보기 때문에 예외처리가 필요 \+ 
+\+   	 는 +
+\?또는\=	 는 ?   (둘 다 사용 가능. \=는 Vim 고유이다. ? 와 같다.)
+\{n}          는 \ 를 추가
+\{n,}   
+\{m,n} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

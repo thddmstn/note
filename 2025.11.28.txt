@@ -1,0 +1,55 @@
+3
+백도어를 이용
+결과값만 이용?
+쉘을 획득?
+뭔소리지 ㅎ
+
+
+
+문제 2
+
+메일 주고받은 내용
+Hey, can you hook me up quick with that fake passport you were taking =
+about? - Ann
+
+Sorry-- I can't do lunch next week after all. Heading out of town. =
+Another time!
+
+-Ann
+
+Hi sweetheart! Bring your fake passport and a bathing suit. Address =
+attached. love, Ann
+
+
+root@kali:/home/kali# vi doc.txt // data ascii모드로 복사 붙여넣기
+root@kali:/home/kali# base64 -d doc.txt > result.docx 
+root@kali:/home/kali# file result.docx  // result.docx: Microsoft Word 2007+ 확인
+root@kali:/home/kali# mv result.docx result.zip  
+root@kali:/home/kali# zip -FF result.zip --out fixed.zip
+root@kali:/home/kali# unzip fixed.zip -d fixed_contents
+
+root@kali:/home/kali/fixed_contents/word# apt install libxml2-utils
+root@kali:/home/kali/fixed_contents/word# xmllint --xpath "//*[local-name()='t']/text()" document.xml
+Meet me at the fountain near the rendezvous point. Address below. I’m bringing all the cash.
+root@kali:/home/kali/fixed_contents/word/media# display image1.png 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

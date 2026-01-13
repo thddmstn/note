@@ -1,0 +1,252 @@
+VTP : Switch 간에 Trunk 포트로 연결해야 도메인, 패스워드등 공유 가능
+
+
+Switch#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#vtp version ?
+  <1-2>  Set the adminstrative domain VTP version number
+Switch(config)#vtp version 2
+Switch(config)#vtp domain vtptest
+
+Switch(config)#int fa 0/24
+Switch(config-if)#sw mo tr
+
+Switch(config)#vlan 10
+Switch(config-vlan)#name vlan-10
+Switch(config-vlan)#vlan 20
+Switch(config-vlan)#name vlan-20
+Switch(config-vlan)#vlan 30
+Switch(config-vlan)#name vlan-30
+
+---  Switch 1/2/3 설정(Client)
+Switch#sh vtp status
+Switch#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#vtp version 2
+Switch(config)#vtp mode client
+Setting device to VTP CLIENT mode.
+Switch(config)#vtp domain vtptest
+Changing VTP domain name from NULL to vtptest
+Switch(config)#vtp password vtppass
+Setting device VLAN database password to vtppass
+Switch(config)#int f0/24
+Switch(config-if)#sw mo tr
+Switch#sh vlan
+Switch#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#int fa0/1
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 10
+Switch(config-if)#do sh vtp status
+
+- vtp version 2
+  vtp mode transparent
+
+
+(2)----------------------
+Switch 1
+Switch#conf t 
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#vtp version 2
+Switch(config)#vtp mode server
+Device mode already VTP SERVER.
+Switch(config)#vtp domain roror
+Changing VTP domain name from NULL to roror
+Switch(config)#vtp password qhdks
+Setting device VLAN database password to qhdks
+Switch(config)#int ra f0/1-2
+Switch(config-if-range)#sw mo tr
+Switch(config-if-range)#int ra g0/1-2
+Switch(config-if-range)#sw mo tr
+Switch(config-if-range)#int f0/24
+Switch(config-if)#sw mo tr
+Switch(config-if)#vlan 10
+Switch(config-vlan)#name vlan-10
+Switch(config-vlan)#vlan 20
+Switch(config-vlan)#name vlan-20
+
+Switch 0
+Switch(config)#vtp v 2
+Switch(config)#vtp m cl
+Setting device to VTP CLIENT mode.
+Switch(config)#vtp do roror
+Domain name already set to roror.
+Switch(config)#vtp pa qhdks
+Setting device VLAN database password to qhdks
+
+참고사항
+VLAN 정보는 트렁크 포트를 통해 전달되지만, 
+VTP Transparent 모드에서는 해당 스위치가 VLAN 정보를 받아오는 것만 가능하다. 
+실제 패킷은 각 VLAN 내에서만 통신할 수 있고, 다른 VLAN 간 통신은 인터 VLAN 라우팅을 통해 이루어져야 한다.
+트렁크 포트를 통해 VLAN 정보만 전파되며, 패킷은 해당 VLAN에 맞는 포트로 전송된다.
+
+transparent는 VTP 네트워크에 영향을 주지도, 받지도 않는다. 다른 스위치의 VLAN 설정이 잘못돼도 내 VLAN은 망가지지 않으며 내가 만든 VLAN도 다른 스위치에는 전파되지 않는다. 하지만 트렁크로 데이터(VLAN 트래픽)는 그대로 통과한다.  즉 “VTP는 무시하지만 VLAN 트래픽은 통과시키는 독립 스위치” 이다.
+- 실험/테스트용 스위치 추가 시 잘못된 VLAN이 전체 네트워크에 퍼지는 걸 방지
+- 다른 도메인(VTP Domain)과 연결할 때 서로 영향을 주지 않도록 격리
+- 작은 네트워크(수동 관리가 충분한 경우)는 굳이 VTP 서버/클라이언트 필요 없음
+- 대규모망에서 안전장치로, 실수로 VTP 업데이트 날려도 해당 스위치는 보호됨
+- 내용 확인
+
+
+
+---- etherchannel --
+Switch#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Switch(config)#int ra g0/1-2
+Switch(config-if-range)#no sw mo tr
+
+
+Switch(config-if-range)#channel-group 1 mode on
+Switch#show etherchannel summary
+Switch(config)#interface port-channel 1
+Switch(config-if)#sw mo tr
+
+
+
+
+18. 
+Router(config-if)#media-type sfp
+GigabitEthernet0/0/0: Changing media to SFP
+(참고)media-type sfp
+Cisco 라우터나 스위치의 듀얼 모드 포트(콤보 포트), 즉 RJ-45(구리)와 SFP(광 모듈) 중에서 어떤 포트를 사용할지 선택할 때 사용되는 명령이다.
+- 모든 포트가 아닌 SFP 모듈을 사용할 포트에만 적용. 
+- 듀얼 모드가 지원되지 않는 포트는 해당 명령어 자체가 없다. 
+- 각 포트의 기본 모드는 RJ-45이며, SFP 사용 시 반드시 명령어를 입력해야 한다.
+-  0/0/0 Dual Media (RJ45 + SFP) , 0/0/1 RJ45, 0/0/2는 SFP 
+
+Router 1
+Router(config)#int g 0/0/1
+Router(config-if)#no sh
+Router(config-if)#int g0/0/1.10
+Router(config-subif)#en do 10
+Router(config-subif)#ip add 168.126.64.254 255.255.255.0
+Router(config-subif)#int g0/0/1.20
+Router(config-subif)#en do 20
+Router(config-subif)#ip add 168.126.65.254 255.255.255.0
+
+
+router ospf 2
+ log-adjacency-changes
+ network 204.200.7.0 0.0.0.255 area 0
+ network 168.126.64.254 0.0.0.0 area 0
+ network 168.126.65.254 0.0.0.0 area 0
+
+
+Static Routing과 HSRP 조합
+ - 정적 경로 문제 (Blackhole 발생)
+ - 장애 시 라우팅 정보 미갱신
+ - HSRP를 사용할 때는 동적 라우팅 프로토콜(OSPF, EIGRP 등) 을 쓰는 것이 좋다.
+   라우터 장애 발생 시 즉시 경로 재계산  
+   라우팅 테이블 자동 업데이트로 신속한 장애 복구 
+   네트워크 관리 및 확장 용이성 증가
+
+2대의 라우터 R1과 Router0을 묶어야 한다. (HSRP(Sandy) Group 이라한다)
+1) 가상 IP 설정
+2) R0(VLAN10)을 ACTIVE상태 R1(VLAN10)를 Standy로 작동하다가 장애발생시 R1이 ACTIVE로 작동
+3) R1(VLAN20)을 ACTIVE상태 R0(VLAN20)를 Standy로 작동하다가 장애발생시 R0이 ACTIVE로 작동
+
+-------------  라우터 FHRP 설정 ------------------------
+standby [group-number] ip [Virtual-IP] → HSRP 그룹 및 가상 IP 설정
+standby [group-number] priority [value] → 우선순위를 높게 설정한 장비가 Active로 동작
+standby [group-number] preempt → Active 스위치가 다운되었다가 복구된 후 자동으로 Active 상태를 되찾도록 설정하는 명령어
+
+
+R0(config)#int g0/0/1.10
+
+R0(config-subif)#standby 10 ip 168.126.64.253   (가상 IP 설정)
+ 1) 그룹넘버는 0~4096 사이 아무값이나 사용가능
+ 2) ip [Virtual Router IP]
+
+R0(config-subif)#standby 10 priority 150
+ 1) VLAN 10 은 R1을 ACTIVE로 설정
+ 2) priority 는 0 ~ 255(기본 100)
+ 3) priority 가 높은 값이 ACTIVE가 된다.
+ R0(config-subif)#standby 10 preempt
+ 1) 장애 발생시 ACTIVE를 수리후 다시 복귀시 priority가 높아도 ACTIVE가 안된다.
+ 2)  preempt  를 적용하면 priority가 높은 값이(다시) ACTIVE가 된다.
+ 3) 즉 이 라우터가 우선순위가 높을 경우 대기 상태에서 활성 상태로 전환될 수 있도록 설정한다.
+ - 참고 : standby 1 timers hello 3 hold 10: Hello 메시지의 주기와 Hold 타이머를 설정.
+
+
+
+Router 0
+Router(config-if)#int g0/0/1.10
+Router(config-subif)#standby 10 ip 168.126.64.253
+Router(config-subif)#standby 10 priority 150
+Router(config-subif)#standby 10 preempt
+
+Router(config)#int g0/0/1.20
+Router(config-subif)#standby 20 ip 168.126.65.253
+Router#sh standby br
+                     P indicates configured to preempt.
+                     |
+Interface   Grp  Pri P State    Active          Standby         Virtual IP
+Gig         10   150 P Active   local           168.126.64.254  168.126.64.253 
+Gig         20   100   Standby  168.126.65.254  local           168.126.65.253
+
+
+Router 1
+Router(config)#int g0/0/1.10
+Router(config-subif)#standby 10 ip 168.126.64.253
+
+Router(config-subif)#int g0/0/1.20
+Router(config-subif)#standby 20 ip 168.126.65.253
+Router(config-subif)#standby 20 pri
+Router(config-subif)#standby 20 priority 150
+Router(config-subif)#standby 20 pre
+Router(config-subif)#standby 20 preempt 
+Router#show standby brief 
+                     P indicates configured to preempt.
+                     |
+Interface   Grp  Pri P State    Active          Standby         Virtual IP
+Gig         10   100   Standby  168.126.64.1    local           168.126.64.253 
+Gig         20   150 P Active   local           168.126.65.1    168.126.65.253 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

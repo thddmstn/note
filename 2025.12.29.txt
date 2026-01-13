@@ -1,0 +1,316 @@
+
+
+
+alert icmp any any -> 10.0.0.200 any (msg:"To Detected Ping of Death"; threshold:type both,track by_src,count 10,seconds 2; sid:2025122901;)
+
+#alert icmp any any -> 10.0.0.200 any (msg:"To Detected Ping of Death"; threshold:type both,track by_src,count 10,seconds 2; sid:2025122901;)
+alert icmp any any -> 10.0.0.200 any (msg:"To Detected Ping of Death"; threshold:type both,track by_dst,count 10,seconds 2; sid:2025122901;)
+alert icmp any any -> 10.0.0.200 any (msg:"To Detected Ping of Death Data"; threshold:type both,track by_dst,count 10,seconds 2; dsize:>5000; sid:2025122902;)
+
+
+
+root@kali:/home/kali# hping3 10.0.0.200 --icmp --faster -c 100
+root@kali:/home/kali# hping3 10.0.0.200 -d 65000 --icmp --faster -c 100
+root@kali:/home/kali# hping3 10.0.0.200 -d 65000 --icmp --faster  
+root@kali:/home/kali# hping3 10.0.0.200 --flood    
+root@kali:/home/kali# hping3 10.0.0.200 -d 65000 --flood     
+
+
+--------------------------------------------------------------------------------------
+root@kali:~# hping3 --flood --rand-source --udp -p TARGET_PORT TARGET_IP  ( udp 를 --icmp로 변경)
+root@kali:~# hping3 --flood --rand-source -1 -p TARGET_PORT TARGET_IP (ICMP and IGMP Floods )
+hping3으로 ICMP 플러드를 수행하려면 -1 매개 변수를 사용해야한다!
+alert udp any any -> any any (msg:"UDP Flooding Attack"; threshold:type threshold, track by_src, count 5, seconds 1; sid:2019010101;)
+alert icmp any any -> any any (msg:"ICMP Flooding Attack"; threshold:type threshold, track by_src, count 5, seconds 1; sid:2019010101;)
+
+대응책 : 보통 ICMP 패킷은 분할하지 않으므로, 분할이 일어난 패킷을 공격으로 의심하여 탐지하며, 반복적으로 들어오는 일정 수 이상의 ICMP 패킷을 무시하도록 설정 및 패치
+
+------------------------------------------------------------------------------------
+alert icmp  any any -> 10.0.0.200 any (msg:"ToDetected PingOfDeath both";threshold:type both,track by_dst, count 100,seconds 2;sid:2018050504;)
+alert icmp  any any -> 10.0.0.200 any (msg:"ToDetected PingOfDeath limit";threshold:type limit,track by_dst, count 10,seconds 2;sid:2018050505;)
+alert icmp  any any -> 10.0.0.200 any (msg:"ToDetected PingOfDeath threshold";threshold:type threshold,track by_dst, count 100,seconds 60;sid:2018050507;)
+
+
+
+---------------------------------------------------------------------------------------
+
+[룰 작성]
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type both,track by_src, count 100,seconds 2;sid:2018050504;)
+
+[kali]
+# hping 192.168.0.18 --icmp (탐지안됨)
+# hping 192.168.0.18 --icmp --flood (탐지됨)
+# hping 192.168.0.18 --icmp –faster –c 400 (탐지됨)
+# hping3 192.168.10.136 --icmp -i u100000  (hping3 –help | grep fast)
+# hping3 –help | grep sec
+
+[ 오른쪽 표 설명 ] – 아래코드 학생 실습
+threshold : 2초에 100개의 패킷(마다) 1나의 카운트가 증가한다, 즉! 2초에 200개의 카운트는 2개이다.
+# hping 192.168.0.18 --icmp –faster –c 400 
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type both,track by_dst, count 100,seconds 2;sid:2018050504;)
+즉!  2초에 100개이상이면 무조건 1개의 카운트를 계속 증가한다.
+표에서   400개의 패킷과 4초에서 ( 2초에 300, 2초에 100 이 발생했다고 가정한다고 예를 들면)
+2초에 100개마다 카운트가 일어난다 그러므로 3개,  뒷부분은  2초에 100의 카운트 는 1 이므로    400패킷에서 4개의 카운트이다.
+
+limit : 2초에 100개의 패킷을 패킷마다 100개까지 카운트 즉! 2초에 300개면 (100개까지만 카운트 한다)
+# hping 192.168.0.18 --icmp –faster –c 400 
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type limit,track by_dst, count 10,seconds 2;sid:2018050504;)
+2초에 300개의 패킷은 무조건 100개까지만 카운트한다, 2초에 100개는 100개 그러므로 4초에 200개의 카운트이다
+
+both : 2초에 100개의 패킷을 딱한번만 카운트 한다 즉~ 2초에 200개(몇개든)의 카운트는 1개이다 
+# hping 192.168.0.18 --icmp –faster –c 400 
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type both,track by_dst, count 10,seconds 2;sid:2018050504;)
+2초에 300개의 카운트는 1개이다(한번만 발생), 2초에 100개는 1개이다 그러므로 총 4초에 2번의 카운트이다
+
+표를 보면 threshold만이 패킷 발생량을 정확히 측정할 수 있으며(결과적으로 발생 추이를 정확히 측정할 수 있다), 
+limit와 both는 정확한 패킷 발생량 측정이 어렵다.   (물론 이 설명이 아주 정확하지는 않지만, 전반적으로 이런 경향을 보인다,  테스트 필요)
+both는 로그 축약에 목적이 있는데, 그 이유는 부정확한 탐지로그가 대량 발생하면 정작 공격이 발생했을 때, 제대로 된 대응이 어려워지기 때문이다. 한마디로 쓸데없는 일을 붙잡고 있느라 해야 할 일을 못하게 만든다.
+
+[threshold]threshold:type threshold track by_dst, count 100, seconds 60;
+60초내에서 패킷 100개 마다 1번의 카운트      
+N시간 상에서(on the N) N만큼 매치될 때마다 카운트
+[즉!   60초에서 100개의 카운터를 1개로 계산한다.  계속 검출]
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type threshold,track by_dst, count 100,seconds 60;sid:2018050504;)
+공격 : hping3 192.168.0.18 --icmp --faster
+
+
+threshold type: limit track by_dst, count 100, seconds 60;
+- 60초에 100개 패킷 까지만 기록
+N시간에서(at N) N만큼 제한
+[60초에 100개 까지만 탐지, 60초마다 100개씩 탐지한다.]
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type limit,track by_dst, count 10,seconds 60;sid:2018050504;)
+공격 : hping3 192.168.0.18 --icmp --faster
+
+
+threshold type: both track by_dst, count 100, seconds 60;
+- 60초에 패킷 100개가 될 경우 딱 한번만 카운트
+[60초에 100개의 카운터를 1개로 계산, 한번만 탐지, 60초마다 1개씩 탐지한다.]
+alert icmp  any any -> 192.168.0.18 any (msg:"ToDetected PingOfDeath";threshold:type limit,track by_dst, count 100,seconds 60;sid:2018050504;)
+공격 : hping3 192.168.0.18 --icmp --faster
+
+
+참고 : 위 설명에서 추가적으로 설명을 덧붙인다면 아래와 같다.
+threshold type: threshold인 경우 60초 내에서 규칙에 매치된 패킷이 200개라면 2번 카운트, 300개라면 3번 카운트 된다. 
+threshold type: limit인 경우는 무조건적으로 해당 시간내에서 지정한 카운트 까지만 알림을 발생시킨다. count 10 seconds 60 이라면 60초내에서 패킷이 100번이든 200번이든 매치되더라도 무조건적으로 10개까지만 발생시킨다.
+threshold type: both는 threshold 속성에 limit 속성을 결합 시킨것이다. 조건만 일치한다면 지속적으로 발생시키는 threshold와 달리 딱 한번만 발생시킨다. count 150 seconds 60이라면 60초내에서 해당 규칙과 매치되는 패킷이 150번 카운팅 되었을때 로깅알림을 딱 한번만 띄운다. 
+track by는 src와 dst로 나누어진다. 카운팅 할 대상의 주소를 정하는것은 관리자의 선택이다.
+만약 무차별 공격에 대해서 카운팅을 하려는 경우에는 track by_src를 사용하는 것이 권장된다.
+이는 공격자에 대해서 카운팅을 해야되는 것이며, track by_dst가 사용되었다면 자신의 서버를 기준으로 카운팅하기 때문에 정상적인 요청에 대해서도 카운팅에 포함될 수 있기 때문이다.
+
+
+
+icmp_id : ICMP packet의 특정 ID 값을 탐지하기 위해 사용  
+ex) alert icmp any any -> any any (icmp_id: 100; msg: "ICMP ID=100";)  ⇒ ICMP 헤더의 ID 필드 값이 100일 경우 탐지 
+
+icmp_seq :ICMP의 특정 Seq. no 값을 탐지  
+ex) alert icmp any any -> any any (icmp_seq: 100; msg: "ICMP Sequence=100";)  ⇒ ICMP의 Seq. no가 100일 경우 탐지 
+
+itype
+ex) alert icmp any any -> any any (itype: 4; msg: "ICMP Source Quench Message received"; ⇒ ICMP source quench 메시지를 탐지 
+
+icode 
+ICMP의 type 필드에 대한 자세한 설명이 있는 code 필드 비교. 예를 들어 type이 5(ICMP redirect)일 경우 redirect된 이유를 code 필드에 기재 
+code 0 : network redirect
+code 1 : host redirect
+code 2 : service 또는 network의 종류로 인한 redirect
+code 2 : service 또는 host의 종류로 인한 redirect
+ex) alert icmp any any -> any any (itype: 5; icode: 1; msg: "ICMP ID=100";)  ⇒ host redirect ICMP packet에 대한 탐지 
+
+id : IP packet header의 fragment ID 값 비교
+마지막 패킷인지 탐지시 사용
+
+
+------------------------------------------------------------------------------------
+
+root@kali:/home/kali# hping3 --icmp-ipid 100 10.0.0.200 --icmp
+
+
+
+alert icmp any any -> 10.0.0.200 any (icmp_id:100; msg:"id_100"; sid:2025122901;)
+
+root@kali:/home/kali# hping3 --icmp-ipid 100 10.0.0.200 --icmp
+
+Identifier
+
+
+
+-----------------------------------------------------------------------------------
+
+
+ (1) 명령어 참고 :  hping3 –help
+ (2) MODE
+  - hping3 -0 --id 1234 --ttl 5 10.0.0.200    ( -0 은 IP Raw이다.)
+  - hping3 -0 --ipproto 999 10.0.0.200  (비표준 프로토콜 번호(999)를 사용하는 RAW패킷 전송
+     방화벽이나 네트워크 장치가 비정상 패킷을 어떻게 처리하는지 테스트
+     방화벽/네트워크필터링/취약점 분석 및 디버깅/네트워크 프로토콜 연구
+  - hping3 --icmp-help ( --icmp-ipid 가 Identifier 이다.)
+  - Identifier -> icmp_id
+  - sequence number -> icmp_seq   (ping 는 BE, ICMP 는 LE가 변경된다. 우리는 hping3 를 이용할 것이다.)
+  (3) 스노트 룰을 확인해보면 BE가 탐지된다.
+    # hping3 10.0.0.200 --icmp --icmp-ipid 100 -c 8  (실행해보면 LE가 100이다. hex가 반대로 저장)
+    # hping3 10.0.0.200 --icmp --icmp-ipid 0x6400 -c 8 (BE가 100이된다. HEX 값은 계산기로)
+
+
+
+sameip : ex) alert ip any any -> 192.168.1.0/24 any (msg: "Same IP"; sameip;) ⇒ src ip와 dst ip가 동일하면 탐지 
+ipopts  :  ex) alert ip any any -> any any (ipopts: lsrr; msg: "Loose source routing attempt";) ⇒ Loose source Routing 시도 탐지 
+
+
+flag : 헤더에 포함된 flag 항목을 체크한다. (hping3 실습)
+          F - FIN, S - SYN, R-RST 
+           P-PSH,   A - ACK, U-URG
+           1,2 - 예약된 bit 1, 2
+           0 - No TCP Flags Set
+           + - 지정한 플래그가 모두 설정되어 있는지 확인
+           * - 지정한 플래그가 하나이상 설정되었는지 확인
+           ! - 플래스가 하나도 설정되지 않았는지 확인
+   형식) flags:[!|*|+]<FSRPAU120>,[,FSRPAU120>];
+
+
+alert tcp any any -> 10.0.0.200 80 (msg:"Web Server Running"; flags:SF,12; sid:2025010101;)
+alert tcp any any -> 10.0.0.200 80 (msg:"Web Server +SF"; flags:+SF; sid:2025010102;)
+alert tcp any any -> 10.0.0.200 80 (msg:"Web Server *SF"; flags:*SF; sid:2025010103;)
+alert tcp any any -> 10.0.0.200 80 (msg:"Web Server !SF"; flags:!SF; sid:2025010104;)
+alert tcp any any -> 10.0.0.200 80 (msg:"Web Server !UAPRSF"; flags:!UAPRSF; sid:2025010105;)
+
+
+
+hping3 -0 --id 1234 --ttl 2 --ipproto 17 10.0.0.200   
+hping3 192.168.10.150 -d 6000
+
+
+hping3 -0 --id 1234 --ttl 2 --ipproto 17 10.0.0.200   
+   alert ip any any -> 10.0.0.200 any (ip_proto:tcp; msg:"TCP Detected SSH"; sid:2023121211;)
+   alert ip any any -> any any (ip_proto: ipip; msg: "IP-IP tunneling detected"; sid:2024123411)
+   alert ip any any -> any any (ip_proto: udp; msg: "UPD detected"; sid:2024123412)
+   # telnet 10.0.0.200 80
+
+hping3 192.168.10.150 -d 6000
+  alert ip any any -> any any (dsize: > 5000; msg: "Large Size IP Packet Detected
+
+
+
+
+-X   ( xmas  스캔은  FIN+PSH+URG 를 탐지한다.)
+Reserved Flag 공격이란?
+TCP 헤더에 “절대 쓰이면 안 되는 비트(reserved bit)”를 일부러 1로 세팅해서 보내는 공격/기법이다.
+- IDS / 방화벽 회피 (Evasion) 
+  일부 장비나 오래된 IDS는 : 비정상 TCP 헤더를 파싱 못 하거나
+- 그냥 무시(drop) 해버림
+  공격자는 이걸 노려서:  IDS는 못 보고 타깃 OS만 처리하게 시도
+
+
+flags : TCP Header에 어떤 flag가 설정 되어 있는지 검사.
+ex)alert tcp any any -> 192.168.0.0/24 any (flags: SF; msg:"SYNC-FIN Packet Detected";)   <-  SYN-FIN TCP scan 탐지
+
+# hping3 --help | grep frag
+# hping3 --dontfrag 192.168.10.150 --icmp
+fragbits  : IP header의 fragmentation과 reassembly을 위한 비트 지정  
+	RB(Reserved Bit) : 예약된 비트
+DF(Don't Fragment Bit) : IP packet은 절대 fragment되지 않음
+MF(More Fragment bit) : fragment된 패킷이 추가로 있음, 설정되어 있지 않으면 마지막 fragment packet
+ex) alert icmp any any -> 192.168.1.0/24 any (fragbits: D; msg: "Don't Fragment bit set";)  ⇒ ICMP packet에 DF bit가 설정되어 있을 경우 탐지 
+               M : More fragment · D : Don't fragment · R : Reversed Bit ( Attack : ping -l 4000 -f 8.8.8.8   or   ping -f 8.8.8.8 )
+
+
+
+tag : ex) alert tcp 192.168.2.0/24 23 -> any any (content: "boota"; msg: "Detected boota"; tag: session, 100, packets;) ⇒ rule 탐지 시 session의 100 packet을 logging
+
+문제 : Stealth Scan 은?
+alert tcp any any  -> 192.168.0.18 22 (msg:"To Detect FIN";flags:F;sid:2018050503;)
+alert tcp any any  -> 192.168.0.18 22 (msg:"To Detect UPF";flags:UPF;sid:2018050504;)
+alert tcp any any  -> 192.168.0.18 22 (msg:"To Detect !UAPRSF";flags:!UAPRSF;sid:2018050505;)
+
+
+ FIN Scan
+- namp -sF [Target Ip]
+- 공격자는 FIN 패킷을 보내 열린 포트를 알아낸다.
+- RST 패킷이 돌아온 경우 포트 상태는 closed라고 간주하고, 재전송하여도 응답이 없는 경우는 open|filtered라고 간주한다. ICMP 도달 불능 오류메시지가 반환되는 경우는 filtered라고 간주한다.
+- FIN + RST ( 닫힌포트 )
+
+ X-mas Scan 
+- nmap -sX [Target Ip]
+- 공격자는 FIN, PSH, URG 패킷을 보낸다.
+RST 패킷이 돌아온 경우의 포트 상태는 closed라고 간주하고, 재전송하여도 응답이 없는 경우는 open | filter
+RST ( 닫힌포트 )
+
+Null Scan
+- nmap -sN [Target Ip]
+- 공격자가 null 패킷을 보냈을 때, RST 패킷이 돌아온 경우의 포트 상태는 closed라고 간주하고, 재전송하여도 응답이 없는 경우는 open | filtered라고 간주한다. ICMP 도달 불능 오류메시지가 반환되는 경우는 filtered라고 간주한다.
+- RST ( 닫힌포트 )
+
+
+Type : session, host
+Count : number
+Metric : packets,seconds
+
+
+
+
+
+flags:S --->  3-way ---> scan  탐지
+
+SSH-2.0-OpenSSH_10.2p1 Debian-2  --->  OpenSSH 문자   ---> 
+
+content:"OpenSSH"; nocase;
+
+threshold:type threshold,track by_src,count 9,seconds 60;
+
+
+alert tcp any any -> 10.0.0.200 22 (msg:"To Detected SSH"; content:"OpenSSH"; nocase; threshold:type threshold,track by_dst,count 7,seconds 60; sid:20250101010;)
+
+
+
+
+[ 공격 기법 ]
+hping3 <타겟> -a <변조IP> -p <포트> -S -i <인터페이스>
+공격1 : root@kali:~# hping3 -S --flood -V -p TARGET_PORT TARGET_SITE
+공격2 : root@kali:~# hping3 -c 20000 -d 120 -S -w 64 -p TARGET_PORT --flood --rand-source TARGET_SITE
+
+#hping3 192.168.0.18 -a 1.1.1.1 -p 80 -S -i eth0 --flood
+#hping3 --rand-source 192.168.0.7 -p 21 -S --flood
+#hping3 192.168.0.18 -p 22 -S --flood
+
+
+
+[룰 작성]
+TCP SYN 공격은 네트워크 계층에서 수행하는 ICMP플러딩 공격과 유사한 만큼 임계값 설정을 이용하여 해당 공격을 탐지 할 수 있다.
+alert tcp any any -> 192.168.0.18 any (msg:"SYN Flooding";flags:S;threshold:type both,track by_src,count 10,seconds 2;sid:2018050501;)
+
+
+
+TCP SYN Flooding 대응책  (각각 실습 및 분석)공격이 이루어지고 있는 상황은 netstat -an 을 통해 확인 가능하다.
+연결 요청중인 목록 중 SYN_RECV로 되어 있는 요청이 많을 경우 Syn Flooding 공격 상황을 의심 해볼 수 있다.
+SYN_RECV로 된 요청이 많고, 해당 요청 IP가 비정상적인 경우 Syn Flooding 공격일 가능성이 아주 높다.
+
+1. 완전한 3-way Handshaking 이 이루어지지 않는다면 Backlog Queue(연결요청대기큐)가 소비되지 않도록 설정한다. 대표적으로 Syn Cookie 설정이용
+Syn Cookie 이용한다. 
+Cookie 정보 : Local IP,Port / Remote IP,Port / Timestamp 등 -> 해싱(hashing) ->32bit (ISN에 담는다)
+클라이언트에서 연결요청(SYN)이 있을 경우 SYN/ACK를 전송할때 ISN(Initial Sequence Number)에 쿠키값을 담아 보낸다.
+ACK이 올 경우 acknowledgment number 값을 쿠키값을 검증하여 제대로 된 값인 경우 연결을 형성한다.
+연결 수립에 필요한 정보들을 Cookie를 통해 보냄으로써 SYN Backlog Queue를 사용하지 않는다.
+고의적으로 연결을 완료하지 않아 Syn Backlog Queue를 가득 채우는 공격을 방지할 수 있다.
+#sysctl -w net.ipv4.tcp_syncookies=1
+
+2. 방화벽 또는 DDoS 대응장비를 이용하여 동일 Client 의 연결 Syn 요청에 대한 임계치(Threshold) 설정을 통해 과도한 연결요청이 발생하는 것을 차단한다.
+# iptables -A INPUT -p tcp --dport 80 --syn --match connlimit --connlimit-above 5 -j DROP 동일출발지 IP로 동시 연결 개수가 5개 초과시 이를 차단
+# iptables -A INPUT -p tcp --dport 80 -d 192.168.10.141  --syn --match connlimit --connlimit-above 5 -j DROP
+# iptables -I INPUT -p tcp --dport 80 -d 192.168.10.141 -m connlimit --connlimit-above 3 -j LOG --log-level 7 --log-prefix "[Im Attacking]"
+
+3. First SYN DROP 설정을 한다. SYN 요청 패킷을 보내는 클라이언트가 실제로 존재하는지를 파악하는 방법으로 클라이언트로부터 전송된 첫 번째 SYN은 Drop하여 재요청 패킷이 도착하는지 확인하여 출발지 IP가 위조(Spoofing)되었는지 판단한다. 대부분의 공격툴이 다량의 SYN 요청을 생성할뿐 패킷 Drop시 재전송을 수해하지 않는다는 점을 이용한 방법이다.
+
+4. Backlog Queue의 크기를 늘려준다. 이 방법은 임시적인 조치는 되지만 대규모 공격이 발생했을 때는 순식간에 queue가 full 상태가 되기 때문에 효과를 보기 어렵다.
+Backlog Queue
+3-Way-Handshake를 위해 연결이 진행중인 요청을 담아두는 큐
+SYN Backlog Queue엔 SYN을 보내온 연결요청 정보가 임시로 저장된다.
+서버는 SYN에 대해 SYN/ACK을 보내고 ACK을 받기 전까지 저장해 두는 것이다.
+큐가 가득차면 다른 연결을 받아들일 수 없게 된다.
+Backlog Queue 백로그 큐를 늘려준다 
+Sysctl -a
+# sysctl -w net.ipv4.tcp_max_syn_backlog=1024, 
+# ndd -set /dev/tcp tcp_conn_req_max_q1 1024
+# sysctl -w net.ipv4.tcp_syncookies=1
+
+- SYN+ACK에 대한 대기 시간(connection time out)을 줄인다. 대기시간을 너무 줄이면 정상요청에 문제가 생길 수 있다.
+
+

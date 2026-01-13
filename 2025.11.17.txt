@@ -1,0 +1,207 @@
+Ubuntu IDS로 세팅
+Alma 인터넷 확인
+Kali에서 Alma로 ssh 접속 확인
+...
+
+
+
+root@roror:/home/roror# firewall-cmd --remove-service=ssh
+root@roror:/home/roror# firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.134" service name="ssh" log prefix="SSH failed" limit value="5/m" reject'
+// Kali에서만 ssh 접속 안됨.
+root@roror:/home/roror# firewall-cmd --reload
+
+root@roror:/home/roror# firewall-cmd  --permanent --remove-rich-rule='rule family="ipv4" source address="10.0.0.134" service name="ssh" log prefix="SSH failed" limit value="5/m" reject'
+root@roror:/home/roror# firewall-cmd --reload
+
+
+kali 들어오는 IP 22번 포트 차단
+windows 80 번 포트 차단
+
+
+- 특정  포트 트래픽 허용
+firewall-cmd --permanent --add-rich-rule='rule family="ipv4" port port="80" protocol="tcp" accept'
+
+
+firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="192.168.1.100" drop'
+
+
+# firewall-cmd --get-zones
+# firewall-cmd --set-default-zone=drop
+# firewall-cmd --permanent --add-rich-rule="rule family='ipv4' source address='10.0.0.129' port protocol='tcp' port='22' accept"  
+ ▷ reject, drop, accept 사용 가능
+# firewall-cmd --permanent --add-rich-rule="rule family='ipv4' source address='10.0.0.129' port protocol='tcp' port='80' accept"   ▷ 10.0.0.0/24 사용 가능
+# firewall-cmd --permanent --add-rich-rule="rule family='ipv4' source address='10.0.0.129' service name='https' accept"
+# firewall-cmd --list-rich-rules
+ ▷ 삭제시 : --remove-rich-rule= 로 변경해준다.
+
+
+
+root@elk:/home/roror# vi /etc/rsyslog.conf
+root@elk:/etc/rsyslog.d# vi 50-default.conf 
+root@elk:/etc/rsyslog.d# vi /etc/rsyslog.conf
+kern.info                       /var/log/iptables.log
+
+root@elk:/etc/rsyslog.d# iptables -A INPUT -j LOG --log-prefix="INPUT:DROP" --log-level=6
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j DROP
+
+root@elk:/etc/rsyslog.d# systemctl restart rsyslog
+root@elk:/etc/rsyslog.d# ls /var/log/iptables*
+/var/log/iptables.log
+root@elk:/etc/rsyslog.d# cat /var/log/iptables.log // Kali에서 ssh, ping, http등 시도한 로그 기록 확인
+root@elk:/etc/rsyslog.d# iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
+
+
+root@elk:/etc/rsyslog.d# iptables --append INPUT -p icmp --icmp-type echo-request -j DROP  // ping 확인
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flag ALL SYN -j DROP
+// ssh, http 안됨 ping은 왜 됨?
+
+root@elk:/etc/rsyslog.d# iptables -F
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -j LOG --log-prefix "Flag_INPUT : " --log-level 6
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -j DROP
+
+// wireshark로 확인
+root@kali:/home/kali# hping3 10.0.0.222 -URG 
+root@kali:/home/kali# hping3 10.0.0.222 -S -U   
+root@kali:/home/kali# hping3 10.0.0.222 -U -R -G  
+root@kali:/home/kali# hping3 10.0.0.222 -URG -p 80  
+
+root@elk:/etc/rsyslog.d# iptables -F
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN -j LOG --log-prefix "Flag_INPUT : " --log-level 6
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN -j DROP
+
+
+root@kali:/home/kali# hping3 10.0.0.222 -SF -p 80
+root@elk:/etc/rsyslog.d# tail -f /var/log/iptables.log 
+
+
+root@elk:/etc/rsyslog.d# iptables -F
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -j LOG --log-prefix "Flag_INPUT : " --log-level 6
+root@elk:/etc/rsyslog.d# iptables -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -j DROP
+
+root@kali:/home/kali# hping3 10.0.0.222 -UPF -p 80  
+
+root@elk:/etc/rsyslog.d# tail -f /var/log/iptables.log 
+
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -F -t nat
+root@elk:/var/log# iptables -A INPUT -p tcp --destination-port 22 -m connlimit --connlimit-above 3 -j LOG --log-prefix "SSH_INPUT : " --log-level 6
+root@elk:/var/log# iptables -A INPUT -p tcp --dport 22 -m connlimit --connlimit-above 4 -j DROP
+root@elk:/var/log# iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+root@elk:/var/log# iptables -D INPUT 2
+root@elk:/var/log# iptables -D INPUT 2
+root@elk:/var/log# iptables -A INPUT -p tcp --dport 22 -m connlimit --connlimit-above 3 -j DROP
+root@elk:/var/log# iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -P INPUT DROP
+root@elk:/var/log# iptables -A INPUT -p tcp -s 10.0.0.134 --dport 22 -j ACCEPT
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -P INPUT ACCEPT
+root@elk:/var/log# iptables -A INPUT -s 10.0.0.134 -j DROP
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -A INPUT -d 10.0.0.200 -j DROP
+// 안됨
+
+root@elk:/var/log# iptables -P INPUT DROP
+root@elk:/var/log# iptables -A INPUT -p tcp --dport 21:80 -j ACCEPT
+
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -A INPUT -p tcp --dport www -j ACCEPT
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -A INPUT -i ens33 -p tcp --dport 21:80 -j ACCEPT
+
+root@elk:/var/log# netfilter-persistent flush
+root@elk:/var/log# iptables -A INPUT -s 10.0.0.0/24 -j LOG
+root@elk:/var/log# iptables -A INPUT -s 10.0.0.0/24 -j DROP
+root@elk:/var/log# tail -f /var/log/iptables.log 
+// Kali에서 http시도
+
+
+root@elk:/var/log# netfilter-persistent flush
+root@elk:/var/log# iptables -A INPUT -s 10.0.0.0/24 -j LOG --log-prefix "Dropped IP... : "
+
+
+root@elk:/var/log# iptables -F
+root@elk:/var/log# iptables -P INPUT DROP
+root@elk:/var/log# iptables -A INPUT -p ICMP --icmp-type echo-reply -m limit --limit 1/s -j ACCEPT
+root@elk:/var/log# iptables -A INPUT -p ICMP --icmp-type echo-request -m limit --limit 1/s -j ACCEPT
+
+root@kali:/home/kali# hping3 10.0.0.222 --icmp --fast
+// 1초에 1개씩 나감.?
+
+
+
+
+
+
+네트워크 프로토콜 데이터 유닛(PDU)
+프레임헤더 | 패킷 헤더 | 세그먼트 헤더 | 메세지 세그먼트
+
+PDU 헤더의 구조
+이더넷 프레임 헤더
+
+IP패킷 헤더
+
+TCP 세그먼트 헤더
+
+탭
+노드...
+
+
+식별자
+
+한정자
+유형 한정자 host, port.net, proto
+방향 한정자 src dst
+프로토콜 한정자 tcp udp icmp ip arp
+
+기본 필터 표현 형식
+<primitive expr> ::= <한정자>[<한정자>...]<식별자>
+
+일반적인 캡처 필터 표현식
+<filter expr> ::= [not]<primitive expr>pand/or[not]<primitive expr>...]
+
+// [] --> 생략 가능(옵션) <> --> 필수
+ex) 
+src host 1.1.1.1
+not host 1.1.1.1
+dst ...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

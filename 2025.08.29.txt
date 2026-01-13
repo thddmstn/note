@@ -1,0 +1,122 @@
+공식사이트에 sum --> hash
+architecture  --> IBM(Windows) x86(32bit), x64(64bit)
+ARM(mobile) - Apple silicon M1, M2,.....  (arm)
+
+- kali(debian) -
+부트로더(BIOS(메인보드, 하드웨어 체크)  --> MBR(부트로더) ---> Windows, Linux (Disk, SSD) 에서 kernel 또는 시스템 파일을 읽어온다.
+
+https://centos.org/
+https://www.redhat.com/en
+https://rockylinux.org/
+https://almalinux.org/
+https://ubuntu.com/
+
+- 정리
+# apt update  (debian 계열에서만 사용 apt)
+# apt install fonts-nanum*
+$ kali-tweaks
+$ clear  (Ctrl + L) 
+# apt install tilix  (여러창을 사용 가능하게 해주는 터미널)
+# apt install fcitx-lib*   (한글 자판 사용 가능하도록 해주는 설정)
+# apt install fcitx-hangul -y
+# fc-cache -f -v
+# im-config  (fcitx 선택)
+# reboot  (재부팅)
+
+- fcitx 구성 설정
+Ctrl + Space 를 누르면 한영 변경
+
+# apt upgrade  (OS 최신버전 업그레이드)
+
+# shutdown -h now  (종료)
+
+
+-----------------------------------
+root 최고 관리자(되도록 관리자로 로그인을 하지 않는다.)
+ip -o 4 address   ---> ip a
+
+
+1. 명령어 입력 기본 흐름
+[키보드 입력] → [터미널 에뮬레이터] → [셸] → [커널] → [프로그램 실행] → [결과 출력]
+
+2. 터미널(Terminal)이란?
+ 1) 원래는 물리적인 입력·출력 장치(키보드+화면) 의미였음.
+ 2) 지금은 터미널 에뮬레이터(GUI에서 터미널 환경을 흉내내는 프로그램) 의미로 많이 씀.
+ 2) 사용자가 텍스트 명령어를 입력하면, 그 명령을 셸(shell) 이 받아서 실행하고 결과를 출력.
+
+3. 터미널 에뮬레이터 (예: Tilix, GNOME Terminal, Konsole, xterm)
+ 1_ 그래픽 환경에서 텍스트 모드 UI를 제공.
+ 2) 탭, 분할, 단축키, 폰트 설정 등 부가 기능.
+
+4. 셸(Shell)   ---> kernel 에 전달
+ 1) 사용자가 입력한 명령을 해석하고 실행.
+ 2) 대표 셸: bash, zsh, fish, sh 등.       $ echo $SHELL
+
+5. 커널(Kernel)
+ 1) 셸이 요청한 작업을 실제로 처리하는 운영체제의 핵심.
+ 2) 파일 읽기/쓰기, 네트워크, 프로세스 관리 등 담당.
+
+
+- Redhat : yum(염,윰), dnf(8버전 이후에 사용)  
+
+- Tilix, tmux, vim
+Kali : 10.0.0.130
+Alma : 10.0.0.131
+Secure Shell :  ssh 계정이름@호스트주소
+
+cat  (문서를 읽는 프로그램)
+cat /etc/passwd   (/etc/passwd 파라미터)
+$ cat /etc/redhat-release
+$ cat /etc/os-release
+$ lsb_release -a
+
+- Tilix 
+Ctrl + Shift + T
+Ctrl + Page(UP/DOWN)
+Ctrl + Alt + R(가로)/D(세로)
+Ctrl + Shift + X   (전체 창)
+Alt + 방향키(좌우,상하)이동 , 1,2,3,4
+
+- 명령어
+# netstat -antpu (네트워크 상태 확인)
+# netstat -antpu | grep ssh  (ssh 글자가 있는 줄만 출력)
+# while true;do netstat -antpu | grep ssh; sleep 2; clear; done
+Ctrl + C   종료
+
+pipe(파이프 기호) |
+
+
+
+tmux는 터미널 멀티플렉서(Terminal Multiplexer) 라고 부르는 프로그램이다.하나의 터미널 세션 안에서 여러 개의 가상 터미널을 만들고, 분할하고, 백그라운드로 유지할 수 있게 해주는 도구이다.
+
+- tmux(기본기 Ctrl + B 즉 단축키에서 대부분 사용한다.)
+1. 세션 생성 방법
+# tmux
+# tmux new -s alma  (세션 이름 지정하고 만들기)
+Ctrl + B + D
+      ㄴ detach(디태치)는 tmux 세션을 종료하지 않고, 현재 화면에서만 빠져나오는 것을 말한다.
+      ㄴ exit (나가기)
+# tmux ls
+# tmux a -t alma  ( tmux attach -t 세션이름 및 번호)
+# tmux switch -t 0    세션이동
+Ctrl + B + W
+
+
+- 명령어 : sleep 3  (임시중지, 딜레이)
+
+
+
+2. 창 사용 방법
+# tmux
+Ctrl + B + C  새로운 창 생성
+Ctrl + B + N  다음창 이동
+Ctrl + B + P   이전창으로 이동 
+Ctrl + B + 0  ~  9    바로 해당 창으로 이동
+Ctrl + B + ,       (창 이름 변경)
+
+
+
+
+
+
+

@@ -1,0 +1,40 @@
+호환성 - 32bit, 64bit  ---> 운영체제 32/64 
+
+clean install (클린 설치) : DVD/USB 공식 이미지(운영체제)를 통해 설치
+= New Virtual Machine 설치
+Custom ---> 환경설정(컴퓨터 깡통)을 만들고 추후 Image 를 삽입하여 설치
+
+1024*8=8192   (1024byte)  ---> 1Mbye    사람 : 1,000Mbyte ---> 1G  컴퓨터 : 1,024 ---> 1G
+
+주기억장치/보조기억장치
+프로세서 (CPU)
+프로세스 (Memory) - 주기억장치
+프로세스가 뭐지?  프로그램이(HDD)에서 메모리로 올라가면 프로세스이다.
+한글을 이용 워드작업 1시간동안, 전기 off 되면 날라갑니다... ㅠ.ㅜ
+메모리(기억소자, 전기가 들어오면 기억한다.) --->  HDD, SDD 보다 빠르다.
+보조기억장치 : HDD, SDD, USB 에  프로그램을 저장하고 사용할때 메모리에 매핑한다. 메모리에서 CPU의 Cache(레지스트리)로 올리고 cpu 에서 연산한다.
+
+저장장치?
+CPU(연산) > RAM > HDD,SDD     (캐쉬, 병목현상 제거)
+
+NAT :  사설IP를 공인IP로 변환 ----> 우리가 자주 사용하는것?  공유기  (자격증에 잘나온다! 사설IP, 공인IP 가 나오면 NAT다)
+
+
+Device Driver  (드라이버 설치)
+
+
+NAT(10.0.0.0/24)
+
+- 고정 IP 설정
+IP 10.0.0.111
+Subnetmask 255.255.255.0
+gateway 10.0.0.1
+dns 1 8.8.8.8
+dns 2 8.8.4.4
+
+
+shift + win + s
+
+https://notepad-plus-plus.org/downloads/v8.8.5/
+https://mh-nexus.de/en/hxd/
+https://www.wireshark.org/

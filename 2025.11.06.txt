@@ -1,0 +1,413 @@
+
+X-window
+플랫폼에 독립적으로 작동하는 GUI 환경을 구현하기 위해 서버/클라이언트 수조를 기반으로 X 프로토콜을 통해 디스플레이 장치에 윈도우를 그려주고 마우스 및 키보드 등 입력 장치를 통한ㄴ 사용자와의 상호작용을 가능하게 하는 플랫폼으로 유닉스 및 리눅스의 윈도우 시스템이다. 하..잠온다..배고프다....
+
+X 프로토콜
+X 서버 : X클라이언트의 요청에 대하여 처리 후 응답하거나 이벤트를 직접 X 클라이언트에게 보낼 수 있다.
+X 클라이언트 : 원격지의 X 서버 시스템에서 동작하는 응용 프로그램을 실행할 수 있다. 즉 X 클라이언트를 사용하는 사용자가 응용 프로그램을 직접 설치할 필요가 없다.
+X 윈도우 : 사용자 인터페이스에 독립적이다. 즉 KDE, GNOME, XFCE 등의 데스크톱 환경은 X 윈도우 환경에서 구현된 X 클라이언트 이다.
+x client = KDE, GNOME, XFCE = 데스크톱
+
+Xlib 기반 라이브러리
+GTK + -> Gnome
+Qt -> KDE
+
+순서
+Xlib -> XCB
+XFree 86 -> X.org
+
+대표적 디스플레이 매니저로는 X11R3부터 사용하던 XDM, GNOME에서 사용하는 GDM, KDM이 있음
+
+X 세션 : X 서버에 X 클리아언트가 연결되면 X 세션이 형성된다.
+
+X 윈도우 매니저 : 
+
+
+root@roror:/home/roror# dnf --enablerepo=epel install gedit
+
+^Z
+[1]+  Stopped                 gedit
+root@roror:/home/roror# jobs
+[1]+  Stopped                 gedit
+root@roror:/home/roror# bg %1
+[1]+ gedit &
+root@roror:/home/roror# jobs
+[1]+  Running                 gedit &
+
+
+roror@roror:~$ nautilus // 파일 매니저
+naurilus(GNOMW) / Dolphin(KDE)
+
+gedit --- nano --- pico --- vi
+
+ssh -XC roror@roror.co.kr
+  -X 옵션은 X11 포워딩을 활성화(X11Forwarding 설정시 제외 가능, 사용 추천)
+  -C 데이터 전송시 압축을 사용하도록 지시, 데이터가 압축되어 전송되므로 대역폭을 절약 및 성능을 향상
+
+X 서버에 접근할 수 있는 클라이언트를 지정하거나 해제할 수 있는 명령어 : xhost
+echo $DISPLAY
+
+echo $DISPLAY
+출력값 : :0.0에서 첫번째 0은 X win 두번째 .0은 첫번째 모니터
+
+
+LPRng 버클리 시스템 BSD계열 유닉스. 라인 프린터 데몬 프로토콜 사용하여 프린터 스풀링과 네트워크 서버를 지원.
+lpr, lpq, lprm : BSD계열
+op, opstat, cancle : System V 계열
+둘 다 지원함. /etc/printcap 파일에 저장됨
+
+CUPS 애플이 개발. 오픈소스 프린팅 시스템. 유닉스 계열 운영체제의 시스템 프린터 서버로 사용 가능. HTTP기반의 IPP사용. SMB프로토콜도 부분적으로 지원. BSD, System V 계열 모두 사용 가능.
+
+프린터의 설정
+/dev/lp0  /dev/usb/lp0
+CUPS를 사용하는 경우 http://localhost:631
+
+프린트 명령어
+-# 3
+-n 3
+// 3장 인쇄하는 명령어 : -# 3
+lp = lpr
+
+lpq : 프린터 큐에 있는 작업의 목록을 출력
+
+lprm : 프린터 큐에 대기중인 작업 삭제
+
+lpc : 프린터나 프린터 큐를 제어할 때 사용
+
+lp : 
+-n // 인쇄할 매수 지정 (lpr은 -# 사용)
+
+사운드 관련 명령어
+oss?
+ALSA는 Advanced Linux Sound Architecture의 약자입니다.
+리눅스에서 사운드 카드(오디오 장치)를 제어하는 표준 오디오 시스템이에요.
+보통 PulseAudio나 PipeWire의 하위 레벨 백엔드로 동작합니다.
+
+ALSA (Advanced Linux Sound Architecture)
+🔊 현재 표준 하드웨어 드라이버 계층
+커널에 내장되어 있고, 실제 사운드 카드와 직접 통신함
+대부분의 리눅스는 ALSA를 기본으로 포함
+예: aplay, arecord, /etc/asound.conf
+👉 한마디로:리눅스의 “사운드 하드웨어 드라이버”.
+
+
+OSS (Open Sound System)
+🔙 예전 리눅스의 사운드 시스템 (ALSA 이전 세대)
+지금은 거의 사용되지 않음 (역사적 의미로만 존재)
+ALSA가 OSS 기능을 에뮬레이션 가능 (snd-oss 모듈)
+👉 한마디로:옛날 방식. ALSA가 대체함.
+
+PulseAudio
+💻 사용자 공간의 사운드 서버
+여러 앱의 소리를 하나로 믹싱, 볼륨 조절, 출력 장치 전환 등을 담당
+ALSA 위에서 동작
+👉 한마디로:“앱 여러 개의 소리를 섞어주는 관리자.”
+
+
+PipeWire (최신 세대)
+🔥 PulseAudio + JACK + 비디오 스트림 통합한 차세대 시스템
+Fedora, Ubuntu 등 최신 배포판의 기본
+성능 향상, 지연시간 감소, 프로 오디오(JACK)도 통합
+👉 한마디로:최신 통합 사운드/미디어 서버. PulseAudio 대체 중.
+
+스캐너 관련 명령어
+scanimage : 이미지를 스캔할 때 사용
+scanadf : 자동문서 공급장치가 장착된 스캐너에서 여러 개의 사진을 스캔할 때 사용
+
+리눅스 클러스터
+고계산용
+부하분산
+고가용성
+
+
+RAID(Redundant Arrays of Inexpensive Disks) 
+여러개의 디스크를 하나의 디스크처럼 사용하거나 백업 디스크로 사용. 비용절감, 신뢰성을 높여 성능 향상.
+하드웨어 RAID
+소프트웨어 RAID
+
+RAID 레벨
+RAID 0, RAID 1, ...
+RAID 0 : 여러개의 디스크를 병렬로 배치하여 하나의 큰 디스크를 만들어 사용하는 방식.
+RAID 1 : 두개의 미러링 쌍으로 구성된 디스크에 동일한 데이터를 저장하는 방식
+
+
+
+
+
+[root@localhost roror]# lsblk -p
+NAME                    MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+/dev/sr0                 11:0    1 1024M  0 rom  
+/dev/nvme0n1            259:0    0   60G  0 disk 
+├─/dev/nvme0n1p1        259:1    0    1G  0 part /boot
+└─/dev/nvme0n1p2        259:2    0   59G  0 part 
+  ├─/dev/mapper/rl-root 253:0    0 35.6G  0 lvm  /
+  ├─/dev/mapper/rl-swap 253:1    0    6G  0 lvm  [SWAP]
+  └─/dev/mapper/rl-home 253:2    0 17.4G  0 lvm  /home
+/dev/nvme0n2            259:3    0    3G  0 disk 
+└─/dev/nvme0n2p1        259:12   0    3G  0 part 
+/dev/nvme0n3            259:4    0    1G  0 disk 
+└─/dev/nvme0n3p1        259:13   0 1023M  0 part 
+/dev/nvme0n4            259:5    0    1G  0 disk 
+└─/dev/nvme0n4p1        259:14   0 1023M  0 part 
+/dev/nvme0n5            259:6    0    1G  0 disk 
+└─/dev/nvme0n5p1        259:15   0 1023M  0 part 
+/dev/nvme0n6            259:7    0    1G  0 disk 
+└─/dev/nvme0n6p1        259:16   0 1023M  0 part 
+/dev/nvme0n7            259:8    0    1G  0 disk 
+└─/dev/nvme0n7p1        259:17   0 1023M  0 part 
+/dev/nvme0n8            259:9    0    1G  0 disk 
+└─/dev/nvme0n8p1        259:18   0 1023M  0 part 
+/dev/nvme0n9            259:10   0    1G  0 disk 
+└─/dev/nvme0n9p1        259:19   0 1023M  0 part 
+/dev/nvme0n10           259:11   0    1G  0 disk 
+└─/dev/nvme0n10p1       259:20   0 1023M  0 part 
+
+[root@localhost roror]# dnf install mdadm -y
+[root@localhost roror]# fdisk -l /dev/nvme0n10p1
+
+[root@localhost roror]# mdadm --create /dev/md7 --level=linear --raid-device=2 /dev/nvme0n2p1 /dev/nvme0n3p1
+// 실행결과
+mdadm: Defaulting to version 1.2 metadata
+mdadm: array /dev/md7 started.
+
+man mdadm
+       -C, --create
+              Create a new array.
+
+
+[root@localhost roror]# lsblk -p
+/dev/nvme0n2            259:3    0    3G  0 disk   
+└─/dev/nvme0n2p1        259:12   0    3G  0 part   
+  └─/dev/md7              9:7    0    4G  0 linear 
+/dev/nvme0n3            259:4    0    1G  0 disk   
+└─/dev/nvme0n3p1        259:13   0 1023M  0 part   
+  └─/dev/md7    
+
+[root@localhost roror]# mkfs.xfs /dev/md7
+[root@localhost roror]# mdadm --detail --scan
+ARRAY /dev/md7 metadata=1.2 UUID=d529a247:47a2cedd:a7bfb931:94ccc593
+
+
+/* 시험 */
+[root@localhost roror]# mdadm -s
+mdadm: -s does not set the mode, and so cannot be the first option.
+[root@localhost roror]# mdadm -Ds
+ARRAY /dev/md7 metadata=1.2 UUID=d529a247:47a2cedd:a7bfb931:94ccc593
+
+
+[root@localhost roror]# mkdir /raidLinear
+[root@localhost roror]# mount -t xfs /dev/md7 /raidLinear/
+
+[root@localhost roror]# df -h
+/dev/md7             4.0G   61M  3.9G   2% /raidLinear
+
+[root@localhost /]# cp /etc/* /raidLinear
+
+[root@localhost /]# umount /dev/md7
+[root@localhost /]# mdadm --stop /dev/md7
+[root@localhost /]# mdadm -Ds
+
+
+[root@localhost /]# mdadm --assemble --verbose /dev/md3 /dev/nvme0n2p1 /dev/nvme0n3p1
+[root@localhost /]# ls -l /dev/md3
+brw-rw----. 1 root disk 9, 3 Nov  6 15:16 /dev/md3
+[root@localhost /]# mdadm -Ds
+ARRAY /dev/md3 metadata=1.2 UUID=d529a247:47a2cedd:a7bfb931:94ccc593
+
+[root@localhost /]# mdadm --create /dev/md7 --level=linear --raid-device=2 /dev/nvme0n2p1 /dev/nvme0n3p1
+/* 시험 */
+[root@localhost /]# cat /proc/mdstat
+
+[root@localhost /]# mdadm -C /dev/md0 -l 0 -n 2 /dev/nvme0n4p1 /dev/nvme0n5p1
+[root@localhost /]# mkdir /raid0
+[root@localhost /]# mkfs.xfs /dev/md0
+[root@localhost /]# mount /dev/md0 /raid0
+
+[root@localhost raid0]# cp /home/roror ./ -a
+
+[root@localhost raid0]# df -h
+/dev/md0             2.0G   47M  1.9G   3% /raid0  // 1G 2개
+
+
+[root@localhost raid0]# mdadm --create /dev/md1 --level=1 --raid-device=2 /dev/nvme0n6p1 /dev/nvme0n7p1
+[root@localhost raid0]# mdadm --detail --scan
+
+[root@localhost raid0]# mdadm -C /dev/md5 -l 5 -n 3 /dev/nvme0n8p1 /dev/nvme0n9p1 /dev/nvme0n10p1
+[root@localhost raid0]# mkdir /raid1
+[root@localhost raid0]# mkdir /raid5
+[root@localhost raid0]# mkfs.xfs /dev/md1
+[root@localhost raid0]# mkfs.xfs /dev/md5
+[root@localhost raid0]# mount /dev/md1 /raid1
+[root@localhost raid0]# mount /dev/md5 /raid5
+[root@localhost raid0]# cd /raid1
+[root@localhost raid1]# cp /etc/passwd ./
+[root@localhost raid1]# cd /raid5
+[root@localhost raid5]# echo "hi" > test.txt
+
+
+[root@localhost roror]# ls -l /dev/md*
+[root@localhost roror]# mdadm -Ds
+
+[root@localhost /]# mdadm -Ds | awk '{print $2}' | xargs mdadm --stop
+[root@localhost /]# mdadm --assemble --verbose /dev/md7 /dev/nvme0n2p1 /dev/nvme0n3p1
+[root@localhost /]# mount /dev/md7 /raidLinear/
+
+[root@localhost /]# mdadm --examine /dev/nvme0n3p1
+
+mdadm --assemble --verbose /dev/md7 /dev/nvme0n2p1 /dev/nvme0n3p1
+mdadm --assemble --verbose /dev/md0 /dev/nvme0n4p1 /dev/nvme0n5p1
+mdadm --assemble --verbose /dev/md1 /dev/nvme0n6p1 /dev/nvme0n7p1
+mdadm --assemble --verbose /dev/md5 /dev/nvme0n8p1 /dev/nvme0n9p1 /dev/nvme0n10p1
+
+# mdadm -Ds > /etc/mdadm.conf
+
+디스크 제거 3, 5, 7, 9  --> raid 1,5만 살아남
+
+
+[root@localhost roror]# mdadm -Ds
+ARRAY /dev/md5 metadata=1.2 UUID=855ab766:f9a998b6:170eb34c:2b29a351
+INACTIVE-ARRAY /dev/md0 metadata=1.2 UUID=1c281f21:7ac20515:57af9087:c51802b1  // 중지됨
+INACTIVE-ARRAY /dev/md7 metadata=1.2 UUID=0ec05d7b:a461615f:8b457e7a:87c42224  // 중지됨
+ARRAY /dev/md1 metadata=1.2 UUID=c43e60e7:8e7ecf94:9195e576:5c50eb3d
+
+[root@localhost roror]# mkfs.xfs /dev/nvme0n3p1
+[root@localhost roror]# mkfs.xfs /dev/nvme0n5p1
+[root@localhost roror]# mkfs.xfs /dev/nvme0n7p1
+[root@localhost roror]# mkfs.xfs /dev/nvme0n9p1
+
+[root@localhost roror]# mdadm --create /dev/md7 -l linear -n 2 /dev/nvme0n2p1 /dev/nvme0n3p1
+
+[root@localhost roror]# mount /dev/md7 /raidLinear
+[root@localhost roror]# cd /raidLinear/
+[root@localhost raidLinear]# ls
+
+
+[root@localhost raidLinear]# mdadm -C /dev/md0 -l 0 -n 2 /dev/nvme0n4p1 /dev/nvme0n5p1
+[root@localhost raidLinear]# mkfs.xfs /dev/md0 -f
+[root@localhost raidLinear]# mount /dev/md0 /raid0
+
+[root@localhost raidLinear]# mdadm -D /dev/md1
+[root@localhost raidLinear]# mdadm /dev/md1 --add /dev/nvme0n7p1
+[root@localhost raidLinear]# mdadm -D /dev/md1
+
+[root@localhost raidLinear]# mdadm -D /dev/md5
+[root@localhost raidLinear]# mdadm /dev/md5 --add /dev/nvme0n9p1
+[root@localhost raidLinear]# mdadm -D /dev/md5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

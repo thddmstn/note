@@ -1,0 +1,651 @@
+[root@rocky /]$ cd /home/roror
+[root@rocky roror]$ ls
+Maildir  my_ubuntu.tar  users.yml
+[root@rocky roror]$ mkdir onbuild
+[root@rocky roror]$ cd onbuild/
+[root@rocky onbuild]$ vi Dockerfile.base
+FROM rockylinux:9.3
+MAINTAINER 0.1 roror@roror.co.kr
+RUN ["dnf","-y","install","httpd"]
+ONBUILD ADD website.tar /var/www/html/
+CMD ["/usr/sbin/httpd","-D","FOREGROUND"]
+
+[root@rocky onbuild]$ docker build -t web-base -f Dockerfile.base .
+
+
+
+
+
+
+
+
+
+[root@rocky onbuild]# docker run --rm -p 80:80 web-image /bin/bash
+
+
+[root@rocky onbuild]# docker bulid -t web-image
+
+
+[root@rocky onbuild]# docker run -itd --name test web-base /bin/bash
+[root@rocky onbuild]# docker attach test
+[root@7041c995e1f6 /]# cd /var/www/html
+[root@7041c995e1f6 html]# ls
+[root@7041c995e1f6 html]# 
+
+-----------------------------------------------------------------------------------
+
+- CMD, RUN ,ENTRYPOINT 
+이미지 생성하기 위해 실행되는 커맨드는 RUN, 컨테이너에서 실행되는 커맨드는 CMD 명령어를 사용한다. Dockerfile에서 build한 이미지로 컨테이너를 구동하므로 ENTRYPOINT 명령어에 입력한 커맨드는 dcker run 커맨드가 동작할때 실행된다.
+
+
+
+vi ~/docker/mysql/Dockerfile
+
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+# debconf-set-selections 는 MySQL 설치시 패스워드 부분 자동으로 처리(아래 비번은 passwor이다. 두개 동일해야 넘어감)
+# Ubuntu에서 MySQL을 설치하면, 기본적으로 root@localhost 계정은 auth_socket 인증 플러그인을 사용한다. 
+# 로컬에서 OS의 root 계정으로 실행되는 경우 → mysql -uroot는 비밀번호 없이도 접속 가능하다.
+
+RUN echo "mysql-server-8.0 mysql-server/root_password password" | debconf-set-selections
+RUN echo "mysql-server-8.0 mysql-server/root_password_again password" | debconf-set-selections
+RUN apt update && apt install -y mysql-server-8.0
+WORKDIR /etc/mysql/mysql.conf.d/
+RUN sed -i "s/127.0.0.1/0.0.0.0/g" mysqld.cnf
+ADD entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+EXPOSE 3306
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+
+vi ~/docker/mysql/entrypoint.sh
+
+#!/bin/bash
+if [ -z "$MYSQL_ROOT_PASSWORD" ]; then
+  exit 1
+fi
+# exit 0: 정상 종료(success).  (반환값이다. exit 에의 해 해당 프로그램은 종료된다.)
+# exit 1, exit 2, ... 등 (0이 아닌 숫자): 비정상 종료(error).
+
+
+mysqld --initialize-insecure --user=mysql
+mysqld --user=mysql &
+
+# MySQL 서버가 준비될 때까지 대기한다. 
+# until은 조건이 거짓일 때 반복하고, 조건이 참이면 루프 종료한다.
+# mysqladmin ping (MySQL 서버가 살아 있는지(ping) 확인하는 명령)
+# &>/dev/null (표준 출력(stdout)과 표준 에러(stderr) 모두 버림, 출력 안 함)
+until mysqladmin ping &>/dev/null; do
+  sleep 1
+done
+
+mysql -uroot -e "CREATE DATABASE IF NOT EXISTS wp;"
+mysql -uroot -e "create user 'root'@'%' identified by '$MYSQL_ROOT_PASSWORD';"
+mysql -uroot -e "grant all privileges on wp.* to 'root'@'%';"
+mysql -uroot -e "FLUSH PRIVILEGES;"
+
+wait
+
+-----------------------------  mysql end
+# docker build --tag mysql .
+# docker run -itd --name db --network=wp_network -e MYSQL_ROOT_PASSWORD=password mysql
+
+
+FROM ubuntu:22.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y \
+    apache2 \
+    php8.1 \
+    libapache2-mod-php8.1 \
+    php8.1-fpm \
+    php8.1-cli \
+    php8.1-curl \
+    php8.1-mysql \
+    php8.1-gd \
+    php8.1-zip \
+    php8.1-intl \
+    php8.1-bcmath \
+    php8.1-imap \
+    php8.1-imagick \
+    php8.1-xmlrpc \
+    php8.1-readline \
+    php8.1-memcached \
+    php8.1-redis \
+    php8.1-mbstring \
+    php8.1-apcu \
+    php8.1-xml \
+    php8.1-dom \
+    php8.1-memcache \
+    mysql-client \
+    wget \
+ && apt clean
+
+
+FROM builder AS final
+ARG DEBIAN_FRONTEND=noninteractive
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+WORKDIR /var/www
+RUN wget https://ko.wordpress.org/wordpress-6.8.1-ko_KR.tar.gz -O - | tar -xz
+# 1) -O는 wget의 출력 파일명 지정 옵션( -O test.tar.gz 시 해당 파일로 저장됨)
+# 2) -O -는 출력을 표준 출력(stdout) 으로 보낸다는 뜻, 즉, 파일로 저장하지 않고 화면(파이프)으로 보냄
+
+WORKDIR /etc/apache2/sites-enabled
+RUN sed -i "s/\/var\/www\/html/\/var\/www\/wordpress/g" 000-default.conf
+
+WORKDIR /var/www/wordpress
+RUN mv wp-config-sample.php wp-config.php \
+ && sed -i "s/'database_name_here'/'wp'/g" wp-config.php \
+ && sed -i "s/'username_here'/'root'/g" wp-config.php \
+ && sed -i "s/'password_here'/'password'/g" wp-config.php \
+ && sed -i "s/'localhost'/'db'/g" wp-config.php
+
+EXPOSE 80
+
+CMD ["apachectl","-D","FOREGROUND"]
+
+
+-e WORDPRESS_DB_HOST=... -e WORDPRESS_DB_USER=... -e WORDPRESS_DB_PASSWORD=...
+-e WORDPRESS_DB_NAME=...
+-e WORDPRESS_TABLE_PREFIX=...
+-e WORDPRESS_AUTH_KEY=..., -e
+
+docker run -itd --name wp -p 80:80 --network=wp_network -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=root -e WORDPRESS_DB_PASSWORD=password -e WORDPRESS_DB_NAME=wordpress wordpress
+
+---------------------------------------------------------------------------------
+
+
+[root@rocky mysql]# docker network create wp_network
+[root@rocky mysql]# docker run -itd --name db --network=wp_network -e MYSQL_ROOT_PASSWORD=password mysql
+[root@rocky mysql]# docker ps -a
+CONTAINER ID   IMAGE     COMMAND            CREATED         STATUS         PORTS      NAMES
+bbe64c584017   mysql     "/entrypoint.sh"   2 seconds ago   Up 2 seconds   3306/tcp   db
+[root@rocky mysql]# docker exec -it db /bin/bash
+root@bbe64c584017:/etc/mysql/mysql.conf.d# mysql
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
+| wp                 |
++--------------------+
+5 rows in set (0.01 sec)
+// wp 확인
+
+
+[root@rocky board]# pwd
+/root/docker/board
+[root@rocky board]# vi Dockerfile 
+[root@rocky board]# cat Dockerfile 
+FROM ubuntu:22.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y \
+    apache2 \
+    php8.1 \
+    libapache2-mod-php8.1 \
+    php8.1-fpm \
+    php8.1-cli \
+    php8.1-curl \
+    php8.1-mysql \
+    php8.1-gd \
+    php8.1-zip \
+    php8.1-intl \
+    php8.1-bcmath \
+    php8.1-imap \
+    php8.1-imagick \
+    php8.1-xmlrpc \
+    php8.1-readline \
+    php8.1-memcached \
+    php8.1-redis \
+    php8.1-mbstring \
+    php8.1-apcu \
+    php8.1-xml \
+    php8.1-dom \
+    php8.1-memcache \
+    mysql-client \
+    wget \
+ && apt clean
+
+
+FROM builder AS final
+ARG DEBIAN_FRONTEND=noninteractive
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+WORKDIR /var/www
+RUN wget https://ko.wordpress.org/wordpress-6.8.1-ko_KR.tar.gz -O - | tar -xz
+
+WORKDIR /etc/apache2/sites-enabled
+RUN sed -i "s/\/var\/www\/html/\/var\/www\/wordpress/g" 000-default.conf
+
+WORKDIR /var/www/wordpress
+RUN mv wp-config-sample.php wp-config.php \
+ && sed -i "s/'database_name_here'/'wp'/g" wp-config.php \
+ && sed -i "s/'username_here'/'root'/g" wp-config.php \
+ && sed -i "s/'password_here'/'password'/g" wp-config.php \
+ && sed -i "s/'localhost'/'db'/g" wp-config.php
+
+EXPOSE 80
+
+CMD ["apachectl","-D","FOREGROUND"]
+
+
+[root@rocky board]# docker build --tag wordpress .
+
+
+[root@rocky board]# docker run -itd --name wp -p 80:80 --network=wp_network -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=root -e WORDPRESS_DB_PASSWORD=password -e WORDPRESS_DB_NAME=wordpress wordpress
+
+
+
+vi ~/docker/mysql/entrypoint.sh
+
+#!/bin/bash
+if [ -z "$MYSQL_ROOT_PASSWORD" ]; then
+  exit 1
+fi
+
+mysqld --initialize-insecure --user=mysql
+mysqld --user=mysql &
+
+until mysqladmin ping &>/dev/null; do
+  sleep 1
+done
+
+# 기본 WordPress DB
+mysql -uroot -e "CREATE DATABASE IF NOT EXISTS wp;"
+
+mysql -uroot -e "create user 'root'@'%' identified by '$MYSQL_ROOT_PASSWORD';"
+mysql -uroot -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_ROOT_PASSWORD';"
+
+mysql -uroot -e "grant all privileges on wp.* to 'root'@'%';"
+
+
+# Pentest DB (DVWA, Juice Shop 등)
+mysql -uroot -e "CREATE DATABASE IF NOT EXISTS pentest;"
+mysql -uroot -e "grant all privileges on pentest.* to 'root'@'%';"
+
+
+mysql -uroot -e "FLUSH PRIVILEGES;"
+wait
+
+
+
+
+
+FROM ubuntu:22.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update && apt install -y \
+    apache2 \
+    php8.1 \
+    libapache2-mod-php8.1 \
+    php8.1-mysql \
+    php8.1-cli \
+    php8.1-curl \
+    php8.1-gd \
+    php8.1-zip \
+    unzip \
+    mysql-client \
+ && apt clean
+
+FROM builder AS final
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# 1) 소스 배포 (insecure.zip)
+WORKDIR /var/www/html
+COPY insecure.zip /var/www/html/insecure.zip
+RUN unzip insecure.zip -d /var/www/html/pentest
+
+# 2) Apache DocumentRoot를 pentest로 변경
+WORKDIR /etc/apache2/sites-enabled
+RUN sed -i "s/\/var\/www\/html/\/var\/www\/html\/pentest/g" 000-default.conf
+RUN echo "short_open_tag=On" > /etc/php/8.1/apache2/conf.d/99-short-open-tag.ini
+
+
+# 3) DB 설정(common.php) 수정: host=db, user=pentestuser, pass=pentestpass, db=pentest
+WORKDIR /var/www/html/pentest
+RUN sed -i 's/\$host = "127\.0\.0\.1";/\$host = "db";/g' common.php \
+ && sed -i 's/\$id = ".*";/\$id = "roror";/g' common.php \
+ && sed -i 's/\$pw = ".*";/\$pw = "qhdks12";/g' common.php \
+ && sed -i 's/\$db = ".*";/\$db = "pentest";/g' common.php
+
+# 권한 (필요한 앱이면)
+RUN chown -R www-data:www-data /var/www/html/pentest
+
+EXPOSE 80
+CMD ["apachectl","-D","FOREGROUND"]
+
+
+
+[root@rocky pentest]# docker build --tag pentest .
+
+
+cd ~/docker/pentest
+docker build -t pentest .
+docker run -d --name pentest --network=wp_network -p 8081:80 pentest
+
+
+
+---------------------------------------------------------------------------------
+
+
+vi ~/docker/mysql/Dockerfile
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN echo "mysql-server-8.0 mysql-server/root_password password" | debconf-set-selections
+RUN echo "mysql-server-8.0 mysql-server/root_password_again password" | debconf-set-selections
+RUN apt update && apt install -y mysql-server-8.0
+
+# bind-address 127.0.0.1 -> 0.0.0.0 변경
+WORKDIR /etc/mysql/mysql.conf.d/
+RUN sed -i "s/127.0.0.1/0.0.0.0/g" mysqld.cnf
+
+ADD entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+EXPOSE 3306
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+vi ~/docker/mysql/entrypoint.sh
+#!/bin/bash
+
+if [ -z "$MYSQL_ROROR_PASSWORD" ]; then
+  exit 1
+fi
+
+mysqld --initialize-insecure --user=mysql
+mysqld --user=mysql &
+
+until mysqladmin ping &>/dev/null; do
+  sleep 1
+done
+
+mysql -uroot -e "CREATE DATABASE IF NOT EXISTS pentest;"
+mysql -uroot -e "create user 'roror'@'%' identified by '$MYSQL_ROROR_PASSWORD';"
+mysql -uroot -e "grant all privileges on *.* to 'roror'@'%' WITH GRANT OPTION;"
+mysql -uroot -e "FLUSH PRIVILEGES;"
+
+wait
+
+
+docker build --tag pentestdb .
+docker network create pentest_net
+docker run -itd --name db --network=pentest_net -e MYSQL_ROROR_PASSWORD=password pentestdb
+
+vi ~/docker/pentest/Dockerfile
+
+FROM ubuntu:22.04 AS builder
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y \
+    apache2 \
+    php8.1 \
+    libapache2-mod-php8.1 \
+    php8.1-fpm \
+    php8.1-cli \
+    php8.1-curl \
+    php8.1-mysql \
+    php8.1-gd \
+    php8.1-zip \
+    php8.1-intl \
+    php8.1-bcmath \
+    php8.1-imap \
+    php8.1-imagick \
+    php8.1-xmlrpc \
+    php8.1-readline \
+    php8.1-memcached \
+    php8.1-redis \
+    php8.1-mbstring \
+    php8.1-apcu \
+    php8.1-xml \
+    php8.1-dom \
+    php8.1-memcache \
+    mysql-client \
+    wget \
+ && apt clean
+
+FROM builder AS final
+ARG DEBIAN_FRONTEND=noninteractive
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+RUN sed -i "s/short_open_tag = Off/short_open_tag = On/" /etc/php/8.1/apache2/php.ini && sed -i "s/allow_url_include = Off/allow_url_include = On/" /etc/php/8.1/apache2/php.ini
+
+RUN sh -c 'rm -rf /var/www/html/*'
+ADD pentest.tar.gz /var/www/html/
+WORKDIR /var/www/html/pentest/
+
+EXPOSE 80
+
+ADD entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+
+vi ~/docker/pentest/entrypoint.sh
+
+#!/bin/bash
+sed -i "s/127.0.0.1/db/g" common.php  && sed -i "s/root/roror/g" common.php && sed -i "s/crehacktive/$MYSQL_ROROR_PASSWORD/g" common.php
+
+cp /var/www/html/DVWA/config/config.inc.php.dist /var/www/html/DVWA/config/config.inc.php
+sed -i "s/127.0.0.1/db/g" /var/www/html/DVWA/config/config.inc.php
+sed -i "s/p@ssw0rd/$PENTEST_DB_PASSWORD/g" /var/www/html/DVWA/config/config.inc.php
+chown -R www-data:www-data /var/www/html/DVWA
+
+until mysqladmin ping -h db -uroror -p"$MYSQL_ROROR_PASSWORD" --silent; do
+  echo "Waiting for MySQL to be ready..."
+  sleep 2
+done
+
+mysql -uroror -p"$MYSQL_ROROR_PASSWORD" -h db < query.txt
+mysql -uroror -p"$MYSQL_ROROR_PASSWORD" -h db -e "CREATE DATABASE IF NOT EXISTS dvwa;"
+mysql -uroror -p"$MYSQL_ROROR_PASSWORD" -h db -e "CREATE USER IF NOT EXISTS 'dvwa'@'%' IDENTIFIED BY '$PENTEST_DB_PASSWORD';"
+mysql -uroror -p"$MYSQL_ROROR_PASSWORD" -h db -e "GRANT ALL PRIVILEGES ON dvwa.* TO 'dvwa'@'%';"
+mysql -uroror -p"$MYSQL_ROROR_PASSWORD" -h db -e "FLUSH PRIVILEGES;"
+
+exec /usr/sbin/apachectl -DFOREGROUND
+
+
+docker build --tag pentest_img .
+
+
+docker run -itd --name pentest -p 80:80 --network=pentest_net -e MYSQL_ROROR_PASSWORD=qhdks12 -e PENTEST_DB_PASSWORD=qhdks12 pentest_img
+
+
+---------------------------------------------------------------------------------------
+
+docker registry
+
+
+
+
+• 도커 레지스트리의 역할과 구성 요소에 대해 설명할 수 있다.
+• 도커 레지스트리를 사용하여 이미지의 업로드 및 다운로드, 태그 관리, 이미지 버전 관리를 할 수 있다.
+• 도커 디스트리뷰션 오픈 소스를 사용하여 나만의 도커 레지스트리 서비스를 만들 수 있다.
+
+• 도커 레지스트리 개요와 구성 요소
+• 도커 레지스트리 준비하기
+• 도커 레지스트리 설치하기
+
+*** 도커 레지스트리(Docker Registry) : 도커 이미지를 저장 · 관리 및 공유하기 위한 서버 ***
+
+1.  도커 레지스트리 사용 시 장점
+ 1) 도커 이미지들을 중앙 집중식으로 저장할 수 있음
+    - 필요한 경우 이를 다운로드하여 컨테이너를 생성하거나 배포할 수 있음
+ 2) 이미지 버전을 관리하고, 보안 및 접근을 제어할 수 있음
+    - 이미지의 안정성과 무결성을 유지하는 데 도움을 줌
+
+2. 도커 레지스트리의 주요 목적
+ 1) 이미지 저장과 관리
+  - 도커 레지스트리는 도커 이미지를 중앙에서 저장하고 관리함
+
+ 2) 이미지 공유와 배포
+  - 도커 이미지를 레지스트리에 업로드하면 다른 개발자나 팀원들과 이미지를 공유할 수 있음
+  - 이미지를 레지스트리에서 다운로드하여 다양한 환경에서 사용하고배포할 수 있음
+
+ 3) 버전 관리
+  - 도커 레지스트리를 사용하면 이미지의 여러 버전을 관리할 수 있음
+  - 애플리케이션 업데이트나 롤백 시 이전 버전의 이미지를 사용하여 배포하거나 테스트할 수 있음
+
+ 4) 보안과 접근 제어
+  - 도커 레지스트리는 이미지 접근을 제어하고 보안 기능을 제공함
+  - 프라이빗 레지스트리를 구성하여 인가된 사용자만 이미지에 접근하도록 설정할 수 있음
+
+3. 도커 레지스트리의 종류
+ 1) 도커 허브(Docker Hub)
+  - 공개 이미지를 저장하고 공유하기 위한 대표적인 도커 레지스트리
+
+ 2) Amazon ECR(Elastic Container Registry)
+  - 아마존 웹 서비스의 도커 레지스트리
+  - AWS 환경에서 이미지를 관리할 수 있음
+
+ 3) Google Container Registry
+  - 구글 클라우드 플랫폼에서 도커 이미지를 저장하고 배포하기 위한 레지스트리
+
+ 4) Azure Container Registry
+  - 마이크로소프트 애저의 도커 이미지 저장소
+  - 애저(Azure) 환경에서 이미지 관리를 지원함
+
+ 5) 개인 또는 사용자 정의 레지스트리
+  - 도커 레지스트리 오픈 소스인 도커 디스트리뷰션(Docker Distribution)
+     오픈소스를 사용하여 자체적으로 구성할 수 있음
+
+4. 도커 레지스트리의 구성 요소
+✓ 레지스트리 서버(Registry Server)
+✓ 저장소(Repository)
+✓ 태그(Tag)
+✓ 인증 및 접근 제어(Authentication and Access Control)
+✓ 보안(Security)
+✓ 검색 및 검색 인터페이스(Search and Search Interfaces)
+✓ 캐싱 및 레플리케이션(Caching and Replication)
+✓ 스토리지 백엔드(Storage Backend)
+
+-----------------------------------------------------------------------------------
+
+
+[root@rocky mysql]# docker pull registry
+[root@rocky pentest]# docker run -itd --name reg -p 5000:5000 registry
+[root@rocky pentest]# docker images
+[root@rocky pentest]# docker tag pentestdb:latest localhost:5000/mysql
+[root@rocky pentest]# docker push localhost:5000/mysql:latest
+[root@rocky pentest]# docker images
+[root@rocky pentest]# docker rmi localhost:5000/mysql:latest
+[root@rocky pentest]# docker pull localhost:5000/mysql
+
+
+[root@rocky pentest]# docker run -d --name mydb -e MYSQL_ROOT_PASSWORD=password mysql
+[root@rocky pentest]# docker run -itd --name ubuntu --link mydb:mysql ubuntu /bin/bash
+[root@rocky pentest]# docker exec -it ubuntu /bin/bash
+root@d33e8842d49c:/# apt install mysql-client
+root@d33e8842d49c:/# mysql -uroot -p'password' -h mysql
+
+
+
+
+주의사항
+ 1) Container 가 실행중일때 연결 가능하다.
+ 2) 동일한 호스트 머신에서 구동중인 컨테이너 사이에서만 엑세스 가능하다.
+ 3) 동일한 네트워크에서 연결 가능하다.
+ 4) apt update && apt install iputils-ping -y
+ 5) Docker의 사용자 정의 네트워크(예: bridge, overlay, macvlan 등)는 자체적으로 컨테이너 간 DNS 이름 해석을 지원한다.
+    이 때문에 --link 기능이 더 이상 필요하지 않고, 작동하지 않도록 설계되어 있다.
+    --link는 기본 브리지 네트워크(default bridge)에서만 환경 변수 전달과 /etc/hosts 업데이트 방식으로 작동한다.
+    사용자 정의 네트워크 (--network)를 사용할 경우, --link는 필요 없고 무시된다
+
+----- docker compose
+
+
+Docker Compose란?
+docker-compose는 여러 개의 컨테이너를 한 번에 정의하고 실행할 수 있게 해주는 도구다.
+docker-compose.yml 파일을 통해
+ 1) 어떤 이미지(또는 Dockerfile 기반 서비스)를 사용할지
+ 2) 몇 개의 컨테이너를 띄울지
+ 3) 포트, 볼륨, 환경 변수 등 설정을 명시한다.
+ 4) 여러 컨테이너를 구동시 컨테이너별 각각 구성하여 구동하고 정지한다면 운영하기가 매우 복잡하다. Docker Compose는 여러 컨테이너를 일괄로 관리할 수 있다.
+ 5) docker-compose.yml 파일에 컨테이너 정보를 정의하여 동일한 호스트상의 여러 컨테이너를 하나로 관리할 수 있다.
+
+2. docker compose 사용 시, docker run을 직접 할 필요 없다.
+- docker-compose.yml에 내용에 따라
+ 1) build가 있으면 → Dockerfile로 이미지 빌드
+ 2) image가 있으면 → Docker Hub 등에서 이미지 pull
+ 3) 이후 → 내부적으로 docker run과 동일한 방식으로 컨테이너 실행
+services:
+  web:
+    build: ./web   # Dockerfile 빌드 → 이미지 생성 → 컨테이너 실행
+  redis:
+    image: redis   # 이미지 직접 사용 → 컨테이너 실행
+위에서 docker compose up을 하면, web은 Dockerfile을 기반으로 이미지 빌드 → 실행, redis는 이미지 pull → 실행
+
+
+
+
+
+다음주 금요일 일직 가야되낟고 말해댜되는데......................언제말하지.......
+
+
+
+
+
+services:
+  db:
+    image: mysql:8.0
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: wp
+   
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: wordpress:latest
+    ports:
+      - "8000:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: password
+
+volumes:
+  db_data:
+
+
+$ docker-compose up -d
+  (1) docker-compose는 컨테이너 이름을 다음과 같은 규칙으로 자동 생성
+      <프로젝트_디렉토리명>-<서비스명>-<번호>
+  (2) container_name: mydb  처럼 이름 지정 가능
+       container_name은 전역적으로 유일해야 한다. (이미 존재하는 이름은 사용 불가)
+      여러 Compose 프로젝트를 동시에 실행하려면 되도록이면 생략하는 게 좋다 (이름 충돌 방지 목적).
+
+
+ $ docker exec -it wordpress bash
+  # apt update && apt install -y default-mysql-client vim
+  # mysql -h db -u root -p    # 패스워드입력: password
+  # vi /var/www/html/wp-config.php  (내용 수정)
+    DB_NAME : wp, DB_USER : root, DB_PASSWORD : password, DB_HOST : db
+ http://10.0.0.200:8000  (접속 확인)
+
+
+
+
+
+[root@rocky roror]# git clone https://github.com/Graylog2/docker-compose
+
+
+with username 'admin' and password 'EHLTYkYEoK'
+
+

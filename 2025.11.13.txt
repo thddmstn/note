@@ -1,0 +1,235 @@
+
+# vi /etc/udev/rules.d/99-disable-offload.rules
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="ens33", RUN+="/usr/sbin/ethtool -K ens33 gro off lro off tso off gso off tx off rx off"
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="ens36", RUN+="/usr/sbin/ethtool -K ens36 gro off lro off tso off gso off tx off rx off"
+
+udevadm control --reload
+udevadm trigger
+
+vi /etc/systemd/system/snort-nic.service
+[Unit]
+Description=Snort3 NIC Setup (Promisc + GRO/LRO OFF)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '/usr/sbin/ip link set dev ens33 promisc on && /usr/sbin/ip link set dev ens36 promisc on && /usr/sbin/ethtool -K ens33 tx off rx off tso off gso off gro off lro off && /usr/sbin/ethtool -K ens36 tx off rx off tso off gso off gro off lro off'
+TimeoutStartSec=0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+# apt install autoconf automake libtool pkg-config build-essential libpcap-dev libnet1-dev
+# git clone https://github.com/snort3/libdaq.git
+# cd ~/libdaq
+# ./bootstrap
+# ./configure --enable-afpacket-module
+# make
+# make install
+# snort --daq-list
+
+
+
+
+
+- 자동으로 실행하도록
+#!/bin/bash
+
+# 루트 권한 확인
+if [ "$(id -u)" -ne 0 ]; then
+    echo "$(id -u)로 로그인 하였습니다. ! 루트로 로그인 하세요"
+    exec sudo bash "$0" "$@"
+    exit
+fi
+
+# 공통 함수 정의
+run_snort() {
+    local config_file=$1
+    local additional_opts=$2
+    echo "Snort 실행: $config_file"
+    xterm -fg black -bg white -fn *-fixed-*-*-*-20-* -e \
+        "echo \"snort $additional_opts -c $config_file\"; \
+        snort $additional_opts -c $config_file; bash"
+    killall -9 snort
+}
+
+apply_netplan_config() {
+    local config_file=$1
+    echo "Netplan 설정 적용: $config_file"
+    cp -af "/root/backup/$config_file" /etc/systemd/network
+    systemctl restart systemd-networkd
+}
+
+# 메뉴 출력
+echo "
+ 1) Roror's Snort Rules
+ 2) Roror's Local Rules 
+ 3) Roror's IPS 
+ 4) Roror's IPS MODE
+ 5) Roror's IDS MODE
+"
+
+read -p "choice : " num
+
+# 사용자 입력 처리
+case "$num" in
+    1)
+        run_snort "/etc/snort/snort.conf" "-A console -q -u snort -g snort"
+        ;;
+    2)
+        run_snort "/etc/snort/snort_ids.conf" "-A console -q -u snort -g snort"
+        ;;
+    3)
+        run_snort "/etc/snort/snort_af.conf" "-Q -A console -q -u snort -g snort -i ens33:ens36 -N"
+        ;;
+    4)
+        apply_netplan_config "ips/50-cloud-init.yaml"
+        ;;
+    5)
+        apply_netplan_config "ids/50-cloud-init.yaml"
+        ;;
+    *)
+        echo "잘못된 선택입니다. 숫자를 입력하세요."
+        ;;
+esac
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+root@elk:/etc/apache2/sites-available# ls
+000-default.conf  default-ssl.conf
+
+root@elk:/etc/apache2/mods-enabled# vi dir.conf
+DirectoryIndex index.php index.cgi index.pl index.html index.xhtml index.htm
+// php란 html순서 바꿈
+
+
+root@elk:/etc/apache2/sites-enabled# vi 000-default.conf 
+
+
+sites-available(원본)  ---->   sites-enabled(심볼릭)
+mods-available(원본) ----> mods-enabled(심볼릭)
+
+root@elk:/etc/apache2/sites-available# a2ensite default-ssl
+root@elk:/etc/apache2/sites-available# ls -l ../sites-enabled/
+root@elk:/etc/apache2/sites-available# systemctl reload apache2
+root@elk:/etc/apache2/sites-available# a2dissite default-ssl
+root@elk:/etc/apache2/sites-available# systemctl reload apache2
+root@elk:/etc/apache2/sites-available# ls -l ../sites-enabled/
+
+root@elk:/etc/apache2/mods-enabled# a2dismod dir
+root@elk:/etc/apache2/mods-enabled# a2enmod dir
+
+root@elk:/etc/apache2# vi apache2.conf 
+ 69 #ServerRoot "/etc/apache2"
+ 70 ServerTokens Full
+
+root@elk:/etc/apache2# systemctl restart apache2
+
+
+---kali----
+nmcli con mod "Wired connection 1" ipv4.ignore-auto-dns yes     
+nmcli con mod "Wired connection 1" ipv4.dns "10.0.0.200 8.8.8.8"
+nmcli con up "Wired connection 1" 
+
+
+
+--- DNS : ubnutu.roror.co.kr
+
+# cat 000-default.conf | grep -Ev "^#|^$|^\s+#" > ub.roror.co.kr.conf
+# vi ub.roror.co.kr.conf
+<VirtualHost *:80>
+        ServerName ubuntu.roror.co.kr
+        ServerAdmin roror@roror.co.kr
+        DocumentRoot /home/roror/public_html
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+roror@elk:~$ mkdir public_html
+roror@elk:~$ echo "Roror Homepage" > ./public_html/index.html
+#  a2ensite ub.roror.co.kr
+# chmod 711 /home/roror/
+
+# vi /etc/apache2/mods-available/userdir.conf    // 체크만
+# a2enmod userdir
+# systemctl restart apache2
+
+
+
+# a2ensite default-ssl.conf
+# a2enmod ssl
+# systemctl restart apache2
+
+------
+SAN 정보는 CSR (Certificate Signing Request)를 만들 때 포함된다. (openssl req로 CSR 만들 때 SAN 포함해서 만들어야 한다.)
+-----
+openssl genrsa -out ca-key.pem 4096   // CA 개인키 및 CA 인증서 생성
+openssl req -x509 -new -key ca-key.pem -sha256 -days 3650 -out ca.pem \
+  -subj "/C=KR/ST=Daegu/L=Daegu/O=Security/OU=RootCA/CN=Roror Root CA"
+vi /etc/ssl/openssl-san.cnf
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+req_extensions     = req_ext
+distinguished_name = dn
+
+[ dn ]
+C  = KR
+ST = Daegu
+L  = Daegu
+O  = Roror Company
+OU = Sec
+CN = roror.co.kr
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = roror.co.kr
+DNS.2 = www.roror.co.kr
+DNS.3 = mail.roror.co.kr
+DNS.4 = elk.roror.co.kr
+
+openssl genrsa -out server-key.pem 2048   // 서버키 생성
+openssl req -new -key server-key.pem -out server.csr -config openssl-san.cnf // CSR 생성
+
+openssl x509 -req -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial \
+  -out server-cert.pem -days 825 -sha256 \
+  -extfile openssl-san.cnf -extensions req_ext   // 인증서 서명(자체 CA로)
+
+root@elk:/etc/apache2/sites-available# cp default-ssl.conf ~
+
+# vi default-ssl.conf
+ 31         #SSLCertificateFile      /etc/ssl/certs/ssl-cert-snakeoil.pem
+ 32         #SSLCertificateKeyFile   /etc/ssl/private/ssl-cert-snakeoil.key
+ 33         SSLCertificateFile      /etc/ssl/server-cert.pem
+ 34         SSLCertificateKeyFile   /etc/ssl/server-key.pem
+
+
+

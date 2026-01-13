@@ -1,0 +1,250 @@
+1. SetGID 는 디렉토리에 설정되면, 그 디렉토리 안에 생성되는 파일이나 서브디렉토리의 그룹 소유권은 디렉토리를 소유한 그룹으로 자동 설정된다. 즉, 디렉토리 내에서 생성되는 파일이나 디렉토리가 디렉토리의 그룹과 동일한 그룹 소유권을 가지게 된다.
+ - 파일/디렉토리에 rwx(group) 권한을 부여하여 그룹 소유권을 유지시켜 협업 효율성을 높인다.
+
+2. (지금은 파일에 대한 Set-GID는 사실상 거의 사용되지 않음)SetGID 비트는 주로 디렉토리에서 사용되지만, 파일에 적용할 경우에도 특정한 동작을 유발한다. 파일이 실행될 때 그 파일이 속한 그룹의 권한으로 실행된다. 이는 사용자가 파일을 실행할 때, 그 파일의 소유 그룹의 권한을 임시로 부여받는다는 의미이다. 하지만 파일을 실행할 때 그룹 소유권만 변경되며, 사용자의 실제 권한(소유자 권한)은 변경되지 않는다. 특정 그룹에 속한 사용자들만이 파일에 접근해야 하거나, 프로그램 실행 시 특정 그룹의 권한을 필요로 하는 경우에 유용하다.
+ - SetGID는 그룹 권한만 변경할 뿐, 소유자 권한(루트 권한 등)을 변경하지 않는다.SetGID로 root 그룹을 부여받더라도, root 그룹 소유의 자원에 접근할 수 있는 권한은 가질 수 있지만, root 사용자 권한을 부여받아 실행할 수는 없다.
+ - SetGID 비트는 프로그램 실행 시 그룹 권한을 강제로 설정하는 역할이지만, SetGID 비트가 없어도 그룹 권한을 설정하여 사용 가능하다.
+
+4. Sticky Bit가 설정된 디렉토리는 소유자가 아닌 사용자가 파일을 삭제하거나 이름을 변경할 수 없도록 보호하는 역할을 한다. Sticky Bit가 설정되어 있으면 각 사용자는 자신이 소유한 파일만 삭제할 수 있으며, 다른 사용자의 파일에는 영향을 미치지 못한다
+ - Sticky Bit는 주로 디렉토리에서 사용되며, 파일에 설정해도 일반적으로는 의미가 없다.(과거에는 Sticky Bit가 설정된 실행 파일은 프로세스가 종료된 후에도 해당 프로그램이 메모리에 유지되도록 하여, 이후 실행 시에 더 빠르게 로드되도록 했다, 지금은 더이상 사용되지 않는다.)
+
+
+Default 권한 
+디렉토리 : 777
+파일 : 666
+
+
+
+root@localhost:/# vi /etc/login.defs
+117 UMASK           022
+root@localhost:/# umask
+0022
+root@localhost:/# umask -S   // 대문자 S
+u=rwx,g=rx,o=rx
+
+
+# umask  (파일/디렉토리든 생성시 기본값)
+# umask -S   ---> u=rwx, g=rx, o=rx (리마)
+
+/etc/login.defs (새로운 사용자만 적용된다.)
+131 PASS_MAX_DAYS   99999  // 최대 변경일
+132 PASS_MIN_DAYS   0  // 최소 변경일 ex)3 이면 3일동안pw변경 불가
+133 PASS_MIN_LEN    8  // 패스워드 길이
+134 PASS_WARN_AGE   7  // 패스워드 만료일 경고일
+
+
+-eq =
+-ne !=
+-gt >  
+-lt  <
+-ge >=
+-le  <=
+
+▷ umask값과 666을 2진수로 XOR연산을 하면 파일의 권한을 알 수 있으며
+▷ umask값과 777을 2진수로 XOR연산을 하면 디렉토리의 권한을 알 수 있다.
+▷ XOR란 입력된 값이 같으면 0, 입력된 값이 다르면 1을 출력한다 (파일 default의 0자리는 그대로 0이다.)
+▷ NOR란 입력된 값이 하나라도 참이면 0 두개다 거짓이면 1을 출력한다. 
+
+umask 333  (디렉토리 생성/파일 생성시 기본값은)
+110 110 110 666
+011 011 011 333 ~(줄비트) 권한 비트 추출 --> 100 100 100
+100 100 100
+
+110 110 110
+100 100 100
+---------------
+100 100 100 (444)
+
+
+022
+110 110 110
+000 010 010
+111 101 101
+110 100 100
+644
+
+027
+110 110 110
+111 101 000
+110 100 001 ?
+
+chown roror  // 소유자만 바꿈
+chown roror:roror // 소유자와 그룹 바꿈
+chown roror:  // 소유자와 그룹 바꿈
+chown :roror  // 그룹만 바꿈
+chown .roror  // 그룹만 바꿈
+chown roror.roror  // 소유자와 그룹 바꿈
+
+chgrp ??
+
+
+root@localhost:/# groupadd sticky
+root@localhost:/# cat /etc/group | grep sticky
+sticky:x:1001:
+
+root@localhost:/# usermod -a -G sticky roror  // sticky 그룹에 roror 추가
+root@localhost:/# cat /etc/group | grep sticky  // 추가되었는지 확인
+sticky:x:1001:roror
+root@localhost:/# useradd user
+
+1000 : 파일 생성한 사람만 삭제 가능
+
+passwd실행하는동안 root권한.. 무조건?
+
+
+
+root@localhost:/home/roror# useradd user
+root@localhost:/home/roror# vi /etc/group
+root@localhost:/home/roror# ls /home
+roror  user
+root@localhost:/home/roror# ls /etc/skel
+root@localhost:/home/roror# echo "HI~~" > /etc/skel/README.txt
+root@localhost:/home/roror# ls /etc/skel
+README.txt
+root@localhost:/home/roror# useradd test
+root@localhost:/home/roror# ls /home/test
+README.txt
+
+
+
+
+
+
+/etc/group
+
+# mkdir -m 3770 /backup;mkdir -m 770 test
+# ls -ld /backup /test
+drwxrws--T. 2 root root 6  9월 17일  11:29 /backup
+drwxrwx---. 2 root root 6  9월 17일  11:29 /test
+# groupadd sticky
+# cat /etc/group | grep sticky
+sticky:x:1001:
+# cat /etc/passwd | grep sticky
+# chown :sticky /backup
+# usermod -a -G sticky roror    
+# cat /etc/group | grep sticky
+sticky:x:1001:roror
+roror/user/test 계정 생성
+
+ - roror, user 사용자는 /backup /test 에 파일/디렉토리 생성가능
+ - /backup 는  sticky 그룹 권한으로 파일/디렉토리 생성됨  (그룹 권한 변경으로 효율적 협업 가능)
+   (디렉토리/파일 생성시 동일한 그룹으로 생성, 생성시 권한은 수동으로 주어야 한다(umask 설정, 자동 권한 부여됨).)
+ - /test 는 생성자의 그룹으로 생성됨 (그룹 공유는 가능하지만 파일 수정의 제약이 있을 수 있음)
+
+root@localhost:/# su - user
+user@localhost:~$ echo "user" > /backup/user.txt
+user@localhost:~$ echo "user" > /test/user.txt
+
+root@localhost:/# su - test
+test@localhost:~$ echo "user" > /backup/test.txt
+-bash: /backup/test.txt: 허가 거부
+test@localhost:~$ echo "user" > /test/test.txt
+-bash: /test/test.txt: 허가 거부
+
+
+root@localhost:/# su - roror
+최근 로그인: 수  9월 17 11:38:53 KST 2025 pts/0에
+roror@localhost:~$ cd /backup
+roror@localhost:/backup$ rm -rf ./user.txt
+rm: './user.txt'을(를) 제거할 수 없습니다: 명령을 허용하지 않음
+roror@localhost:/backup$ cd /test
+roror@localhost:/test$ rm -rf ./user.txt
+
+
+roror@localhost:/test$ cd /backup
+roror@localhost:/backup$ ls -l
+합계 8
+-rw-r--r--. 1 roror sticky 5  9월 17일  11:39 roror.txt
+-rw-r--r--. 1 user  sticky 5  9월 17일  11:40 user.txt
+
+
+root@localhost:/# su - user
+최근 로그인: 수  9월 17 11:39:56 KST 2025 pts/0에
+user@localhost:~$ cd /backup
+user@localhost:/backup$ ls
+roror.txt  user.txt
+user@localhost:/backup$ rm -rf ./roror.txt 
+rm: './roror.txt'을(를) 제거할 수 없습니다: 명령을 허용하지 않음
+
+
+user@localhost:/$ ls -ld /backup /test
+drwxrws--T. 2 root sticky 39  9월 17일  11:40 /backup
+drwxrwx---. 2 root sticky 23  9월 17일  11:41 /test
+
+C : 절차지향, main 함수부터 읽는다.
+# vi ./backdoor.c
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+int main() {
+        setuid(0);
+        setgid(0);
+        system("/usr/bin/vi");
+        return 0;
+}
+
+인터프리터 : 파이썬, PHP
+컴파일 : C... Java
+# gcc -o back ./backdoor.c
+
+
+# useradd user
+/etc/skel   --->   /home/user
+
+# vi /etc/login.defs
+HOME_MODE       0700   (711)
+CREATE_HOME     yes     (no)
+MAIL_DIR        /var/spool/mail
+
+/etc/passwd (사용자 정보를 생성)
+
+# pwunconv  (passwd 가 패스워드를 관리한다.)
+# pwconv  (shadow 가 패스워드를 관리한다.)
+
+/etc/shadow (사용자 패스워드 저장)
+/var/mail/(계정)
+/var/spool/mail/(계정)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

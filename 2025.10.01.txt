@@ -1,0 +1,140 @@
+Level00
+About
+This level requires you to find a Set User ID program that will run as the “flag00” account. You could also find this by carefully looking in top level directories in / for suspicious looking directories.
+Alternatively, look at the find man page.
+To access this level, log in as level00 with the password of level00.
+Source code
+There is no source code available for this level
+
+level01@nebula:/home/flag01$ find / -perm -4000 -user flag00 -ls 2>/dev/null
+ 44173    8 -rwsr-x---   1 flag00   level00      7358 Nov 20  2011 /bin/.../flag00
+ 44173    8 -rwsr-x---   1 flag00   level00      7358 Nov 20  2011 /rofs/bin/.../flag00
+
+
+
+Level01 
+About
+There is a vulnerability in the below program that allows arbitrary programs to be executed, can you find it?
+To do this level, log in as the level01 account with the password level01. Files for this level can be found in /home/flag01.
+
+- 시스템 우회 이해
+------ Source Code ------
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <stdio.h>
+
+int main(int argc, char **argv, char **envp)
+{
+  gid_t gid; 
+  uid_t uid;
+  gid = getegid();
+  uid = geteuid();
+
+  setresgid(gid, gid, gid);
+  setresuid(uid, uid, uid);
+
+  system("/usr/bin/env echo and now what?");  // 외부 명령어 실행(리눅스 명령어 실행하기 위해 함수 호출)
+}
+
+아 배고파
+
+
+
+
+
+
+find / -perm +4000 // 옛날 리눅스는 됨...  대신 /4000 가능..?
+
+
+
+리눅스의 다양한 일번적인(그리고 약간은 일반적이지 않은) 취약점들을 지니고 있으며, 
+그 주요 내용은 아래와 같다.
+SUID files : SUID 파일
+Permissions : 권한.
+Race conditions : 경쟁상태.
+Shell meta-variables : 쉘 변수.
+$PATH weaknesses : $PATH 관련 취약점.
+Scripting language weaknesses : 스크립팅 언어 관련 취약점.
+Binary compilation failures : 컴파일 실패.
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

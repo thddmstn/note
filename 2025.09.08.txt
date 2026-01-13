@@ -1,0 +1,118 @@
+nat
+pfsense_nat
+nat
+pfsense_bridge
+
+
+pfsense - menu
+8 -> shell
+
+pfctl -s info
+pfctl -s rules
+pfctl -vvsr ,  -vvss
+pfctl -s nat
+pfctl -s state
+
+pfctl -e
+pfctl -d   // 방화벽 해제 
+
+pfctl -s Tables   // 테이블 출력
+pfctl -t 테이블명 -T show  (대역 확인)
+pfctl -t sshguard -T show  차단아이피 확인
+pfctl -t sshguard -T flush  차단아이피 전체 삭제(비우기)
+pfctl -t sshguard -T delete 192.168.1.100 지정 삭제
+
+pfctl -f /tmp/rules.debug // 방화벽 규칙 다시 로드
+
+System -> Advanced -> Admin Access
+
+- 웹/SSH든 pfsense로 접근이 안될때, 다른곳에서 접속하여 해제
+Status -> System Logs -> Firewall  방화벽 해제?
+Diagnostics  ---> Tables  들어가서 차단아이피 삭제
+
+
+------------------------------------
+Inbound/outbound
+Source       출발지
+Destination 도착지
+
+NAT : 사설 IP -->  공인 IP 로
+1:1 NAT 는  Source(외부에서) ---> 10.0.0.100(도착/ Destination)  ---> 192.168.1.103(Internal)
+
+http://10.0.0.100/
+
+meta : 192.168.1.103
+rocky : 192.168.1.104
+
+nmap -sS 아이피 ( -p 포트 )
+
+둘다 IP 10.0.0.100 접속
+80 --->  meta
+22022 ---> Rocky
+
+--> 포트를 기반으로 포워딩 (포트포워딩..)
+
+------------------------------------------------------
+회사 ---> 내부 직원 (NAT)
+외부 ---> (DMZ)WebServer(10.0.0.123) <--vsphere(pfsense) -> DB(server)
+
+Bridge : 외부의 IP를 내부에서 사용하기 위해, 방확벽/IDS/IPS는 사용한다.
+
+sudo /etc/init.d/networking restart
+
+
+
+-----------------------------------
+IDS/IPS ---> Snort/Suricata ( 프로그램 )
+Hardware Checksum Offloading
+     - 패킷 체크섬 계산을 NIC 대신 CPU가 처리해 패킷 검증 오류를 방지.
+Hardware TCP Segmentation Offloading, 
+     - 큰 TCP 패킷을 pfSense가 직접 분할해 방화벽 추적 문제를 방지.
+Hardware Large Receive Offloading
+      - 작은 패킷을 합치지 않고 그대로 전달해 IDS/IPS 및 트래픽 분석 오류를 방지.
+-->체크해제
+
+a6ed142920391bb0adaedcfc33f9f90ed8ba2760
+snortrules-snapshot-3031.tar.gz
+snort.org
+
+
+
+
+alert tcp any any -> any 22 (msg:"giJeong SSH Server";content:"SSH";sid:2024010101;)
+alert tcp any any -> any 80 (msg:"HTTPFlooding...";flags:S;threshold:type both,track by_src,count 10,seconds 2;sid:2024010102;)
+alert tcp any any -> any 443 (msg:"HTTPFlooding...";flags:S;threshold:type both,track by_src,count 10,seconds 2;sid:2024010103;)
+alert icmp any any -> any any (msg:"ToDetected Dos";threshold:type limit,track by_src,count 10,seconds 2;sid:2023010202;)
+
+
+alert  - 탐지(IDS)
+drop -  차단(IPS)
+
+
+Block Offenders 체크하면 차단..?
+
+
+
+
+
+
+vi
+파일 복구 명령어 r
+읽기 명령어 R  ?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

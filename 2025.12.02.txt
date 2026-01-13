@@ -1,0 +1,341 @@
+A01:2021 - 깨진 접근 제어(Broken Access Control)
+A05:2021 - 보안 설정 오류(Security Misconfiguration)
+
+
+$file = str_replace(array("../","./","..\\"),"",$file);
+$file = str_replace(array("http://","https://"),"",$file);
+
+./   ---->     ...//  ---->   ../    --->   ./
+../  ---->     ....//   ---->  ../   ----> ../
+./ ../  --->  .....///  ---->   ./ ---> ....// --->  ../  ---> ../
+
+dns..
+vi /etc/named.conf
+any 0.0.0.0
+
+ 23         //allow-query     { any; };
+ 24         allow-query     { localhost; internal-network; };  // host를 허용해주는 옵션..?
+ 25         //allow-transfer { localhost; };  //zone파일 전송 설정..?
+
+
+- DNS
+DNS(Domain Name System)에서의 "재귀적 질의"와 "순환 질의"는 둘 다 
+DNS 클라이언트가 DNS 서버에게 도메인 이름을 해석하는 과정에서 발생하는 다른 유형의 질의를 가리킨다.
+재귀적 질의(Recursive Query)
+의미 : 클라이언트가 DNS 서버에 요청하면, DNS 서버가 모든 과정을 대신 처리해 최종 IP 주소를 반환.
+클라이언트가 DNS 서버에게 특정 도메인 이름의 IP 주소를 요청한다.
+DNS 서버는 이 요청을 받으면, 다른 DNS 서버에게 이 요청을 전달하고, 계속해서 하위 도메인에 대한 정보를 찾아가며 최종적으로 도메인 이름에 대한 IP 주소를 찾는다.
+이 과정에서 DNS 서버는 요청을 보낸 클라이언트에게 전체적인 해결 과정을 숨기고, 최종적으로 찾은 IP 주소를 반환한다.
+ 
+순환 질의(Iterative Query)
+의미 : 클라이언트가 DNS 서버에 요청하면, 서버는 알고 있는 만큼만 알려주고, 나머지는 클라이언트가 직접 다른 DNS 서버에 질의.
+클라이언트가 DNS 서버에게 특정 도메인 이름의 IP 주소를 요청한다.
+DNS 서버는 이 요청을 받으면, 클라이언트에게 도메인 이름의 일부 정보를 제공하거나, 다른 DNS 서버의 주소를 알려준다.
+클라이언트는 이 정보를 기반으로 다시 DNS 서버에게 질의를 보내고, 이 과정을 반복하여 최종적으로 IP 주소를 찾는다.
+순환 질의에서는 클라이언트가 여러 DNS 서버에 대한 정보를 받고, 직접적으로 각각의 DNS 서버에 요청을 보내고 응답을 기다린다.
+재귀적 질의는 DNS 서버가 클라이언트를 대신하여 전체적인 도메인 해석 과정을 처리하는 반면, 순환 질의는 클라이언트가 직접적으로 여러 DNS 서버에 질의를 보내어 해석 과정을 수행한다.
+
+
+
+DNS PORT
+53/UDP : TCP 2가지 외 나머지는 모두 UDP사용
+53/TCP  : . Zone Transfer 1,2차 네임서버 존파일 동기화 ,  또는 512kbyte 넘을경우 사용
+
+ROOT DNS 
+전세계 13개 존재 14개라면 메세지 사이즈가 512kbyte를 넘는다 그래서 13개이다
+ #dig lsof.co.kr +trace
+
+네임서버가 Recursive 모드로 동작할 때에는, 클라이언트(이를 Stub Resolver 라 한다)의 요청에 대해 Namespace를 검색한후 결과를 전달한다. 
+하지만 Iterative 모드에서는 알 수 없는 질의(자신이 관리하지 않는 도메인에 대한 요청)에 대해, 응답 가능한 NS의 목록을 전달한다. 
+대부분의 네임서버는 Recursive 모드로 동작하며, Iterative 모드는 루트서버와 같이 네임서버를 위한 네임서버(네임서버간의 통신에는 Iterative 모드가 사용됨)에서 과다한 트래픽을 막기위해 사용한다. 
+또한, 클라이언트는 Iterative 모드로 설정된 네임서버를 사용할 수 없으므로, 네임서버 목록(예:resolv.conf, 윈도우의 DNS 찾기목록)에 추가하여서는 안 된다. 
+BIND-4에서는 부트파일에 'options no-recursion'을 추가함으로써, Iterative 모드로 전환할 수 있고, BIND-8의 경우엔 options 엔트리에 'recursion no;'를 설정한다.
+Recursion 허용시 DNS 반사 증폭공격 (Amplification)에 악용될 수 있다.
+실제로 상당한 서버가 Recursion 이 허용되어 운영되고 있다.    큰 문제가 되면서 DDoS 공격의 증폭용도로 악용되어 큰문제가 되면서 fix하게 되었고
+점차 숫자가 줄어들고 있다.
+
+
+(a, ptr, ns, mx, soa, hinfo, axtr, txt, any, +trace)
+
+- 응답은 4개의 세션(SECTION)으로 나뉘어 있다
+QUESTION SECTION : 질의 내용 표시, 
+ANSWER SECTION : 질의에 대한 응답
+AUTHORITY SECTION : 질의한곳이 권한이 있는 서버인 경우 표시
+ADDITIONAL SECTION : 응답한 호스트의 IP 주소 등 부수적인 정보가 표시
+status 항목이 NOERROR 면 정상적인 응답이다. (SERVERFAIL 로 표시되면 DNS 서버가 올바른 응답을 하지 않은 것이다.)
+flags (qr : 질의에 대한 응답, aa : 권한 있는 응답, rd : 재귀 검색 희망, ra : 재귀 검색 가능)
+
+
+Dynamic Update 제한(설명)
+Dynamic Update를 이용할 경우 원격에서 zone 파일에 레코드를 추가하거나 삭제 또는 변경이 가능하게 되는데 
+이를 통해 도메인 관리를 자동화하거나 DHCP등과 같이 주소와 IP매칭이 실시간으로 변경 및 갱신될 필요가 있는 서비스에 유용하게 사용될 수 있다.
+allow-update { none; };
+
+- DNS의 역방향 조회(Reverse DNS lookup) 에서는 IP 주소를 거꾸로 쓰고, .in-addr.arpa를 붙여서 zone을 정의
+- zone 이름은 이 중에 고정된 블록 (prefix) 만 지정해야 함  0.0.10 처럼
+
+
+- 캐시 서버에는 루트 도메인에 대한 설정만 기록돼 있다. named.ca 파일에는 루트 DNS 서버의 정보가 포함돼 있다.
+- 마스터 DNS 서버에는 자신이 관리하는 존 파일이 지정돼 있다. 
+   존 파일은 /var/named/chroot/var/named/data 디렉터리에 배치하는 것이 일반적이다.
+- 슬레이브 DNS 서버에는 존 파일명과 마스터 DNS 서버의 IP 주소가 지정된다.
+  마스트 DNS 서버로부터 획득한 정보로 존 파일이 만들어진다. 존 파일은 /var/named/chroot/var/named/slave 디렉터리 아래에 만들어지는 것이 일반적이다.
+
+dns에서 tcp로 바뀌는 조건
+메세지 사이즈가 512kbyte 이상일 때 (dns 13개 초과하면 512kbyte넘음)
+zone파일 전송할 때
+
+
+Zone 파일의 최상단의 $TTL
+$TTL은 positive cache 로 “ 긍정적 캐싱 “ 이라 하며 정상적인 응답에 대한 캐싱(임시저장)을 하며 통상적 1D 하루를 사용한다.
+최대값은 7일을 넘지 못한다.  
+즉 위임권한을 가진 DNS에서 $TTL을 7일 이상 지정하여도 Resolving DNS에서는 해당 도메인에 대한 정보를 최대 7일까지만 생성
+$TTL 설정   bind 8.2 이상에서는 default TTL 값을 각 zone 파일의 상단에 정의해야 한다.
+정의하지 않으면 로그파일에 에러메시지가 출력되며 SOA에서 정의한 TTL 값을 사용하게 되는데 특별히 사용상 문제는 없다.
+1) 사용자가 www.example.com 접속
+2) 리졸버가 권한 DNS에서 IP 주소 1.2.3.4를 받아옴
+3) 이 응답의 TTL이 86400초 ($TTL 1D)면,
+4) 리졸버는 24시간 동안 이 결과를 저장
+5) 그 시간 안에는 같은 질의가 들어와도 권한 DNS로 재질의하지 않음
+
+
+SOA(Start Of Authority, 권한시작의미)
+SOA 정의된 minimum $TTL  (negative cache, 부정적 캐싱)
+존재하지 않는 레코드에 대한 응답에 대해서도 캐싱을 정의한다.
+최대값은 3시간  3600(1시간)
+긍정적캐싱 값이 기본이다     즉   Zone $TTL 값이 우선이다.
+
+; 주석
+
+
+@ : 영역 기원 뜻한다. 
+환경변수에서 $ORIGIN에 설정된 도메인 이름으로 대체된다. 설정되어 있지 않다면 named.conf 파일에 설정된 영역이름이 쓰인다. 
+특수문자로 Public domain을 의미즉 앞부분 환경설정 파일에서 지정한 roror.co.kr.를 의미한다
+
+
+
+
+- zone 문장
+DNS 서버가 관리하는 존 정보에 대해 지정하는 것이 zone 문장이다. 
+존의 이름, 타입, 존파일의 위치등을 지정한다.
+
+serial : 시리얼값(년월일시간)
+refresh : 1D(2차 네임서버가 1차에 동기화 하는 시간, 시간 지정 3H)
+retry : 15M(2차 네임서버가 주서버에 접근 실패시, 재시도 간격)
+expire : 1W(1차 네임서버에 정보가 없어 도메인 존 갱신이 실패하여 도메인에 대한 DNS질의응답을 중단해야 하는 기간, 1주후 삭제)
+minimum : 3H(존에 없는 도메인/레코드 응답 경우, 이 도메인/레코드(부재 도메인/레코드) 부재정보의 캐싱에 적용하는 TTL 값, 정보의 최소 보관 시간 설정)
+서버가 어떤 존에 없는 도메인이나 존에는 있지만 레코드가 없는 질의에 대해 "없다(NXDOMAIN)"라고 응답하면 그 "없다"는 정보 자체도 TTL 기준으로 캐시된다. 이 TTL을 minimum 필드에서 설정한다.
+1) 클라이언트가 nope.example.com을 질의
+2) 해당 레코드가 없어서 서버가 NXDOMAIN 응답
+3) 클라이언트는 "없다"는 정보도 3시간 동안 캐시
+4) 3시간 동안은 다시 질의해도 DNS 서버에 요청하지 않고 "없다"라고 처리
+
+로그 메시지
+Jan  5 22:04:30 lsof named-sdb[26651]: lsof.co.kr.zone:1: no TTL specified; using SOA MINTTL instead
+Jan  5 22:04:30 lsof named-sdb[26651]: zone lsof.co.kr/IN: loaded serial 2015112701
+
+
+NS 도메인의 네임서버 정보
+MX 도메인의 MX(Mail Exchanger)서버
+A 호스트의 IP주소
+CNAME 별칭으로 부여 canonical name
+SOA 도메인의 start-of-authority 정보
+HINFO 호스트의 CPU 정보와 운영체제 정보
+MINFO 메일박스와 메일 리스트 정보
+PTR IP주소에 대한 호스트명
+TXT 호스트에 대한 텍스트 정보
+UINFO 사용자 정보
+ANY 호스트에 관련된 모든 레코드들의 정보
+
+IN MX 10 mail.roror.co.kr
+IN MX 20 main2.roror.co.kr
+
+IN A xxx.xxx.xxx.xxx //A 레코드는 해당 도메인의 실제 아이피 주소를 설정하는 레코드이다
+ns IN A xxx.xxx.xxx.xxx
+www IN A xxx.xxx.xxx.xxx
+mail IN CNAME www
+ftp IN CNAME @
+
+
+
+- Notify 설명
+notify no;: 이 옵션을 설정하면 마스터 DNS 서버는 슬레이브 DNS 서버에게 존의 변경 사항을 통지하지 않는다. 즉, 존의 변경 사항이 발생해도 슬레이브 서버는 마스터 서버에게 변경 사항을 알리지 않는다. 이 경우에는 슬레이브 서버는 수동으로 마스터 서버에서 존 데이터를 동기화해야 한다.
+notify yes;: 이 옵션을 설정하면 마스터 DNS 서버는 슬레이브 DNS 서버에게 존의 변경 사항을 통지한다. 따라서 존의 변경 사항이 발생하면 마스터 서버는 자동으로 슬레이브 서버에게 변경 사항을 알리고, 슬레이브 서버는 즉시 데이터를 동기화한다.
+
+
+dnf install openssl
+
+
+
+[rndc를 이용한 named 데몬 제어]
+reload		: 설정파일과 zone파일을 다시 읽어서 재적용함
+reload zone	: 특정 zone 파일만을 다시 읽어서 재적용함
+reconfig	: 새로 추가된 zone 파일만 읽어서 설정파일을 재적용함.
+status		: named 상황파일에 서버상항을 저장함.
+dumpdb		: 덤프파일(named_dump.db)에 캐시데이터를 덤프함.
+stop		: 저장되지 않은 값을 저장하고 named를 종료함
+halt		: 저장되지 않은 값을 그냥두고 named를 종료함 
+flush		: 캐시데이터를 디스크에 저장하여 동기화함
+status		: named 데몬의 상태를 출력함.
+
+
+아 힘들다..ㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏㅏ
+
+
+root@kali:/home/kali# fierce --domain roror.co.kr  
+root@kali:/home/kali# fierce --domain koreaitjob.co.kr
+root@kali:/home/kali# fierce --dns-server 10.0.0.200 --domain roror.co.kr
+root@kali:/home/kali# dnsrecon -n 10.0.0.200 -d google.co.kr
+
+
+root@kali:~/.recon-ng/workspaces/default# sqlite3 ./data.db   
+sqlite> .tables
+sqlite> .schema hosts
+CREATE TABLE hosts (host TEXT, ip_address TEXT, region TEXT, country TEXT, latitude TEXT, longitude TEXT, notes TEXT, module TEXT);
+
+
+root@kali:~/.recon-ng/workspaces/default# searchsploit bind
+
+root@kali:~/.recon-ng/workspaces/default# searchsploit isc bind
+
+
+
+theHarvester -d naver.com -l 500 -b google
+-d : 검색할 도메인 또는 회사 이름
+-b : 데이터 소스 : baidu, bing, bingapi, dogpile, google, googleCSE, googleplus, google-profiles, linkedin, pgp, twitter, vhost, yahoo, all.
+
+
+
+▷ recon-ng로 bing 검색을 이용한 서브 도메인 확인하는 방법은 아래와 같습니다.
+ → bing_domain_web 모듈을 찾은 후 로딩을 합니다. info 명령어로 사용법을 확인하여 입력값을 세팅 후 실행합니다.
+ → 명령어 1 : modules search bing_domain_web
+ → 명령어 2 : modules load recon/domains-hosts/bing_domain_web
+ → 명령어 3 : info
+ → 명령어 4 : options list
+ → 명령어 5 : options set source naver.com
+ → 명령어 6 : run
+ → 명령어 7 : show hosts
+
+▷ recon-ng를 이용하여 whois에 등록된 직원 이메일 확인하는 방법은 아래와 같습니다.
+ → whois_poc 모듈을 찾은 후 로딩을 합니다. info 명령어로 사용법을 확인하여 입력값을 세팅 후 실행합니다.
+ → 명령어 1 : modules search whois_poc
+ → 명령어 2 : modules load recon/domains-contacts/whois_pocs
+ → 명령어 3 : info
+ → 명령어 4 : options list
+ → 명령어 5 : options set source naver.com
+ → 명령어 6 : run
+ → 명령어 7 : show hosts
+
+> use auxiliary/dos/dns/bind_tkey
+> show options
+> set rhosts 172.16.0.130
+> run 
+
+/etc/named.conf
+acl locals {
+	192.168.0.0/24;
+	192.168.1.0/24;
+	192.168.2.100/32;
+};
+
+options {
+	directory "/var/named";
+	allow-recursion { locals; };
+}
+
+TSIG는 DNS 서버 간 트랜잭션에 인증과 무결성을 추가해주는 HMAC 기반 보안 기능이지만, 암호화는 하지 않는다.)
+
+
+root@roror:~# tsig-keygen roror.co.kr
+key "roror.co.kr" {
+        algorithm hmac-sha256;
+        secret "vb6B0N8BqVLP9s9lYCqFoiM3F7412MgrPk6rLZitY4c=";
+};
+
+:q
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

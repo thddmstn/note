@@ -1,0 +1,649 @@
+001_OpenSSL 인증서
+HTTP
+HTTPS 인증서 공인기관에서 받음 ㅏ 잠온다 하.....경고메세지 쉽게..?오늘 재미있을까 ㅎ 어려울거같은데 어려운데 흠 암호화 방식: 대칭키, 공개키 아 이거 학교에서 배웠는데.. 사실 기억 잘 안남 ㅎ 아 내 등록금 증발했다 어쩌겠어 공부안한 내잘못이지 
+대칭키 : 동일한 키로 암호화와 복호화를 같이 할 수 있는 방식
+           매번 랜덤으로 생성 누출되어도 다음에 사용할 때는 다른 키가 사용되기 때문에 안정하다  공개키보다 빠르게 통신할 수 있다.
+공개키 : SSH, RSH 공개키를 서버에 올림 개인키는 가지고있음 이건 아무리 들어도 이해가 안감. 암호화와 복호화에 사용하는 키가 서로 다른 암호화 방식 개인키로 암호화한 정보는 그 쌍이 되는 공개키로만 복호화 가능하고 반대로 공개키로 암호화한 정보는 그 쌍이 되는 개인키로만 복호화가 가능하다. 이러한 특징 때문에 비대칭 암호화라고도 한다.
+공개키로 암호화하면 데이터 보안에 중점을 두고, 개인키로 암호화하면 인증과정에 중점을 둔다.
+아 잠온다하 뭔소리야                                            네?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+공개키호 암호화한거 공개키로 복호화 안됨 이게 맞나..
+아...............뭔소리지ㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜ하............................................,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅜㅜㅜㅜㅜㅠㅠㅠㅠㅠㅠㅠㅜ
+SSL 디지털 인증서 : 클라이언트와 서버간의 통신을 공인된 제 3자(CA) 업체가 보증해 주는 전자화된 문서
+인증서는 사용자가 접속한 서버가 우리가 의도한 서버가 맞는지를 보장하는 역항릉 한다 웹브라우저는 미리 CA 리스트와 함께
+브라우저에 키가 탑재되어있다....
+proxy서버를 통하는게 뭐 보안이 좋다는거야 안좋다는거야
+프록시(proxy)
+Burp Suite, Paros, APPscan, ...  
+아 뭔소리야
+MITM: 중간자 공격
+아 잠온다.................................
+모흐겠다
+아니요
+웹 브라우저의 인증서에는 접속한 서버가 클라이언트가 의도한 서버가 맞는지에 대한 내용을 담고 있으며 서버와 통신을 할 때 사용할 공개키와 그 공개키의 암호화 방법들의 정보를 담고 있다. 
+
+서비스의 도메인, 공개키와 같은 정보는 서비스가 CA로부터 인증서를 구입할 때 제출해야 한다.
+위와 같은 내용은 CA에 의해서 암호화 된다. 이 때 사용하는 암호화 기법이 공개키 방식이다. CA는 자신의 CA 비공개키를 이용해서 서버가 제출한 인증서를 암호화하는 것이다. CA의 비공개키는 절대로 유출되어서는 안된다. 이것이 노출되는 바람에 디지노타라는 회사는 파산된 사례도 있다.
+
+공개키와 대칭키
+SSL은 암호화된 데이터를 전송하기 위해서 공개키와 대칭키를 혼합해서 사용한다. 
+즉 클라이언트와 서버가 주고 받는 실제 정보는 대칭키 방식으로 암호화하고, 대칭키 방식으로 암호화된 실제 정보를 복호화할 때사용할 대칭키는 공개키 방식으로 암호화해서 클라이언트와 서버가 주고 받는다.
+실제 데이터는 대칭키로 암호화, 복호화되어서 가게 되서 컴퓨팅 리소스를 적게 차지함
+(대칭키를 공개키로 암호화, 복호화해서 보내는 것)
+실제 데이터 : 대칭키
+대칭키의 키 : 공개키
+
+
+HTTPS 접속 흐름 요약
+클라이언트가 서버에 접속 시도
+1) 사용자가 브라우저에서 https://example.com 입력
+2) 클라이언트(브라우저)가 서버에 접속을 요청함
+
+서버가 SSL 인증서 전송
+ 1) 서버는 자신의 공개키(Public Key) 와 함께 SSL 인증서를 클라이언트에 보냄
+ 2) 이 인증서는 CA(신뢰된 인증기관)로부터 발급받은 것
+   - 서버의 공개키, 도메인 이름, 유효 기간, 누가 발급했는지 (CA 이름)
+
+3.클라이언트가 인증서 검증
+ 1) (브라우저, 운영체제)는 미리 내장된 신뢰된 루트 인증서 목록이 있다.
+ 2) 브라우저는 서버에서 받은 인증서가 유효한지, 신뢰할 수 있는 CA에서 발급했는지 확인함
+    - CA의 공개키로 서버 인증서의 서명을 검증
+ 3) 인증서가 신뢰되지 않으면 경고 메시지를 띄움
+
+4. 대칭키 생성 & 암호화 후 서버에 전송
+ 1) 클라이언트는 대칭키(세션키)를 생성
+ 2) 서버의 공개키로 암호화해서 서버에 전송
+ 3) 중간에 누가 가로채도 공개키로 암호화된 내용은 해독 불가
+
+5. 서버가 비밀키(Private Key)로 복호화
+ 1) 서버는 자신의 비밀키로 복호화해서 대칭키를 얻음
+
+6. 양방향 통신 시작 (대칭키 사용)
+ 1) 이제부터는 대칭키를 사용해서 암호화된 데이터 통신을 함
+ 2) 대칭키는 암호화/복호화 속도가 빠름
+
+
+
+공인인증서 기반 전자서명 시스템(PKI, 공개키 기반 구조)
+① 인증서 발급 요청 (사용자 → 등록기관 RA)
+ 사용자가 인증서를 발급받기 위해 신청
+ PC 또는 모바일에서 요청 
+ 등록기관은 사용자 신원 확인
+
+② 인증기관(CA)에 인증서 발급 요청
+ RA가 신원을 확인한 후, CA에 사용자 정보를 전달
+ CA는 이 정보를 바탕으로 공개키 + 개인키 쌍을 생성하거나 사용자가 생성한 공개키만 받아서 인증서 생성
+
+③ CA가 인증서 발급 (전자서명 포함)
+ 인증서는 X.509 v3 형식
+ CA가 사용자 공개키 + 사용자 정보에 전자서명을 덧붙여 인증서 발급
+ 인증서 안에 들어있는 건 : 사용자 이름, 공개키, 유효기간, 발급자(CA), CA의 서명 등
+
+④ 사용자에게 인증서 + 개인키(공개키) 저장  (CA가 쌍으로 만들수 있고, 개인이 쌍을 보내어 인증서를 만들 수 있다.)
+ 인증서: 공개 정보
+ 개인키: PC 또는 USB, 스마트폰 등에 저장 (보안 중요!)
+ 이 개인키가 유출되면 타인이 위조 서명을 할 수 있음
+
+⑤ 사용기관에 인증서 등록 및 전자서명 요청(인증서 + 공개키)
+* 실제로는 "인증서 하나만 등록"하면, → 공개키도 함께 등록된다.
+ 예: 은행, 공공기관에 로그인하거나 문서 서명할 때
+ 1) (전자서명) = 사용자의 개인키로 메시지(문서 등)에 서명(전자서명 + 인증서를 보낸다)
+ 2) 사용기관은 함께 제출된 인증서(공개키)를 통해 서명 검증 
+
+⑥ 사용기관이 인증서의 유효성 확인(인증서 기반 유효성 확인)
+ 디렉터리 서버 (LDAP/X.500) 또는
+ CRL (인증서 폐기 목록)
+ OCSP (실시간 유효성 확인)
+
+⑦ 전자서명 검증 완료
+ 인증서 유효 & 서명이 유효하면 → 사용자 인증 성공
+
+
+
+kali@kali:~$ sudo -s
+[sudo] kali 암호: 
+root@kali:/home/kali# vi /etc/sudoers   // sudo 비밀번호 입력 안하게  visudo해도됨
+visudo 하면 nano로 들어감 nano가 뭔데....? GNU nano
+sudo 그룸에 저장되어있음 NOPASSWD: 추가
+
+kali-twecks? 무슨 meta?뭐시기 패키지같은거 깔았음
+crypto-stego, fuzzing, top10, windows-resources, kali-linux-defult, kali-linux-firmware, kali-linux-headless, kali-linux-large 체크
+디게오래걸리네../
+paros,zaproxy
+시작됐다!!!
+
+SSH/FTP
+# ps -ef | grep ssh
+# systemctl start ssh    (enable)
+
+sftp(SSH기반)-22, ftps(FTP기반)-21
+filezila
+sftp://10.0.0.134 kali qhdks12 22
+
+- Proxy
+chrome (kali) <---> 프록시 <---> naver.com
+1) chrone(kali) --> 443(HTTPS), 80(HTTP) 를 통하면 바로 접속
+2) 브라우저에서 IP/Port를 변경하면 바로접속X 변경된 위치로 이동.(Burp Suite)
+- 첫번째로 브라우저의 IP/Port를 변경해야한다.
+3) 프록시서버(Burp Suite)을 통해서 외부로 나간다.
+   kali --> (8080)Burp Suiet(서버) ---> (80, 443) naver.com
+kali에서 암호화해서 Burp에서 열수없음
+kali에서 Burp가 열수있게 암호화함. Burp가 다시 암호화해서 naver에 보냄. 
+
+http://burp/
+http://koreaitjob.co.kr/
+
+
+인증서가 등록이 안돼있음 (naver 안들어가짐)
+http://burp/ 들어가서
+CA Certificate 다운로드
+
+firefox열기 -> 설정 -> 개인정보 및 보안 -> 인증서 보기 -> 가져오기 -> cacert.der 열기 -> naver 들어가짐
+
+hosts파일에 있음
+127.0.0.1 (루프백)
+127.0.0.1 localhost  // hosts파일에 이렇게 적혀있으,ㅁ
+
+127.0.0.1 8080 // proxy 설정(ip,port)
+kali@kali:~$ sudo systemctl start apache2
+http://localhost/ 접속
+
+도구 모음 및
+cookie .. 뭐 막 깔았음...
+
+
+
+-------------------  셀프 인증서 생성 
+SAN (Subject Alternative Name)을 이용한 멀티 도메인 인증서 생성
+1. SAN 정보는 CSR (Certificate Signing Request)를 만들 때 포함된다. (openssl req로 CSR 만들 때 SAN 포함해서 만들어야 한다.)
+
+도메인을 기반으로 인증서를 만듦
+
+openssl genrsa -out ca-key.pem 4096  (CA 개인키)  // root CA용 개인키 생성(4096bit)
+openssl req -x509 -new -key ca-key.pem -sha256 -days 3650 -out ca.pem \
+  -subj "/C=KR/ST=Daegu/L=Daegu/O=Security/OU=RootCA/CN=Roror Root CA"  (CA 인증서, ROOT  CA)  // root CA 자체 서명 인증서 발급.
+--> 최상위 신뢰 Anchor(Root CA) 역할을 함.
+
+
+root@roror:/etc/ssl# openssl genrsa -out ca-key.pem 4096
+root@roror:/etc/ssl# openssl req -x509 -new -key ca-key.pem -sha256 -days 3650 -out ca.pem \
+  -subj "/C=KR/ST=Daegu/L=Daegu/O=Security/OU=RootCA/CN=Roror Root CA"
+
+
+vi openssl-san.cnf  (openssl 설정 파일 SAN 정보 입력)  // SAN(subjectAltName) 포함된 opinssl-ssn.cnf 파일 작성
+------------
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+req_extensions     = req_ext
+distinguished_name = dn
+
+[ dn ]
+C  = KR
+ST = Daegu
+L  = Daegu
+O  = Roror Company
+OU = Sec
+CN = roror.co.kr  // ?이게 뭔데
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]  // DNS.1, DNS.2 , ... 도메인 추가.. 왜?
+DNS.1 = roror.co.kr
+DNS.2 = www.roror.co.kr
+DNS.3 = mail.roror.co.kr
+DNS.3 = elk.roror.co.kr  // 도메인 이름 지정
+--------------------------
+
+openssl genrsa -out server-key.pem 2048 (서버 키 생성) // 서버의 개인키 생성. -> 웹서버에 실제로 쓰이는 키
+
+root@roror:/etc/ssl# vi openssl-san.cnf
+root@roror:/etc/ssl# openssl genrsa -out server-key.pem 2048
+
+openssl req -new -key server-key.pem -out server.csr -config openssl-san.cnf (CSR 생성)
+
+(인증서 생성)
+openssl x509 -req -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial \
+  -out server-cert.pem -days 825 -sha256 \
+  -extfile openssl-san.cnf -extensions req_ext
+
+root@roror:/etc/ssl# openssl x509 -req -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial \
+  -out server-cert.pem -days 825 -sha256 \
+  -extfile openssl-san.cnf -extensions req_ext
+Certificate request self-signature ok
+subject=C=KR, ST=Daegu, L=Daegu, O=Roror Company, OU=Sec, CN=roror.co.kr
+root@roror:/etc/ssl# ls
+README  ca-key.pem  ca.pem  ca.srl  cert.pem  certs  ct_log_list.cnf  openssl-san.cnf  openssl.cnf  server-cert.pem  server-key.pem  server.csr
+
+참고 
+SAN이 없는 인증서는? CN(Common Name)만 인증하고, www.roror.co.kr 같은 서브도메인 연결 안 됨, 최신 브라우저, 클라이언트들은 SAN만 보고 CN은 무시함
+
+공개키 - /etc/pki/tls/certs
+개인키 - /etc/pki/tls/private
+
+
+root@roror:/etc/ssl# cd /etc/yum.repos.d/
+root@roror:/etc/yum.repos.d# ls
+almalinux-appstream.repo  almalinux-crb.repo     almalinux-highavailability.repo  almalinux-rt.repo   almalinux-saphana.repo  epel.repo
+almalinux-baseos.repo     almalinux-extras.repo  almalinux-nfv.repo               almalinux-sap.repo  epel-testing.repo
+
+yum, dnf  : 패키지 의존성?  필요한 라이브러리 알아서 다운받아줌  ex) dnf install tilix  하면 tilix다운로드 할 때 필요한 lib알아서 다운로드
+rpm : 관리자가 설치해야함
+
+root@roror:/etc/yum.repos.d# cat epel.repo 
+[epel]
+name=Extra Packages for Enterprise Linux $releasever - $basearch
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/$releasever${releasever_minor:+z}/Everything/$basearch/
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel${releasever_minor:+-z}-$releasever&arch=$basearch
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-$releasever_major
+gpgcheck=1
+repo_gpgcheck=0
+metadata_expire=24h
+countme=1
+enabled=1
+
+[epel-debuginfo]
+name=Extra Packages for Enterprise Linux $releasever - $basearch - Debug
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/$releasever${releasever_minor:+z}/Everything/$basearch/debug/
+metalink=https://mirrors.fedoraproject.org/metalink?repo=epel${releasever_minor:+-z}-debug-$releasever&arch=$basearch
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-$releasever_major
+gpgcheck=1
+repo_gpgcheck=0
+metadata_expire=24h
+enabled=0
+
+[epel-source]
+name=Extra Packages for Enterprise Linux $releasever - $basearch - Source
+# It is much more secure to use the metalink, but if you wish to use a local mirror
+# place its address here.
+#baseurl=https://download.example/pub/epel/$releasever${releasever_minor:+z}/Everything/source/tree/
+metalink=https://mirrors.fedoraproject.org/metalink?  // 이걸로 lib받아오는듯?
+repo=epel${releasever_minor:+-z}-source-$releasever&arch=source
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-$releasever_major
+gpgcheck=1
+repo_gpgcheck=0
+metadata_expire=24h
+enabled=0
+
+dnf가 안되면  resolv.conf 살펴봐야함  metalink가 도메인으로 되어있기 때문
+
+root@roror:/etc/yum.repos.d# sed -i 's/enabled=1/enabled=0/g' ./epel.repo 
+enabled=1 을 0으로
+-i 옵션 내용 수정해줌
+
+https://mariadb.com/docs/server/server-management/install-and-upgrade-mariadb/installing-mariadb/binary-packages/mariadb-package-repository-setup-and-usage 들어가서 뭐..복사? 다운로드?  아무것도 안함
+
+# dnf install mariadb mariadb-server
+# cd /etc/my.cnf.d/
+# vi charset.cnf
+[mysqld]
+character-set-server = utf8mb4 
+[client]
+default-character-set = utf8mb4
+
+root@roror:/etc/my.cnf.d# systemctl enable --now mariadb
+Created symlink '/etc/systemd/system/mysql.service' → '/usr/lib/systemd/system/mariadb.service'.
+Created symlink '/etc/systemd/system/mysqld.service' → '/usr/lib/systemd/system/mariadb.service'.
+Created symlink '/etc/systemd/system/multi-user.target.wants/mariadb.service' → '/usr/lib/systemd/system/mariadb.service'.
+root@roror:/etc/my.cnf.d# mariadb-secure-installation   // 설치후, 초기 비번, 테스트 계정 삭제 등
+
+root@roror:/etc/my.cnf.d# netstat -antp | grep mariadb
+tcp        0      0 0.0.0.0:3306            0.0.0.0:*               LISTEN      5305/mariadbd       
+tcp6       0      0 :::3306                 :::*                    LISTEN      5305/mariadbd    
+root@roror:/etc/my.cnf.d# firewall-cmd --list-all
+public (default, active)
+  target: default
+  ingress-priority: 0
+  egress-priority: 0
+  icmp-block-inversion: no
+  interfaces: ens160
+  sources: 
+  services: cockpit dhcpv6-client dns ftp http https ssh
+  ports: 3000/tcp
+  protocols: 
+  forward: yes
+  masquerade: no
+  forward-ports: 
+  source-ports: 
+  icmp-blocks: 
+  rich rules: 
+
+root@roror:/etc/my.cnf.d# firewall-cmd --list-services 
+cockpit dhcpv6-client dns ftp http https ssh
+root@roror:/etc/my.cnf.d# firewall-cmd --permanent --add-service=mysql
+success
+root@roror:/etc/my.cnf.d# firewall-cmd --reload
+success
+root@roror:/etc/my.cnf.d# firewall-cmd --list-services 
+cockpit dhcpv6-client dns ftp http https mysql ssh
+
+root@roror:/etc/my.cnf.d# mysql
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 14
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> exit
+Bye
+root@roror:/etc/my.cnf.d# exit
+exit
+roror@roror:~$ mysql
+ERROR 1698 (28000): Access denied for user 'roror'@'localhost'  // roror은 유닉스 소켓방식을 사용하지 않아서 에러
+
+$ mysql -u계정 -p'패스워드(생략가능)' 데이터베이스명 
+
+roror@roror:~$ mysql -uroot -p
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 16
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> 
+
+MariaDB [(none)]> create database pentest;
+Query OK, 1 row affected (0.000 sec)
+
+MariaDB [(none)]> grant all privileges on pentest.* to roror@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+roror@roror:~$ mysql -uroror -p'qhdks12' pentest
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 18
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [pentest]> create table test(id int, name varchar(50), address varchar(100), primary key(id));
+Query OK, 0 rows affected (0.006 sec)
+
+MariaDB [pentest]> show tables;
++-------------------+
+| Tables_in_pentest |
++-------------------+
+| test              |
++-------------------+
+1 row in set (0.000 sec)
+
+MariaDB [pentest]> insert into test (id, name, address) values (1,"KKJ","Daego Dong");
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [pentest]> insert into test (id, name, address) values (2,"KJ","Daego Dong");
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [pentest]> insert into test (id, name, address) values (3,"HKJ","Daego Dong");
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [pentest]> insert into test (id, name, address) values (5,"DDD","Daego Dong");
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [pentest]> select * from test;
++----+------+------------+
+| id | name | address    |
++----+------+------------+
+|  1 | KKJ  | Daego Dong |
+|  2 | KJ   | Daego Dong |
+|  3 | HKJ  | Daego Dong |
+|  5 | DDD  | Daego Dong |
++----+------+------------+
+4 rows in set (0.000 sec)
+
+MariaDB [pentest]> drop database pentest;  // 전체 삭제
+Query OK, 1 row affected (0.008 sec)
+
+MariaDB [(none)]> create database pentest;  // 다시 만듦.. 이럴거면 왜 삭제함
+Query OK, 1 row affected (0.000 sec)
+
+
+Apache (HTML)
+dnf install httpd*  (httpd, httpd-devel, pcre-devel)...
+ - 추후 Source 설치(가볍게 운영)
+dnf install mod_ssl
+
+roror@roror:~$ cd /etc/httpd
+roror@roror:/etc/httpd$ ls
+conf  conf.d  conf.modules.d  logs  modules  run  state
+roror@roror:/etc/httpd$ cd conf.d
+roror@roror:/etc/httpd/conf.d$ ls
+README  autoindex.conf  manual.conf  userdir.conf  welcome.conf
+roror@roror:/etc/httpd/conf.d$ 
+root@roror:/etc/httpd/conf.d# dnf install mod_ssl
+root@roror:/etc/httpd/conf.d# ls
+README  autoindex.conf  manual.conf  ssl.conf  userdir.conf  welcome.conf
+
+root@roror:/etc/httpd# cd conf
+root@roror:/etc/httpd/conf# ls
+httpd.conf  magic
+
+root@roror:/etc/httpd/conf# vi httpd.conf 
+ 91 #ServerAdmin root@localhost
+ 92 ServerAdmin roror@roror.co.kr
+ 93 
+101 #ServerName www.example.com:80
+102 ServerName www.roror.co.kr
+103 
+
+root@roror:/etc/httpd/conf# systemctl restart httpd
+
+root@roror:/etc/httpd/conf.d# vi userdir.conf   // 일반 사용자의 홈, 사용 가능하도록 설정 만약에 /var/www/hrml 처럼 기본 디렉토리를 사용하겠다면 무시하면 된다.
+    UserDir public_html  // 주석 없어야함
+
+root@roror:/etc/httpd/conf.d# vi ssl.conf 
+SSLCertificateFile /etc/pki/tls/certs/localhost.crt  // 주석 달고
+SSLCertificateFile /etc/ssl/server-cert.pem  // 추가
+SSLCertificateKeyFile /etc/ssl/server-key.pem  // 이거 추가 위에있는거는 주석달고
+
+root@roror:/etc/httpd/conf.d# systemctl restart httpd
+https://roror.co.kr/ 들어가서 인증서 확인
+
+
+
+
+Virtual Hosting
+vhost가 들어가있는 파일을 전부 찾는 방법
+
+
+root@roror:/etc/httpd/conf.d# rpm -qa | grep httpd
+httpd-tools-2.4.63-1.el10_0.2.x86_64
+httpd-filesystem-2.4.63-1.el10_0.2.noarch
+httpd-core-2.4.63-1.el10_0.2.x86_64
+almalinux-logos-httpd-100.3-3.el10_0.noarch
+httpd-2.4.63-1.el10_0.2.x86_64
+httpd-devel-2.4.63-1.el10_0.2.x86_64
+httpd-manual-2.4.63-1.el10_0.2.noarch
+
+이게 뭔데
+
+root@roror:/etc/httpd/conf.d# rpm -qf /usr/share/doc/httpd-core/httpd-vhosts.conf
+httpd-core-2.4.63-1.el10_0.2.x86_64
+root@roror:/etc/httpd/conf.d# rpm -ql httpd-core-2.4.63-1.el10_0.2.x86_64 | grep vhost
+/usr/lib64/httpd/modules/mod_vhost_alias.so
+/usr/share/doc/httpd-core/httpd-vhosts.conf
+root@roror:/etc/httpd/conf.d# cp /usr/share/doc/httpd-core/httpd-vhosts.conf ./
+root@roror:/etc/httpd/conf.d# vi httpd-vhosts.conf 
+
+<VirtualHost *:80>
+    ServerAdmin roror@roror.co.kr
+    DocumentRoot "/var/www/html"
+    ServerName roror.co.kr
+    ServerAlias www.roror.co.kr
+    ErrorLog "/var/log/httpd/roror.co.kr-error_log"
+    CustomLog "/var/log/httpd/roror.co.kr-access_log" common
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerAdmin roror@roror.co.kr
+    DocumentRoot "/home/roror/public_html"
+    ServerName web.roror.co.kr
+    ErrorLog "/var/log/httpd/web.roror.co.kr-error_log"
+    CustomLog "/var/log/httpd/web.roror.co.kr-access_log" common
+</VirtualHost>
+
+roror.co.kr 하면CREHACKTIVE SIMPLE BOARD 이거뜨고 web.roror.co.kr하면 앵무새? 떠야하는데 왜안뜨지.. 
+
+root@roror:/etc/httpd/conf.d# cp ssl.conf ~
+root@roror:/etc/httpd/conf.d# cat ssl.conf | grep -Ev "^.*#|^#|^$"  // 주석, 공백 제외 출력
+root@roror:/etc/httpd/conf.d# cat ssl.conf | grep -Ev "^.*#|^#|^$" > vhost_ssl.conf
+
+와 하나도 모르겠다
+
+
+#DocumentRoot "/var/www/html"
+#ServerName www.example.com:443
+
+# vi ssl.conf
+:r ./vhost.conf
+<VirtualHost _default_:443>
+#------ 추가 또는 수정
+DocumentRoot "/var/www/html"
+ServerName roror.co.kr:443
+ServerAlias www.roror.co.kr:443
+#------ 추가 또는 수정
+ErrorLog logs/ssl_error_log
+TransferLog logs/ssl_access_log
+LogLevel warn
+SSLEngine on
+SSLHonorCipherOrder on
+SSLCipherSuite PROFILE=SYSTEM
+SSLProxyCipherSuite PROFILE=SYSTEM
+SSLCertificateFile /etc/ssl/server-cert.pem
+SSLCertificateKeyFile /etc/ssl/server-key.pem
+<FilesMatch "\.(cgi|shtml|phtml|php)$">
+    SSLOptions +StdEnvVars
+</FilesMatch>
+<Directory "/var/www/cgi-bin">
+    SSLOptions +StdEnvVars
+</Directory>
+BrowserMatch "MSIE [2-5]" \
+         nokeepalive ssl-unclean-shutdown \
+         downgrade-1.0 force-response-1.0
+CustomLog logs/ssl_request_log \
+          "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+</VirtualHost>
+
+#------ 추가 또는 수정
+DocumentRoot "/home/roror/public_html"
+ServerName web.roror.co.kr:443
+ErrorLog logs/web_ssl_error_log
+TransferLog logs/web_ssl_access_log
+#------ 추가 또는 수정
+...............  동일
+</VirtualHost>
+
+root@localhost:/etc/httpd/conf.d# rm vhost_ssl.conf 
+rm: 일반 파일 'vhost_ssl.conf'을(를) 제거할까요? y
+
+systemctl restart httpd
+
+---------------------------------------------------------------------
+
+root@roror:/etc/httpd/conf.d# dnf install php-*
+root@roror:/etc/httpd/conf.d# dnf install php-fpm
+마지막 메타자료 만료확인(0:21:24 이전): 2025년 09월 23일 (화) 오후 04시 48분 03초.
+꾸러미 php-fpm-8.3.19-1.el10_0.x86_64가 이미 설치되어 있습니다.
+종속성이 해결되었습니다.
+처리가 필요하지 않습니다.
+완료되었습니다!
+root@roror:/etc/httpd/conf.d# dnf install php-curl
+마지막 메타자료 만료확인(0:21:29 이전): 2025년 09월 23일 (화) 오후 04시 48분 03초.
+꾸러미 php-common-8.3.19-1.el10_0.x86_64가 이미 설치되어 있습니다.
+종속성이 해결되었습니다.
+처리가 필요하지 않습니다.
+완료되었습니다!
+root@roror:/etc/httpd/conf.d# dnf install php-opcache
+마지막 메타자료 만료확인(0:21:40 이전): 2025년 09월 23일 (화) 오후 04시 48분 03초.
+꾸러미 php-opcache-8.3.19-1.el10_0.x86_64가 이미 설치되어 있습니다.
+종속성이 해결되었습니다.
+처리가 필요하지 않습니다.
+완료되었습니다!
+
+root@roror:/etc/httpd/conf.d# vi /etc/php.ini
+short_open_tag = On
+allow_url_include = On
+
+root@roror:/etc/httpd/conf.d# systemctl restart httpd
+Job for httpd.service failed because the control process exited with error code.
+See "systemctl status httpd.service" and "journalctl -xeu httpd.service" for details.
+root@roror:/etc/httpd/conf.d# vi /etc/php.ini
+root@roror:/etc/httpd/conf.d# ls
+README  autoindex.conf  httpd-vhosts.conf  manual.conf  php.conf  ssl.conf  userdir.conf  vhost_ssl.conf  welcome.conf
+root@roror:/etc/httpd/conf.d# rm vhost_ssl.conf 
+rm: 일반 파일 'vhost_ssl.conf'을(를) 제거할까요? y
+root@roror:/etc/httpd/conf.d# systemctl restart httpd
+root@roror:/etc/httpd/conf.d# systemctl enable --now php-fpm
+Created symlink '/etc/systemd/system/multi-user.target.wants/php-fpm.service' → '/usr/lib/systemd/system/php-fpm.service'.
+root@roror:/etc/httpd/conf.d# systemctl restart httpd
+
+
+root@roror:/etc/httpd/conf.d# cd /home/roror
+root@roror:/home/roror# ls
+ html5-css3-master.zip  'main(pentest).zip'   public_html   다운로드   바탕화면   사진   음악
+ insecure.zip            main.zip             공개          문서       비디오     서식
+
+insecure.zip 가져옴
+
+root@roror:/home/roror# unzip ./insecure.zip -d /var/www/html/pentest/
+root@roror:/home/roror# cd $_
+root@roror:/var/www/html/pentest# ls
+action.php  css           error.php     join.php  login.php   mypage.php     upload          write.php
+auth.php    dom.php       htmlpurifier  js        logout.php  pingcheck.php  view.php        xmlparser.php
+common.php  download.php  index.php     list.php  modify.php  query.txt      withdrawal.php
+root@roror:/var/www/html/pentest# vi query.txt 
+create database pentest;  // 삭제
+root@roror:/var/www/html/pentest# mysql -uroror -p pentest < query.txt 
+Enter password: 
+root@roror:/var/www/html/pentest# mysql -uroror -p pentest -e "show tables"
+Enter password: 
++-------------------+
+| Tables_in_pentest |
++-------------------+
+| customer_info     |
+| insecure_board    |
+| members           |
++-------------------+
+root@roror:/var/www/html/pentest# audit2why < /var/log/audit/audit.log
+root@roror:/var/www/html/pentest# setsebool -P httpd_can_network_connect 1
+root@roror:/var/www/html/pentest# setsebool -P httpd_can_network_connect_db 1
+root@roror:/var/www/html/pentest# vi common.php 
+
+<?php
+        header("Content-Type: text/html; charset=UTF-8;");
+
+        $tb_name = "insecure_board";
+        $upload_path = "upload";
+
+        function mysql_conn() {
+                $host = "127.0.0.1";
+                $id = "roror";
+                $pw = "qhdks12";
+                $db = "pentest";
+
+                $db_conn = new mysqli($host, $id, $pw, $db);
+
+                return $db_conn;
+        }
+
+?>
+
+root@roror:/var/www/html/pentest# chown -R apache:apache /var/www/html
+root@roror:/var/www/html/pentest# chmod 707 ./upload/
+
+
+
+

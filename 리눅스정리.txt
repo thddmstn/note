@@ -1,0 +1,718 @@
+리눅스 정리
+
+ls -a
+.  으로 시작하면 (숨김)파일/디렉토리 이다.
+. 은 자기 자신이다.   (pwd)
+..  상위(부모)디렉토이 이다.
+ - 리눅스의 자료구조는 tree 구조이다.
+ - $ tree / | more
+
+
+cd ./etc랑 cd etc랑 뭐가 다른거...
+./를 쓰면 더 정확하다.. 굳이?
+
+roror@localhost:~/etc$ ls -l /etc/passwd
+-rw-r--r--. 1 root root 2319  9월  9일  14:31 /etc/passwd
+File Type, Permission, Link Count, Owner, Group, File Size, Last Modify Data, File Name
+1) File Type : - 파일, d 디렉토리, s 소켓, l 심볼릭링크, p 파이프, b 블럭, c 장치
+2) r(4) : 읽기, w(2) 쓰기, x(1)  실행    ----     rw-(6, user, u), r--(4, group, g), r--(4, other, o)
+3) . : selinux, facl ( + 등으로 표기된다.)
+4) 1    :   Hard link Cound(개수) (몇개의 하드링크를 사용하는가?)
+5) root root : 사용자(소유자) 그룹소유자
+6) 2319 : 파일 크기
+7) 9월  9일  14:31 : 마지막으로 수정한 시간
+ - 1,7 i-node의 관리하는 내용이다.
+i-node가 뭔데 마지막으로 수정한 시간? 파일 생성한 시간? 
+파일명은 디렉토리가 관리..? 무너소리지..
+
+i-node 자체 = 디스크 안에 저장된 자료구조 (숫자 ID와 속성 정보).
+ls -l 출력 = i-node에 기록된 정보를 사람이 보기 쉽게 해석한 것.
+
+i-node에 저장되는 정보
+파일 종류 (일반파일, 디렉토리, 링크, 소켓 등)
+파일 권한 (rwx)
+소유자 (UID), 그룹 (GID)
+파일 크기 (바이트 단위)
+파일의 링크 수 (hard link 개수)
+시간 정보
+ctime (Change time) : i-node 변경 시각
+mtime (Modify time) : 파일 내용 변경 시각
+atime (Access time) : 마지막 접근 시각
+데이터 블록의 위치(실제 파일 내용이 저장된 디스크 블록 주소)
+
+
+
+CLI (Command Line Interface) : 명령어 기반의 텍스트 입출력 인터페이스
+Terminal : 서버의 로컬 또는 원격으로 접속할 수 있는 콘솔을 구현한 소프트웨어(Ctrl + Shift + t,n,w,q)
+Shell : 명령어를 해석하여 전달해주는 소프트웨어
+console : 서버의 로컬 장치에서 직접 명령어를 작성할 수 있는 입출력 장치
+tty (Tele Type Writer) : 콘솔 및 터미널 환경 
+pts (Pseudo-Terminal Slave) : 원격 터미널 환경
+pty (Pseudo-Terminal) : 가상 터미널 환경 (pty는 마스터(master)와 슬레이브(slave) 쌍으로 구성되며, 마스터는 터미널 에뮬레이터나 제어 프로세스가 관리하고, 슬레이브는 사용자 세션이 연결되는 쪽이다.)
+가상콘솔 지원 : Ctrl + Alt + F1 ~ Ctrl + Alt + F6   X-Windows(Ctrl + Alt + F7  최근은 Ctrl + Alt + F1 & Alt + Fn 도 가능)
+
+- 리눅스는 확장자가 없다. 파일 타입으로 확인한다.
+  즉! 장치든... 프로세스든.... 파일로 확인된다.
+
+
+
+- 버전관리/현상관리
+  GIT/SVN....
+$ git clone https://github.com/juice-shop/juice-shop.git
+rm ( 파일 삭제)
+rm -r (디렉토리 삭제 가능,  -f  강제로 묻지말고 삭제)
+
+--------------------------------------------
+java --version ? 이거맞나..?
+github juice-shop // 검색 버전 같은파일 다운로드(다운로드한 버전:22)
+# dnf install nodejs* -y
+# gunzip juice-shop-19.0.0_node22_linux_x64.tgz
+# tar tvf juice-shop-19.0.0_node22_linux_x64.tar   // 압축 풀기 테스트
+# tar xvf juice-shop-19.0.0_node22_linux_x64.tar -C /usr/local/ 
+# cd $_    ($_ 는 이전(마지막) 경로를 기억하고 있다.)
+# mv juice-shop_19.0.0 juice-shop   (이동, 이름변경)
+# cd juice-shop/
+# pwd
+/usr/local/juice-shop
+# npm start
+$ netstat -antp | grep 3000
+# firewall-cmd --permanent --add-port=3000/tcp
+# firewall-cmd --reload
+# firewall-cmd --list-all
+
+:.,$s/jim/hacker/gi
+
+.,$ → 현재 줄(.)부터 마지막 줄($)까지 범위 지정
+s → substitute(치환) 명령어
+/jim/ → 찾을 문자열 (여기서는 "jim")
+/hacker/ → 바꿀 문자열 (여기서는 "hacker")
+g → 한 줄 안에서 모든 "jim"을 바꿈 (global)
+i → 대소문자 구분 안 하고 치환 (ignore case)
+
+
+- 조건문
+if(참)  ---> (1,0)(true,false)(실행성공,실행실패)
+{
+  실행
+}
+
+- 리눅스 파일에서
+. 으로 시작하고 .swp 는 임시 파일이다. (동시에 하나의 파일을 열었을때 생성된다.)
+이때는 해당 파일을 삭제하면 된다.   자격증에서 .swp 와 .swap 로 시험을 낸다. 
+&&  ---> and 연산
+
+#!/bin/bash
+if [ `id -u` -eq 0 ];then
+        cd /usr/local/juice-shop && npm start
+else
+        #su -c "/usr/bin/juice"
+        sudo /usr/bin/juice
+fi
+
+
+/home/roror/.local/share/applications/juice.desktop 에 들어가서 아래 코드 입력
+
+[Desktop Entry]
+Name=juiceShop
+Exec=pkexec /usr/bin/juice
+Icon=/home/roror/.images/juice.jpg
+Type=Application
+Categories=Utility
+Terminal=true
+
+리눅스 종료
+halt
+poweroff
+shutdown -h now
+init 0
+
+shutdown -h +5  (특정 시간  종료 : ex) 12:00) 
+
+재부팅
+reboot
+shutdown -r now
+init 6
+
+
+
+vim만든사람 중동사람 브람무레나르..
+나노단축기
+
+
+Redhat - su (모든 사용자로 로그인 할 수 있다) su -c 어떤 사용자로도 들어가지 않고 로그인..?
+Debian - sudo (관리자로 실행, 변수처리 후 일부 명령어만 사용가능)
+
+- 계정 생성(관리자만 사용 가능) 중요!
+useradd 계정명 (adduser 계정명)
+
+- 패스워드 변경
+passwd 계정명(관리자만 사용 가능)
+passwd (자기 자신의 패스워드 변경)
+
+- 계정 삭제
+userdel -r 계정명(-r 사용자 파일/디렉토리 모두 삭제)
+
+- su
+관리자(root)는 다른 계정으로 전환시 패스워드를 요구하지 않는다.
+su - ( - 를 입력시 해당(지정한 계정)되는 사용자의 환경변수를 읽는다.)
+env (전역 변수)
+set  (터미널 변수, 지역)
+
+$ su -s /bin/sh - root  (shell 을 본셸로 로그인)
+
+$ sudo 명령어 (관리자 권한으로 명령 실행)
+$ sudo cat /etc/shadow  (관리자의 권한)
+$ sudo -u user cat /etc/shadow (user 권한으로 실행) (실행 안됨)
+
+- sudo 환경 설정
+# visudo  또는 # vi /etc/sudoers
+100 root    ALL=(ALL)       ALL
+107 %wheel  ALL=(ALL)       ALL  ( %wheel 에서 % 는 group를 의미한다.)
+user@localhost:~$ sudo cat /etc/shadow   (권한 없음)
+(user 사용자를 모든 권한 부여방법) user    ALL=(ALL)       ALL
+
+$ cat /etc/group | grep wheel 
+wheel:x:10:roror   (roror 계정은 wheel  그룹에 속해 있다.)
+
+
+- 일반계정사용자가 sudo 실행시 패스워드 없이 실행
+ # vi /etc/sudoers
+roror    ALL=(ALL)       NOPASSWD: ALL
+#%wheel  ALL=(ALL)       ALL  ( %wheel 에 roror 계정이 있다.)
+
+- 일반계정사용자가 su 실행시 패스워드 없이 실행
+# vi /etc/pam.d/su
+auth            sufficient      pam_wheel.so trust use_uid (주석 해제)
+
+
+- NetworkManager 방식의 랜카드 설정(Kali, Redhat(Alma, Rocky))
+ 
+
+
+ifconfig 로 인터페이스 이름 출력,.,.?
+ens160:
+
+-gateway출력해주는 명령어
+route -n   // n은 숫자로 출력해주는 명령어
+nmcli d show ens160
+netstat -nr
+ip route show
+
+- DNS 출력
+nmcli d show ens160
+resolvectl status (systemd-resolved 사용시)
+cat /etc/reslov.conf  (파일 이름, dns 서버 IP 주소를 저장하고 있다)
+
+
+
+root@localhost:/home/roror# nmcli connection modify ens160 ipv4.addresses 10.0.0.200/24
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.addr 10.0.0.200/24
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.gateway 10.0.0.1
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.dns 10.0.0.200,8.8.8.8
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.method manual
+root@localhost:/home/roror# nmcli c down ens160; nmcli c up ens160
+연결이 성공적으로 활성화되었습니다 (D-버스 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/3)
+root@localhost:/home/roror# ip -o -4 a
+1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever
+2: ens160    inet 10.0.0.200/24 brd 10.0.0.255 scope global noprefixroute ens160\       valid_lft forever preferred_lft forever
+
+root@localhost:/etc/NetworkManager/system-connections# cat ens160.nmconnection 
+
+root@localhost:/home/roror# nmcli c
+NAME  UUID                                  TYPE      DEVICE 
+lo    7e64b881-3e25-4310-8023-0e389d4ace22  loopback  lo     
+root@localhost:/home/roror# nmcli d
+DEVICE  TYPE      STATE          CONNECTION 
+lo      loopback  연결됨 (외부)  lo         
+ens160  ethernet  연결 끊겼음    --         
+root@localhost:/home/roror# nmcli d up ens160
+'ens160' 장치가 '9a1b6b7d-b2a4-457a-bd86-b92797464101' 통해 성공적으로 활성화되었습니다.
+
+- device 활성화
+# nmcli d up ens160
+
+# systemctl restart NetworkManager
+# nmcli net off
+# nmcli net on
+# nmcli c down ens160
+# nmcli c up ens160
+
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.addresses  10.0.0.200/24
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.gateway  10.0.0.1
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.method manual
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.dns 10.0.0.200,8.8.8.8
+root@localhost:/etc/NetworkManager/system-connections# nmcli c down ens160;nmcli c up ens160
+'ens160' 연결이 성공적으로 비활성화되었습니다 (D-Bus 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/5)
+연결이 성공적으로 활성화되었습니다 (D-버스 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/6)
+
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.method auto  // 인터페이스 설정 자동으로 변경(DHCP)
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.gateway ""
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.dns ""
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.address ""
+root@localhost:/etc/NetworkManager/system-connections# nmcli c down ens160; nmcli c up ens160
+
+
+-----------------------------------------
+NetworkManager
+
+1. 명령어 : nmcli, nmtui(다이어로그 박스 형식)
+
+2. 명령어를 사용해서 IP/SM,GW,DNS 를 입력하면 
+/etc/NetworkManager/system-connections  에 인터페이스 이름으로 저장된다. [ ipv4 ] 탭에
+
+3. Connection 이름 변경
+# nmcli c modify Wired\ connection\ 1 con-name eth0
+
+4. 컨넥션 추가
+# nmcli c add type ethernet con-name eth0 ifname eth0
+# nmcli c add type ethernet con-name ens33-test ifname ens33 (dhcp 설정)
+# nmcli c add type ethernet con-name ens33-test ifname ens33 ip4 192.168.10.10/24 gw4 192.168.10.1 (고정)
+
+5. 컨넥션 삭제
+# nmcli c delete eth0		
+
+6. 연결 상태 
+nmcli networking connectivity
+
+7. 그외 명령어
+nmcli general (status|hostname)
+nmcli (-t, -p, -v)
+nmcli d show(status, help)
+nmcli networking off
+nmcli networking on
+
+8. 프로파일 새로 읽어 오기
+nmcli c reload
+nmcli c reload connection-name
+
+9. 실습
+1. 명령을 이용하여 고정 IP 설정 가능한가?
+  - 제거 방법(파일수정, 명령어 이용)
+2. Interface (랜카드 장치) 외 Connection 제거 가능한가?
+3. Connection 이름 및 파일 이름을 device명-test 로 생성 가능한가?
+4. Connection 이름을 device  명으로 변경 가능한가?
+5. nmcli 를 이용하여 Network 중지 가능한가?
+6. Connection 중지/실행
+7. 랜카드 재시작 방법은 알고 있는가?
+
+
+
+명령어 사용해서 ens160.nmconnection 파일 수정..?
+
+
+fd = 0  -> 입력
+      1       출력
+       2       오류
+
+
+- 2>&1 : 에러도 출력으로 리다이렉션
+- 1>&2 : 출력을 에러로 리다이렉션
+&> filename : 출력 리다이렉션과 에러,    >& filename : 출력 리다이렉션과 에러
+2>&1 : 에러도 출력으로 리다이렉션,       1>&2 : 출력을 에러로 리다이렉션
+>| : 출력 리다이렉션 시 noclobber를 오버라이드 한다.    # set -o noclobber
+<> filename : 디바이스 파일이라면 표준 입력과 표준 출력으로서 파일을 사용한다.
+
+$ find / -name "passwd" > pwd.txt 2> error.txt
+$ find / -name "passwd" > pwd.txt 2>&1
+
+$ ls -l | grep "^-" | awk '{print $9}' | xargs rm -rf
+xargs  :    파이프로 넘어온 결과를 새로운 명령을 사용할 수 있다.
+
+/dev/null  (블랙홀... 쓰레기통)
+
+-, d, s, l, c, b
+
+리눅스에서 옵션 -r, -R 하위디렉토리를 표현한다.
+chmod, chown 하위 디렉토리를 -R 로 표현한다 (-r 안됨)
+
+-v  :   자세히
+-f : 파일지정 또는 강제로
+-h :   hash 기호 ########
+
+mkdir (디렉토리 생성)
+ -p a/b/c/d 처럼 하위 디렉토리를 한번에 생성한다.
+ -m 777 dir    (dir은 777 권한으로 생성된다.)
+rmdir (디렉토리 삭제, 파일/디렉토리가 있다면 삭제 안된다.)
+
+rm 파일만 삭제 가능
+rm -rf 파일/디렉토리 삭제 가능
+
+sh 본셸
+
+디렉토리 권한
+1) r (읽기) : 디렉토리 내 파일 목록 출력
+2) w(쓰기) : 디렉토리 내에서 파일 생성, 삭제, 이름 변경할 수 있다. (파일의 수정은 별개이다.)
+ - 파일의 삭제 여부는 파일 자체의 권한과 무관하다.(디렉토리 권한에 따라 결정된다.)
+ - 디렉토리(755, root소유)에서 파일(777,roror)가 있다면, roror 사용자는 삭제가 불가능하다.
+ - 현위치에서 디렉토리내에(파일/디렉토리)가 있다면 내부 파일 이름을 알아야 삭제가 가능하다.
+ - wx 가 있으면 삭제가 가능하나. 이름을 알아야 하므로 rwx 권한이 있어야 삭제가 가능하다.  (7 권한 이 있어야 한다.)
+3) x(실행) : 디렉토리 내 파일이나, 서브 디렉토리에 접근 할 수 있다.
+4) 파일 권한에 따라 읽기, 쓰기,  실행 가능하고, 생성, 삭제, 이름변경은 디렉토리 권한이다.
+
+
+
+
+Default 권한 
+디렉토리 : 777
+파일 : 666
+
+
+
+root@localhost:/# vi /etc/login.defs
+117 UMASK           022
+root@localhost:/# umask
+0022
+root@localhost:/# umask -S   // 대문자 S
+u=rwx,g=rx,o=rx
+
+
+# umask  (파일/디렉토리든 생성시 기본값)
+# umask -S   ---> u=rwx, g=rx, o=rx (리마)
+
+/etc/login.defs (새로운 사용자만 적용된다.)
+131 PASS_MAX_DAYS   99999  // 사용자의 패스워드가 최대 몇 일 동안 유효한지
+132 PASS_MIN_DAYS   0  // 최소 변경일 ex)3 이면 3일동안pw변경 불가
+133 PASS_MIN_LEN    8  // 패스워드 길이
+134 PASS_WARN_AGE   7  // 패스워드 만료일 경고일
+
+
+-eq =
+-ne !=
+-gt >   Greater Than
+-lt  <   Less Than
+-ge >=
+-le  <=
+
+▷ umask값과 666을 2진수로 XOR연산을 하면 파일의 권한을 알 수 있으며
+▷ umask값과 777을 2진수로 XOR연산을 하면 디렉토리의 권한을 알 수 있다.
+▷ XOR란 입력된 값이 같으면 0, 입력된 값이 다르면 1을 출력한다 (파일 default의 0자리는 그대로 0이다.)
+▷ NOR란 입력된 값이 하나라도 참이면 0 두개다 거짓이면 1을 출력한다. 
+
+umask 333  (디렉토리 생성/파일 생성시 기본값은)
+110 110 110 666
+011 011 011 333 ~(줄비트) 권한 비트 추출 --> 100 100 100
+100 100 100
+
+110 110 110
+100 100 100
+---------------
+100 100 100 (444)
+
+
+022
+110 110 110
+000 010 010
+111 101 101
+110 100 100
+644
+
+027
+110 110 110
+111 101 000
+110 100 001 ?
+
+chown roror  // 소유자만 바꿈
+chown roror:roror // 소유자와 그룹 바꿈
+chown roror:  // 소유자와 그룹 바꿈
+chown :roror  // 그룹만 바꿈
+chown .roror  // 그룹만 바꿈
+chown roror.roror  // 소유자와 그룹 바꿈
+
+chgrp 그룹만 변경
+
+
+root@localhost:/# groupadd sticky
+root@localhost:/# cat /etc/group | grep sticky
+sticky:x:1001:
+
+root@localhost:/# usermod -a -G sticky roror  // sticky 그룹에 roror 추가
+root@localhost:/# cat /etc/group | grep sticky  // 추가되었는지 확인
+sticky:x:1001:roror
+root@localhost:/# useradd user
+
+1000 : 파일 생성한 사람만 삭제 가능
+
+passwd실행하는동안 root권한.. 무조건?
+
+
+
+root@localhost:/home/roror# useradd user
+root@localhost:/home/roror# vi /etc/group
+root@localhost:/home/roror# ls /home
+roror  user
+root@localhost:/home/roror# ls /etc/skel
+root@localhost:/home/roror# echo "HI~~" > /etc/skel/README.txt
+root@localhost:/home/roror# ls /etc/skel
+README.txt
+root@localhost:/home/roror# useradd test
+root@localhost:/home/roror# ls /home/test
+README.txt
+
+
+
+
+
+
+/etc/group
+
+# mkdir -m 3770 /backup;mkdir -m 770 test
+# ls -ld /backup /test
+drwxrws--T. 2 root root 6  9월 17일  11:29 /backup
+drwxrwx---. 2 root root 6  9월 17일  11:29 /test
+# groupadd sticky
+# cat /etc/group | grep sticky
+sticky:x:1001:
+# cat /etc/passwd | grep sticky
+# chown :sticky /backup
+# usermod -a -G sticky roror    
+# cat /etc/group | grep sticky
+sticky:x:1001:roror
+roror/user/test 계정 생성
+
+ - roror, user 사용자는 /backup /test 에 파일/디렉토리 생성가능
+ - /backup 는  sticky 그룹 권한으로 파일/디렉토리 생성됨  (그룹 권한 변경으로 효율적 협업 가능)
+   (디렉토리/파일 생성시 동일한 그룹으로 생성, 생성시 권한은 수동으로 주어야 한다(umask 설정, 자동 권한 부여됨).)
+ - /test 는 생성자의 그룹으로 생성됨 (그룹 공유는 가능하지만 파일 수정의 제약이 있을 수 있음)
+
+
+root@localhost:/home/roror# echo $TEST  // $TEST값 출력
+Good
+root@localhost:/home/roror# echo '$TEST'  // '' 안의 내용을 그대로 출력
+$TEST
+root@localhost:/home/roror# echo "$TEST"  // "" 사이에 변수 넣으면 변수 값 출력
+Good
+
+
+
+root@localhost:/home/roror# TEST="SET..TEST"
+root@localhost:/home/roror# export TEST1="TEST1..."  // export하면 전역변수 등록
+root@localhost:/home/roror# set | grep TEST  // 현재 shell의 변수 출력
+TEST=SET..TEST  // 현재 shell의 지역변수
+TEST1=TEST1...  // 현재 shell의 전역변수
+_=TEST1=TEST1...
+root@localhost:/home/roror# env | grep TEST
+TEST1=TEST1...
+root@localhost:/home/roror# bash  // shell 이동..?  fork방식..
+root@localhost:/home/roror# env | grep TEST  
+TEST1=TEST1...
+root@localhost:/home/roror# set | grep TEST  // 전역변수만 출력됨(현재 shell에서 지역변수 없음)
+TEST1=TEST1...
+root@localhost:/home/roror# echo $SHELL
+/bin/bash
+root@localhost:/home/roror# ps -ef | grep bash  // daemon..?(프로그램명)프로세스명 확인 실행되고 있는 프로그램 확인 할 수 있음
+roror       6708    6639  0 09:00 pts/0    00:00:00 /usr/bin/bash
+root        7289    7255  0 09:32 pts/0    00:00:00 bash
+root        7846    7289  0 10:08 pts/0    00:00:00 bash
+root        7925    7846  0 10:14 pts/0    00:00:00 grep --color=auto bash
+              PID      PPID(부모 PID)
+
+ps -ef | grep 데몬명(프로세스명)
+ps aux | grep 데몬명(프로세스명)
+
+# kill -l (프로세스 시그널 출력)
+9) SIGKILL  (강제 종료)
+# kill -9 4188  (PID 를 기반으로 종료)
+
+root@localhost:/home/roror# ps -ef | grep bash
+roror       6708    6639  0 09:00 pts/0    00:00:00 /usr/bin/bash
+root        7289    7255  0 09:32 pts/0    00:00:00 bash
+root        7846    7289  0 10:08 pts/0    00:00:00 bash
+root        8105    7846  0 10:28 pts/0    00:00:00 grep --color=auto bash
+root@localhost:/home/roror# kill -9 4531
+bash: kill: (4531) - 그런 프로세스가 없음
+root@localhost:/home/roror# kill -9 7846
+죽었음
+root@localhost:/home/roror# kill -9 7289
+죽었음
+roror@localhost:~$   // root에서 빠짐
+
+roror@localhost:~$ unset TEST  // unset할 떄는 $입력 안함
+
+
+ctr+alt+f3 // commend창? 열어주는건가
+
+
+# mkdir /cmd
+# echo "clear" > /cmd/cls
+# chmod 755 /cmd/cls
+
+/usr/bin/vi /etc/profile
+export PATH=$PATH:/cmd
+/sbin/init 6
+
+ex)
+export PATH=$PATH:/cmd
+ 1) $PATH  --->   /home/roror/.local/bin:/home/roror/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+export PATH=/home/roror/.local/bin:/home/roror/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/cmd
+
+PATH(경로) : 명령어(바이너리, 스크립트) 파일들이 있어서, 메모리에 매핑시켜 어디서든 호출이 가능하다.
+
+root@localhost:/home/roror# cat /etc/passwd
+root:x:0:0:Super User:/root:/bin/bash
+계정:shadow에서 패스워드 관리:UID:GID:코멘트(chfn):홈디렉토리:SHELL
+
+프로그램을 띄우면 메모리에 올라감 데몬? 
+
+roror@localhost:~$ mkdir backup
+roror@localhost:~$ echo "1234" > ./backup/test.txt
+roror@localhost:~$ ls -l ./backup/
+합계 4
+-rw-r--r--. 1 roror roror 5  9월 18일  12:20 test.txt
+roror@localhost:~$ su
+root@localhost:/home/roror# cp -r ./backup/ /
+root@localhost:/home/roror# ls -ld /backup/
+drwxr-xr-x. 2 root root 22  9월 18일  12:20 /backup/
+root@localhost:/home/roror# rm -rf /backup/
+root@localhost:/home/roror# cp -rp ./backup/ /
+root@localhost:/home/roror# ls -ld /backup/
+drwxr-xr-x. 2 roror roror 22  9월 18일  12:20 /backup/
+root@localhost:/home/roror# rm -rf /backup/
+root@localhost:/home/roror# cp -a ./backup/ /
+root@localhost:/home/roror# ls -ld /backup/
+drwxr-xr-x. 2 roror roror 22  9월 18일  12:20 /backup/
+root@localhost:/home/roror# 
+
+
+
+# cat /etc/passwd
+root:x:0:0:Super User:/root:/bin/bash
+계정:shadow 에서 패스워드 관리:UID:GID:코멘트(chfn):홈디렉토리:SHELL  (7개)
+
+- 리눅스에서
+-r, -R   디렉토리를 표현한다.
+-a    추가 또는 모든것을 표현한다.
+-v    자세히 출력, 버전 을 표현한다
+
+
+useradd 
+1) /etc/skel    -k /etc/skel
+ cp -a /etc/skel /etc/skel_home
+root@localhost:/home/roror# cd /etc/skel_home/
+root@localhost:/etc/skel_home# ls
+root@localhost:/etc/skel_home# ls -a
+.  ..  .bash_logout  .bash_profile  .bashrc  .mozilla
+root@localhost:/etc/skel_home# mkdir public_html
+root@localhost:/etc/skel_home# ls
+public_html
+root@localhost:/etc/skel_home# echo "Homepage" > ./public_html/index.html
+
+# useradd user
+# useradd test -k /etc/skel_home -m
+
+1) /etc/passwd
+   -s, -b.... 
+  # cat /etc/passwd | grep home
+  # useradd test2 -s /usr/sbin/nologin
+2) /etc/group
+3) /etc/shadow
+6) /var/spool/mail
+7) /var/mail	
+2) /home/계정
+--------------------------------------------
+# useradd -o -u 0 -g 0 -s /bin/bash -d /root -M hacker
+-o 중복허용
+-u uid
+-g gid
+-s shell
+-d 디렉토리
+-M 홈디렉토리 만들지않음
+# echo $?  (결과 값이 0 이면 정상 실행이다.)
+
+
+--- SSH ROOT 로그인 설정 ---
+# vi /etc/ssh/sshd_config
+   ( 주석)#PermitRootLogin prohibit-password
+   PermitRootLogin yes   (기사 에서도 자주 출제)
+# systemctl reload sshd
+$ ssh root@10.0.0.200
+SSH 에서 PermitRootLogin no 는 root 로그인 금지이다.!
+
+# vi /etc/pam.d/login
+auth       required     pam_securetty.so
+# touch /etc/securetty     ( touch 는 크기가 0 파일을 생성한다.)
+   securetty 에 설정한 리스트로 root 로그인 가능하다.
+----------------   아래는 참고 -------------------
+- 파일 이름
+# find / -name "pam_securetty.so" -type f 2>/dev/null
+# find /etc -name "*" -type f -exec grep -H pam_securetty.so {} \; 2>/dev/null
+   -exec 명령어 {} \;
+   {} 앞부분 find 에서 찾은 결과 값
+
+- 파일 내용(파일)
+# grep -r pam_securetty.so /etc/*
+# grep -r pam_securetty.so /usr/*
+root@localhost:/# su - user
+user@localhost:~$ echo "user" > /backup/user.txt
+user@localhost:~$ echo "user" > /test/user.txt
+
+root@localhost:/# su - test
+test@localhost:~$ echo "user" > /backup/test.txt
+-bash: /backup/test.txt: 허가 거부
+test@localhost:~$ echo "user" > /test/test.txt
+-bash: /test/test.txt: 허가 거부
+
+
+root@localhost:/# su - roror
+최근 로그인: 수  9월 17 11:38:53 KST 2025 pts/0에
+roror@localhost:~$ cd /backup
+roror@localhost:/backup$ rm -rf ./user.txt
+rm: './user.txt'을(를) 제거할 수 없습니다: 명령을 허용하지 않음
+roror@localhost:/backup$ cd /test
+roror@localhost:/test$ rm -rf ./user.txt
+
+
+roror@localhost:/test$ cd /backup
+roror@localhost:/backup$ ls -l
+합계 8
+-rw-r--r--. 1 roror sticky 5  9월 17일  11:39 roror.txt
+-rw-r--r--. 1 user  sticky 5  9월 17일  11:40 user.txt
+
+
+root@localhost:/# su - user
+최근 로그인: 수  9월 17 11:39:56 KST 2025 pts/0에
+user@localhost:~$ cd /backup
+user@localhost:/backup$ ls
+roror.txt  user.txt
+user@localhost:/backup$ rm -rf ./roror.txt 
+rm: './roror.txt'을(를) 제거할 수 없습니다: 명령을 허용하지 않음
+
+
+user@localhost:/$ ls -ld /backup /test
+drwxrws--T. 2 root sticky 39  9월 17일  11:40 /backup
+drwxrwx---. 2 root sticky 23  9월 17일  11:41 /test
+
+C : 절차지향, main 함수부터 읽는다.
+# vi ./backdoor.c
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+int main() {
+        setuid(0);
+        setgid(0);
+        system("/usr/bin/vi");
+        return 0;
+}
+
+인터프리터 : 파이썬, PHP
+컴파일 : C... Java
+# gcc -o back ./backdoor.c
+
+
+# useradd user
+/etc/skel   --->   /home/user
+
+# vi /etc/login.defs
+HOME_MODE       0700   (711)
+CREATE_HOME     yes     (no)
+MAIL_DIR        /var/spool/mail
+
+/etc/passwd (사용자 정보를 생성)
+
+# pwunconv  (passwd 가 패스워드를 관리한다.)
+# pwconv  (shadow 가 패스워드를 관리한다.)
+
+/etc/shadow (사용자 패스워드 저장)
+/var/mail/(계정)
+/var/spool/mail/(계정)

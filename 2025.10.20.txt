@@ -1,0 +1,1509 @@
+alma
+
+MariaDB [(none)]> create database dbname;
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| dbname             |
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
++--------------------+
+8 rows in set (0.003 sec)
+
+MariaDB [dbname]> create table test(num INT, name CHAR(20),  address VARCHAR(30));
+Query OK, 0 rows affected (0.010 sec)
+
+MariaDB [dbname]> show tables;
++------------------+
+| Tables_in_dbname |
++------------------+
+| test             |
++------------------+
+1 row in set (0.000 sec)
+
+MariaDB [dbname]> desc test;  // describe test;
++---------+-------------+------+-----+---------+-------+
+| Field   | Type        | Null | Key | Default | Extra |
++---------+-------------+------+-----+---------+-------+
+| num     | int(11)     | YES  |     | NULL    |       |
+| name    | char(20)    | YES  |     | NULL    |       |
+| address | varchar(30) | YES  |     | NULL    |       |
++---------+-------------+------+-----+---------+-------+
+3 rows in set (0.003 sec)
+
+MariaDB [dbname]> insert into test values(1,'kkj','daegu');
+Query OK, 1 row affected (0.004 sec)
+
+MariaDB [dbname]> insert into test (num,name,address) values(2,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> insert into test (num,name) values(3,'user');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    1 | kkj  | daegu   |
+|    2 | kkj  | daegu   |
+|    3 | user | NULL    |
++------+------+---------+
+3 rows in set (0.001 sec)
+
+MariaDB [dbname]> delete from test where num='1';
+Query OK, 1 row affected (0.002 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    2 | kkj  | daegu   |
+|    3 | user | NULL    |
++------+------+---------+
+2 rows in set (0.000 sec)
+
+MariaDB [dbname]> insert into test values(1,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    2 | kkj  | daegu   |
+|    3 | user | NULL    |
+|    1 | kkj  | daegu   |
++------+------+---------+
+3 rows in set (0.000 sec)
+
+MariaDB [dbname]> delete from test where num = 1 and name = 'user';
+Query OK, 0 rows affected (0.002 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    2 | kkj  | daegu   |
+|    3 | user | NULL    |
+|    1 | kkj  | daegu   |
++------+------+---------+
+3 rows in set (0.000 sec)
+
+MariaDB [dbname]> delete from test where num = 1 and name = 'kkj';
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    2 | kkj  | daegu   |
+|    3 | user | NULL    |
++------+------+---------+
+2 rows in set (0.000 sec)
+
+MariaDB [dbname]> insert into test values(1,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> delete from test where num = 1 or name = 'user';
+Query OK, 2 rows affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    2 | kkj  | daegu   |
++------+------+---------+
+1 row in set (0.000 sec)
+
+MariaDB [dbname]> delete from test where num = 2 or name = 'user';
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
+Empty set (0.000 sec)
+
+MariaDB [dbname]> insert into test values(1,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> insert into test values(2,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> insert into test values(3,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
++------+------+---------+
+| num  | name | address |
++------+------+---------+
+|    1 | kkj  | daegu   |
+|    2 | kkj  | daegu   |
+|    3 | kkj  | daegu   |
++------+------+---------+
+3 rows in set (0.000 sec)
+
+MariaDB [dbname]> delete from test;
+Query OK, 3 rows affected (0.001 sec)
+
+MariaDB [dbname]> select * from test;
+Empty set (0.000 sec)
+
+MariaDB [dbname]> insert into test values(1,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> insert into test values(2,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> insert into test values(2,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> insert into test values(2,'kkj','daegu');
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [dbname]> drop table test;
+Query OK, 0 rows affected (0.007 sec)
+
+MariaDB [dbname]> show tables;
+Empty set (0.000 sec)
+
+MariaDB [dbname]> drop database dbname;
+Query OK, 0 rows affected (0.004 sec)
+
+
+root@roror:/home/roror# cd /var/lib/mysql   // 데이터베이스 위치
+root@roror:/var/lib/mysql# ls
+aria_log.00000001        ddl_recovery.log  ib_logfile0  multi-master.info  mysql_upgrade_info  ssl
+aria_log_control         dvwa              ibdata1      mysql              pentest             sys
+ddl_recovery-backup.log  ib_buffer_pool    ibtmp1       mysql.sock         performance_schema
+
+
+----------------------------------------------------------------------------------------------------
+.frm  테이블의 구조에 관한 정보,
+다만 해당 파일을 이용하여 백업/복원이 불가하다. 즉! 실제 데이터가 저장되어 있다.
+
+- 전체 백업 - mysqldump -uroot -p'비밀번호' -A > '저장할파일명'
+- 특정 DB 백업 - sudo mysqldump -uroot -p'비밀번호' --databases 'DB명' > '저장할파일명'
+- 특정 테이블 백업 - sudo mysqldump -uroot -p'비밀번호' DB명 테이블명 > '저장할파일명'
+----------------------------------------------------------------------------------------------------
+
+
+
+root@roror:/var/lib/mysql# cd
+root@roror:~# mkdir DB_backup
+root@roror:~# cd DB_backup/
+root@roror:~/DB_backup# mysqldump -uroot -p -A > almalinux.sql
+Enter password: 
+root@roror:~/DB_backup# ls
+almalinux.sql
+
+root@roror:~/DB_backup# vi almalinux.sql
+ 31 DROP TABLE IF EXISTS `guestbook`;
+// IF EXISTS : 테이블이 존재하지 않을경우 오류가 발생하는데 그걸 무시해라
+
+
+MariaDB [test]> show tables;
+Empty set (0.000 sec)
+
+MariaDB [test]> drop table users;
+ERROR 1051 (42S02): Unknown table 'test.users'
+MariaDB [test]> drop table if exists users;  // users table이 없지만 실행됨.
+Query OK, 0 rows affected, 1 warning (0.002 sec)
+
+ - 어떠한 프로그램을 연속적으로 실행해야 하는데, 오류가 발생하면 프로그램이 중지되거나 이상증상이 발생할 수 있다. 그래서 IF EXISTS 을 이용해서 해당 테이블이 존재하지 않아도 무시하도록 하는 설정이다.
+> DROP DATABASE IF EXISTS test;     // test 가 있으면 삭제  없으면 넘어간다. 
+> CREATE DATABASE IF NOT EXISTS test;  // test가 없으면 생성하고, 있으면 넘어간다.
+
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
+| test               |
++--------------------+
+8 rows in set (0.000 sec)
+
+MariaDB [(none)]> create database IF NOT EXISTS test;
+Query OK, 0 rows affected, 1 warning (0.000 sec)
+
+아 배고파!!!!!!!!!!!!!!!!!!!!
+
+
+root@roror:~/DB_backup# vi almalinux.sql
+  38   PRIMARY KEY (`comment_id`)  // 유일키(중복을 허용하지 않는다)
+
+
+MariaDB [(none)]> drop database pentest;
+Query OK, 3 rows affected (0.008 sec)
+
+MariaDB [(none)]> drop database dvwa;
+Query OK, 2 rows affected (0.004 sec)
+
+
+root@roror:~/DB_backup# mysql < almalinux.sql 
+
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
+| test               |
++--------------------+
+8 rows in set (0.000 sec)
+
+root@roror:~/DB_backup# mysql < almalinux.sql 
+root@roror:~/DB_backup# mysqldump -uroot -p dvwa > dvwa.sql
+Enter password: 
+root@roror:~/DB_backup# ls
+almalinux.sql  dvwa.sql
+root@roror:~/DB_backup# mysqldump dvwa > dvwa.sql 
+root@roror:~/DB_backup# ls
+almalinux.sql  dvwa.sql
+
+MariaDB [(none)]> drop database dvwa;
+Query OK, 2 rows affected (0.004 sec)
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
+| test               |
++--------------------+
+7 rows in set (0.001 sec)
+
+root@roror:~/DB_backup# mysql -uroot -p dvwa < dvwa.sql
+Enter password: 
+ERROR 1049 (42000): Unknown database 'dvwa'
+// dvwa없어서 오류발생
+
+MariaDB [(none)]> create database dvwa;
+Query OK, 1 row affected (0.001 sec)
+root@roror:~/DB_backup# mysql -uroot -p dvwa < dvwa.sql
+Enter password: 
+root@roror:~/DB_backup# ls
+almalinux.sql  dvwa.sql
+
+MariaDB [(none)]> use dvwa;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MariaDB [dvwa]> use tables;
+ERROR 1049 (42000): Unknown database 'tables'
+MariaDB [dvwa]> show tables;
++----------------+
+| Tables_in_dvwa |
++----------------+
+| guestbook      |
+| users          |
++----------------+
+2 rows in set (0.000 sec)
+root@roror:~/DB_backup# mysql -uroot -p dvwa users > dvwa_users.sql
+root@roror:~/DB_backup# ls
+almalinux.sql  dvwa.sql  dvwa_users.sql
+
+
+MariaDB [dvwa]> drop tables users;
+Query OK, 0 rows affected (0.002 sec)
+
+MariaDB [dvwa]> show tables;
++----------------+
+| Tables_in_dvwa |
++----------------+
+| guestbook      |
++----------------+
+1 row in set (0.000 sec)
+root@roror:~/DB_backup# mysqldump -uroot -p dvwa < dvwa_users.sql
+Enter password: 
+/*M!999999\- enable the sandbox mode */ 
+-- MariaDB dump 10.19  Distrib 10.11.11-MariaDB, for Linux (x86_64)
+--
+-- Host: localhost    Database: dvwa
+-- ------------------------------------------------------
+-- Server version	10.11.11-MariaDB
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `guestbook`
+--
+
+DROP TABLE IF EXISTS `guestbook`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `guestbook` (
+  `comment_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+  `comment` varchar(300) DEFAULT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`comment_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `guestbook`
+--
+
+LOCK TABLES `guestbook` WRITE;
+/*!40000 ALTER TABLE `guestbook` DISABLE KEYS */;
+INSERT INTO `guestbook` VALUES
+(1,'This is a test comment.','test');
+/*!40000 ALTER TABLE `guestbook` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2025-10-20 11:35:11
+
+// 이게뭐임??
+
+root@roror:~/DB_backup# mysql -uroot -p dvwa < dvwa_users.sql
+
+
+
+root@roror:~/DB_backup# mysql < dvwa.sql
+--------------
+DROP TABLE IF EXISTS `guestbook`
+--------------
+
+ERROR 1046 (3D000) at line 23: No database selected
+root@roror:~/DB_backup# mysql < dvwa_back.sql
+root@roror:~/DB_backup# mysqldump --all-databases > backup.sql
+root@roror:~/DB_backup# ls
+almalinux.sql  backup.sql  dvwa.sql  dvwa_back.sql  dvwa_users.sql
+root@roror:~/DB_backup# 
+
+-------------------------------------------------------------------------
+
+
+# mysqladmin -u root -p create rorordb   ( rorordb 데이터 베이스 생성 )
+# mysqladmin -u root -p drop rorordb     ( rorordb 데이터 베이스 삭제 )
+ - data 디렉토리에 create 사용시 디렉토리 자동생성, drop 사용시 디렉토리 자동삭제된다
+# mysqladmin -u root -p processlist ( 접속한 사용자 리스트 )
+# mysqladmin -u root -p kill 7 ( 접속한 사용자 접속 끊기, 7은 스레드(Id) 번호 )
+# mysqladmin -u root -p status ( 간단한 실행정보 )
+# mysqladmin -u root -p extended-status ( 자세한 정보 )
+# mysqladmin -u root -p variables ( 환경변수 확인 )
+   mysql>show variables;
+# mysqladmin -u root -p version ( 버전 확인 )
+# mysqladmin -u root -p ping ( 실행 확인 : mysqld is alive 정상 )
+-------------------------------------------------------------------------
+
+- 터미널에서 DB 명령어 사용
+# mysql -e 'show databases'
+
+root@roror:~/DB_backup# mysql -e 'show databases'
++--------------------+
+| Database           |
++--------------------+
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
++--------------------+
+
+root@roror:~/DB_backup# mysql -e 'create database user'
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
+| user               |
++--------------------+
+8 rows in set (0.001 sec)
+root@roror:~/DB_backup# mysql -e 'drop database user'
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
++--------------------+
+7 rows in set (0.000 sec)
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| dvwa               |
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| ssl                |
+| sys                |
++--------------------+
+7 rows in set (0.001 sec)
+
+MariaDB [(none)]> create database dbname;
+Query OK, 1 row affected (0.000 sec)
+
+MariaDB [(none)]> use dbname
+Database changed
+
+- 테이블 복사
+> create table users select * from dvwa.users;
+
+MariaDB [dbname]> create table users select * from dvwa.users;
+Query OK, 5 rows affected (0.007 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+MariaDB [dbname]> show tables;
++------------------+
+| Tables_in_dbname |
++------------------+
+| users            |
++------------------+
+1 row in set (0.000 sec)
+
+
+MariaDB [mysql]> desc user;
+MariaDB [mysql]> desc db;
+
+> show tables;   (user, db)
+ db : database 를 설정(사용자를 만들때 만들었던 데이터베이스명)
+ SELECT host, db, user FROM db;
+> describe user;
+  SELECT host, user, password, ssl_type, ssl_cipher, plugin, authentication_string, password_expired FROM user;
+
+MariaDB [mysql]>  SELECT host, db, user, Delete_priv FROM db;
++-----------+---------+-------+-------------+
+| host      | db      | user  | Delete_priv |
++-----------+---------+-------+-------------+
+| localhost | pentest | roror | Y           |
+| localhost | dvwa    | roror | Y           |
++-----------+---------+-------+-------------+
+2 rows in set (0.000 sec)
+
+
+
+MariaDB [mysql]> SELECT host, user, password, ssl_type, ssl_cipher, plugin, authentication_string, password_expired FROM user;
++-----------+-------------+-------------------------------------------+----------+------------+-----------------------+-------------------------------------------+------------------+
+| Host      | User        | Password                                  | ssl_type | ssl_cipher | plugin                | authentication_string                     | password_expired |
++-----------+-------------+-------------------------------------------+----------+------------+-----------------------+-------------------------------------------+------------------+
+| localhost | mariadb.sys |                                           |          |            | mysql_native_password |                                           | Y                |
+| localhost | root        | *6CE7F8B05DE4ABFA7153C49DB008681EA7011FDC |          |            | mysql_native_password | *6CE7F8B05DE4ABFA7153C49DB008681EA7011FDC | N                |
+| localhost | mysql       | invalid                                   |          |            | mysql_native_password | invalid                                   | N                |
+| localhost | roror       | *57AD17D39861C63B65820A6A71AA8CB680AC629B |          |            | mysql_native_password | *57AD17D39861C63B65820A6A71AA8CB680AC629B | N                |
+| %         | roror       | *57AD17D39861C63B65820A6A71AA8CB680AC629B |          |            | mysql_native_password | *57AD17D39861C63B65820A6A71AA8CB680AC629B | N                |
+| %         | hacker      | *57AD17D39861C63B65820A6A71AA8CB680AC629B | ANY      |            | mysql_native_password | *57AD17D39861C63B65820A6A71AA8CB680AC629B | N                |
++-----------+-------------+-------------------------------------------+----------+------------+-----------------------+-------------------------------------------+------------------+
+6 rows in set (0.001 sec)
+
+MariaDB [mysql]> select password('qhdks12');
++-------------------------------------------+
+| password('qhdks12')                       |
++-------------------------------------------+
+| *57AD17D39861C63B65820A6A71AA8CB680AC629B |
++-------------------------------------------+
+1 row in set (0.000 sec)
+
+MariaDB [mysql]> select md5('qhdks12');
++----------------------------------+
+| md5('qhdks12')                   |
++----------------------------------+
+| 5e94076503481d9bd1bf5e05661aa644 |
++----------------------------------+
+1 row in set (0.000 sec)
+
+// md5가 뭔데..? 아 배고파...
+
+MariaDB [mysql]> create user user@localhost identified by 'qhdks12'; // 사용자 생성
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> grant all privileges on dbname.* TO user@localhost; // dbname database에 관리자 권한(모든) 설정
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> grant all privileges on dbname.* TO user1@10.0.0.130 IDENTIFIED BY 'qhdks12'; // 사용자 및 권한설정
+Query OK, 0 rows affected (0.001 sec)
+
+
+MariaDB [mysql]> select host,db,user from db;
++------------+---------+-------+
+| host       | db      | user  |
++------------+---------+-------+
+| 10.0.0.130 | dbname  | user1 |
+| localhost  | dbname  | user  |
+| localhost  | dvwa    | roror |
+| localhost  | pentest | roror |
++------------+---------+-------+
+4 rows in set (0.000 sec)
+
+
+MariaDB [mysql]> MariaDB [mysql]> delete from user where user='user1' and host='10.0.0.130';
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'MariaDB [mysql]> delete from user where user='user1' and host='10.0.0.130'' at line 1
+MariaDB [mysql]> delete from db where db = 'dbname'and user = 'user1';
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [mysql]> select host,db,user from db;
++-----------+---------+-------+
+| host      | db      | user  |
++-----------+---------+-------+
+| localhost | dbname  | user  |
+| localhost | dvwa    | roror |
+| localhost | pentest | roror |
++-----------+---------+-------+
+3 rows in set (0.000 sec)
+
+MariaDB [mysql]> drop user user@localhost;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> select host,db,user from db;
++-----------+---------+-------+
+| host      | db      | user  |
++-----------+---------+-------+
+| localhost | dvwa    | roror |
+| localhost | pentest | roror |
++-----------+---------+-------+
+2 rows in set (0.000 sec)
+
+
+MariaDB [mysql]> show grants for roror@localhost;
++--------------------------------------------------------------------------------------------------------------+
+| Grants for roror@localhost                                                                                   |
++--------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `roror`@`localhost` IDENTIFIED BY PASSWORD '*57AD17D39861C63B65820A6A71AA8CB680AC629B' |
+| GRANT ALL PRIVILEGES ON `pentest`.* TO `roror`@`localhost`                                                   |
+| GRANT ALL PRIVILEGES ON `dvwa`.* TO `roror`@`localhost`                                                      |
++--------------------------------------------------------------------------------------------------------------+
+3 rows in set (0.000 sec)
+
+
+
+MariaDB [mysql]> create user user@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> grant select on dbname.* to user@localhost;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> show grants for user@localhost;
++-------------------------------------------------------------------------------------------------------------+
+| Grants for user@localhost                                                                                   |
++-------------------------------------------------------------------------------------------------------------+
+| GRANT USAGE ON *.* TO `user`@`localhost` IDENTIFIED BY PASSWORD '*57AD17D39861C63B65820A6A71AA8CB680AC629B' |
+| GRANT SELECT ON `dbname`.* TO `user`@`localhost`                                                            |
++-------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.000 sec)
+
+
+MariaDB [(none)]> select user();
++----------------+
+| user()         |
++----------------+
+| root@localhost |
++----------------+
+1 row in set (0.000 sec)
+
+MariaDB [(none)]> grant all privileges on *.* to root@'%' identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> grant all privileges on *.* to root@'%' with grant option;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> show grants for roror@'%';
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Grants for roror@%                                                                                                                                                             |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| GRANT ALL PRIVILEGES ON *.* TO `roror`@`%` IDENTIFIED BY PASSWORD '*57AD17D39861C63B65820A6A71AA8CB680AC629B' WITH GRANT OPTION                                                |
+| GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT ON `dvwa`.* TO `roror`@`%` |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.000 sec)
+
+
+-------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+
+ - 사용자 생성
+> CREATE USER user@localhost IDENTIFIED BY 'qhdks12';
+
+- dbname database 에 관리자 권한(모든) 설정
+> GRANT all privileges ON dbname.* TO user@localhost;
+
+> GRANT all privileges on dbname.* TO user1@10.0.0.130 IDENTIFIED BY 'qhdks12';   // 사용자 및 권한설정
+
+> select host,user,password from user;
+> delete from user where user='user1' and host='10.0.0.130';
+> select host,db,user from db;
+> DELETE FROM db WHERE db = 'dbname' and user = 'user1';
+
+> DROP USER user@localhost;
+
+> show grants;
+> show grants for roror@localhost;
+
+
+> CREATE USER user@localhost IDENTIFIED by 'qhdks12';
+> GRANT select ON dbname.* to user@localhost;
+> show grants for user@localhost;
+
+$ mysql -uuser -p
+> delete from users where user='admin';
+
+- root 실행
+> grant delete on dbname.* to user@localhost;
+> show grants for user@localhost; 
+
+- user  로 실행
+> delete from users where user='admin';
+
+- 권한 삭제
+> REVOKE delete ON dbname.* FROM user@localhost;
+
+- 테스트
+> grant all privileges on dbname.* to user@localhost;
+> revoke all privileges on dbname.* from user@localhost;
+
+
+> show grants for user@localhost;
+> show grants for user@localhost;
+> grant select,insert,delete,update on dbname.* to user@localhost;
+> revoke update on dbname.* from user@localhost;
+
+WITH grant option;
+> GRANT all privileges ON *.* TO root@'%' WITH grant option;
+
+
+1. 좌측 : [ Users and Privileges ] - >  Add Account
+ 1) Login ( 계정 및 패스워드 입력, ) * 오류 발생, 터미널에서 생성하자 *
+  - create user 'user'@'%' identified by 'qhdks12';
+ 1) Account Limits  (Concurrent Connections 동시 연결등 설정)
+ 2) Administrative Roles (권한 설정, Role에 따라 권한이 달라진다. DBA 소속이면 모든 권한)
+ 3) Schema Privileges -> Add Entry -> Select Schema(원하는 데이터베이스 선택) -> 원하는 권한 설정
+
+2. 설정(Edit -> Preferences --> Query Editor )
+ 1) 자동 완성 대문자로 표시 : Use UPPERCASE.....
+ 2) 주석 표시(Ctrl + / 자동으로 삽입)
+
+3. 쿼리창 실행 방법
+■ 에디터에서 세미클론(;)으로 분리된 쿼리 실행
+Ctrl + Enter (Ctrl키 +  Enter키)
+ 
+■ 세미클론(;)으로 분리된 쿼리  다중(여러개) 실행
+Ctrl + Shift + Enter (먼저 실행하고자 하는 쿼리들을 마우스로 선택한 다음 Ctrl키 + Shift키 + Enter키)
+
+■ 새로운 쿼리 에디터 열기
+Ctrl + T (Ctrl키 + t)
+
+■ 저장된 스크립트파일(*.sql)파일 열기
+Ctrl + Shift + O (Ctrl키 + Shift키 + o)
+
+■ 쿼리를 보기 좋게 정렬
+Ctrl + B (Ctrl키 + b)
+
+■ Reverse Engineer Database
+Ctrl + R (Ctrl키 + r)
+
+MariaDB 10.4 버전 부터  Unix Socket 방식 사용 가능
+https://mariadb.com/kb/en/authentication-plugin-unix-socket/
+
+이전의 경우에는 사용자, 패스워드, 권한은 mysql.user 테이블에 저장되어 있었다. 10.4버전 부터 mysql.global_priv에 저장된다.
+mysq.user 이 테이블이 존재하는 이유는 호환성 때문이다.
+지금은 mysql.global_priv 테이블을 참조하는 일종의 뷰 기능만 지원한다.
+
+select concat(user, '@', host, ' => ', json_detailed(priv)) from mysql.global_priv;
+
+- Json  (RESTful API, JWT)
+{
+ 'key':'value',
+ 'key':'value',
+ 'key':'value',
+}
+
+- html
+<html> </html>
+
+- xml
+<a>data</a>
+
+-------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+MariaDB [mysql]> select concat(user, '@', host, ' => ', json_detailed(priv)) from mysql.global_priv;
+
+MariaDB [mysql]> select concat('Host :',host,'User :',user) from user;
++-------------------------------------+
+| concat('Host :',host,'User :',user) |
++-------------------------------------+
+| Host :%User :hacker                 |
+| Host :%User :root                   |
+| Host :%User :roror                  |
+| Host :localhostUser :mariadb.sys    |
+| Host :localhostUser :mysql          |
+| Host :localhostUser :root           |
+| Host :localhostUser :roror          |
++-------------------------------------+
+7 rows in set (0.001 sec)
+// 한개로 합쳐줌..뭐를..? 모르겠음..
+
+
+MariaDB [mysql]> select json_detailed(priv) from global_priv;
+MariaDB [mysql]> select user, json_detailed(priv) from global_priv; 
+
+root@roror:/home/roror# mysql
+ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+
+root@roror:/home/roror# mysql -uroot -p
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 50
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> 
+
+---------패스워드 복구 방법
+
+root@roror:/home/roror# systemctl stop mariadb                                                                                                                                
+root@roror:/home/roror# mysqld_safe --skip-grant-tables &                                                                                                                     
+[1] 10245                                                                                                                                                                     
+root@roror:/home/roror# 251020 14:40:25 mysqld_safe Logging to '/var/log/mariadb/mariadb.log'.                                                                                
+251020 14:40:25 mysqld_safe Starting mariadbd daemon with databases from /var/lib/mysql 
+root@roror:/home/roror# jobs
+[1]+  실행중               mysqld_safe --skip-grant-tables &
+root@roror:/home/roror# mysql -uroot mysql
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 3
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [mysql]> 
+MariaDB [mysql]> use mysql
+Database changed
+MariaDB [mysql]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> set password for 'root'@'localhost' = password('1234');
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> set password = password('qhdks12');
+ERROR 1133 (28000): Can't find any matching row in the user table
+// 현재 사용자 패스워드 변경
+
+MariaDB [mysql]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+ // UPDATE 테이블 SET 칼럼='변경값' WHERE user='root';
+
+MariaDB [(none)]> select concat(user,'@',host,' => ',json_detailed(priv)) from mysql.global_priv where user='root'; 
+
+MariaDB [(none)]> select concat(user,'@',host,' => ',json_detailed(priv)) from mysql.global_priv where user='root' and host='localhost';
+
+
+
+root@kali:/home/kali# nmap -sV --script=mysql-empty-password roror.co.kr -p 3306
+Starting Nmap 7.95 ( https://nmap.org ) at 2025-10-20 16:08 KST
+Nmap scan report for roror.co.kr (10.0.0.200)
+Host is up (0.00023s latency).
+
+PORT     STATE SERVICE VERSION
+3306/tcp open  mysql   MariaDB 5.5.5-10.11.11
+MAC Address: 00:0C:29:89:52:20 (VMware)
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 0.38 seconds
+
+
+
+> ALTER USER root@localhost IDENTIFIED VIA mysql_native_password or unix_socket;
+ - "plugin": "unix_socket"   // 사용
+   "plugin": "mysql_native_password",  // password 사용                                                           
+    "authentication_string": "",   // 위의 명령을 이용하면 패스워드가 빈값이다.
+
+
+MariaDB [(none)]> set password for 'root'@'localhost' = password('qhdks12');
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> set password for root@'%' = password('qhdks12');
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> alter user roror@localhost identified via mysql_native_password or unix_socket;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+-------------------------------------------------------------------------------
+--------------------------------------------------------------------
+- 사용자 생성하면서 적용
+(Unix 방식을 사용하겠다고 설정하였으므로 기본값이다. 다만 root만 적용이다)
+(일반 계정을 Unix Socket 방식을 사용할려면 아래의 명령을 실행 해야 한다.)
+CREATE USER root@localhost IDENTIFIED VIA mysql_native_password or unix_socket;
+-------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+
+MariaDB [(none)]> select concat(user,'@',host,' ==> ',json_detailed(priv)) from mysql.global_priv;
+
+                                                                                                MariaDB [(none)]> select concat(user,'@',host,' ==> ',json_detailed(priv)) from mysql.global_priv where user='roror';
+
+MariaDB [mysql]> set password for roror@localhost = password ('qhdks12');                                                                                                     
+Query OK, 0 rows affected (0.001 sec)                                                                                                                                        
+                                                                              
+MariaDB [mysql]> flush privileges;                                                                                                                                            
+Query OK, 0 rows affected (0.002 sec)  
+
+test@roror:~$ mysql
+ERROR 1045 (28000): Access denied for user 'test'@'localhost' (using password: NO)
+test@roror:~$ mysql -uroror -p
+Enter password: 
+ERROR 1698 (28000): Access denied for user 'roror'@'localhost'
+test@roror:~$ mysql -uroror -p'qhdks12'
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 33
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> 
+
+
+
+root@roror:/home/roror# systemctl stop mariadb
+root@roror:/home/roror# cd /var/lib
+root@roror:/var/lib# cd mysql
+root@roror:/var/lib/mysql# ls
+aria_log.00000001  dbname                   dvwa            ib_logfile0  multi-master.info  mysql_upgrade_info  performance_schema  sys
+aria_log_control   ddl_recovery-backup.log  ib_buffer_pool  ibdata1      mysql              pentest             ssl
+root@roror:/var/lib/mysql# rm -rf ./*
+root@roror:/var/lib/mysql# ls
+root@roror:/var/lib/mysql# cd
+root@roror:~# mysql_install_db --user=mysql --datadir=/var/lib/mysql --auth-root-authentication-method=normal
+// 이전 인증방식을 사용할 경우(Source Compile)
+
+root@roror:~# cd /var/lib/mysql
+root@roror:/var/lib/mysql# ls
+aria_log.00000001  aria_log_control  ib_buffer_pool  ib_logfile0  ibdata1  mysql  mysql_upgrade_info  performance_schema  sys  test
+
+root@roror:/var/lib/mysql# systemctl start mariadb                                                                                                                            
+Job for mariadb.service failed because the control process exited with error code.                                                                                            
+See "systemctl status mariadb.service" and "journalctl -xeu mariadb.service" for details. 
+// 하.. 괜히 따라함!!
+
+root@roror:/home/roror# vi /etc/my.cnf.d/mariadb-server.cnf 
+ 16 [mysqld]
+ 17 datadir=/var/lib/mysql
+ 18 socket=/var/lib/mysql/mysql.sock
+ 19 log-error=/var/log/mariadb/mariadb.log
+ 20 pid-file=/run/mariadb/mariadb.pid
+ 21 #ssl-ca=/var/lib/mysql/ssl/ca.pem
+ 22 #ssl-cert=/var/lib/mysql/ssl/server-cert.pem
+ 23 #ssl-key=/var/lib/mysql/ssl/server-key.pem
+ 24 #require_secure_transport=OFF
+
+root@roror:/var/lib/mysql# systemctl start mariadb  
+root@roror:/var/lib/mysql# mariadb-secure-installation  // 처음에만 n, 나머지는 다 y
+root@roror:/var/lib/mysql# mysql
+ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+// mysql 안들아가짐
+
+
+
+
+
+root@roror:/var/www/html# git clone https://github.com/webpwnized/mutillidae.git
+'mutillidae'에 복제합니다...
+remote: Enumerating objects: 8131, done.
+remote: Counting objects: 100% (1230/1230), done.
+remote: Compressing objects: 100% (257/257), done.
+remote: Total 8131 (delta 1077), reused 973 (delta 973), pack-reused 6901 (from 4)
+오브젝트를 받는 중: 100% (8131/8131), 10.68 MiB | 15.58 MiB/s, 완료.
+델타를 알아내는 중: 100% (4351/4351), 완료.
+root@roror:/var/www/html# ls
+DVWA  css  index.php  js  mutillidae  pentest
+root@roror:/var/www/html# cd mutillidae/
+root@roror:/var/www/html/mutillidae# ls
+CHANGELOG.md  CONTRIBUTING.md  LICENSE  README-INSTALLATION.md  README.md  SECURITY.md  src  version
+root@roror:/var/www/html/mutillidae# mv ./src/* ./
+root@roror:/var/www/html/mutillidae# ls
+
+
+root@roror:/var/www/html/mutillidae# cd includes/
+root@roror:/var/www/html/mutillidae/includes# vi database-config.inc 
+root@roror:/var/www/html/mutillidae/includes# mysql
+ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO) // 왜안됨?>
+root@roror:/var/www/html/mutillidae/includes# vi database-config.inc 
+root@roror:/var/www/html/mutillidae/includes# mysql -uroot -p'qhdks12'
+
+MariaDB [(none)]> create database mutillidae;
+Query OK, 1 row affected (0.000 sec)
+
+MariaDB [(none)]> grant all privileges on mutillidae.* to roror@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> create database paddler;
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [(none)]> grant all privileges on paddler.* to roror@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> create database dWAPP;
+Query OK, 1 row affected (0.000 sec)
+
+MariaDB [(none)]> grant all privileges on dWAPP.* to roror@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> create database wp;
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [(none)]> grant all privileges on wp.* to roror@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+
+
+
+
+
+
+
+
+root@roror:/home/roror# cd paddler/
+root@roror:/home/roror/paddler# ls
+root@roror:/home/roror/paddler# cd ..
+root@roror:/home/roror# ls
+paddler  paddler-main.zip  public_html  공개  다운로드  문서  바탕화면  비디오  사진  서식  음악
+root@roror:/home/roror# mv paddler-main.zip ./paddler
+root@roror:/home/roror# ls
+paddler  public_html  공개  다운로드  문서  바탕화면  비디오  사진  서식  음악
+root@roror:/home/roror# cd paddler/
+root@roror:/home/roror/paddler# ls
+paddler-main.zip
+root@roror:/home/roror/paddler# cd /var/www/html
+root@roror:/var/www/html# ls
+DVWA  css  index.php  js  mutillidae  pentest
+root@roror:/var/www/html# cd -
+/home/roror/paddler
+root@roror:/home/roror/paddler# ls
+paddler-main.zip
+root@roror:/home/roror/paddler# unzip paddler-main.zip 
+Archive:  paddler-main.zip
+0591845f6c76f488544ceda4ac0613068294e55f
+   creating: paddler-main/
+   creating: paddler-main/anonym/
+  inflating: paddler-main/anonym/db.sql  
+  inflating: paddler-main/anonym/delete.php  
+  inflating: paddler-main/anonym/delete_ripple.php  
+  inflating: paddler-main/anonym/insert.php  
+  inflating: paddler-main/anonym/insert_ripple.php  
+  inflating: paddler-main/anonym/list.php  
+  inflating: paddler-main/anonym/view.php  
+  inflating: paddler-main/anonym/write_form.php  
+  inflating: paddler-main/code.sh    
+   creating: paddler-main/css/
+  inflating: paddler-main/css/board1.css  
+  inflating: paddler-main/css/board2.css  
+  inflating: paddler-main/css/board3.css  
+  inflating: paddler-main/css/board4.css  
+  inflating: paddler-main/css/common.css  
+  inflating: paddler-main/css/concert.css  
+  inflating: paddler-main/css/greet.css  
+  inflating: paddler-main/css/member.css  
+  inflating: paddler-main/css/memo.css  
+   creating: paddler-main/css/memo/
+  inflating: paddler-main/css/memo/delete.php  
+  inflating: paddler-main/css/memo/delete_ripple.php  
+  inflating: paddler-main/css/memo/insert.php  
+  inflating: paddler-main/css/memo/insert_ripple.php  
+  inflating: paddler-main/css/memo/memo.php  
+ extracting: paddler-main/css/menu.css  
+  inflating: paddler-main/css/survey.css  
+   creating: paddler-main/download/
+   creating: paddler-main/download/data/
+  inflating: paddler-main/download/data/2017_09_29_15_01_59_0.jpg  
+  inflating: paddler-main/download/delete.php  
+  inflating: paddler-main/download/download.php  
+  inflating: paddler-main/download/insert.php  
+  inflating: paddler-main/download/list.php  
+  inflating: paddler-main/download/view.php  
+  inflating: paddler-main/download/write_form.php  
+   creating: paddler-main/encoder/
+  inflating: paddler-main/encoder/list.php  
+   creating: paddler-main/free/
+   creating: paddler-main/free/data/
+  inflating: paddler-main/free/data/2017_09_20_16_16_12_0.jpg  
+  inflating: paddler-main/free/data/2017_09_20_16_17_08_0.jpg  
+  inflating: paddler-main/free/data/2017_09_20_16_17_08_1.jpg  
+  inflating: paddler-main/free/data/2017_09_20_16_17_32_0.jpg  
+  inflating: paddler-main/free/data/2017_09_20_16_17_32_1.jpg  
+  inflating: paddler-main/free/data/2017_09_20_16_17_32_2.jpg  
+  inflating: paddler-main/free/data/2017_09_29_11_20_42_0.jpg  
+ extracting: paddler-main/free/data/2023_06_23_13_43_50_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_44_13_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_46_23_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_46_36_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_47_30_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_47_58_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_52_13_0.png  
+ extracting: paddler-main/free/data/2023_06_23_13_55_49_0.png  
+ extracting: paddler-main/free/data/2023_06_23_14_24_44_0.png  
+ extracting: paddler-main/free/data/2023_06_23_14_25_06_0.png  
+  inflating: paddler-main/free/data/─└～+__.jpg  
+  inflating: paddler-main/free/db.sql  
+  inflating: paddler-main/free/delete.php  
+  inflating: paddler-main/free/delete_ripple.php  
+  inflating: paddler-main/free/insert.php  
+  inflating: paddler-main/free/insert_ripple.php  
+  inflating: paddler-main/free/list.php  
+  inflating: paddler-main/free/view.php  
+  inflating: paddler-main/free/write_form.php  
+   creating: paddler-main/greet/
+  inflating: paddler-main/greet/delete.php  
+  inflating: paddler-main/greet/insert.php  
+  inflating: paddler-main/greet/list.php  
+  inflating: paddler-main/greet/modify_form.php  
+  inflating: paddler-main/greet/view.php  
+  inflating: paddler-main/greet/write_form.php  
+   creating: paddler-main/img/
+  inflating: paddler-main/img/b_result.gif  
+  inflating: paddler-main/img/b_vote.gif  
+  inflating: paddler-main/img/bbs_poll.gif  
+  inflating: paddler-main/img/button_reset.gif  
+  inflating: paddler-main/img/button_save.gif  
+  inflating: paddler-main/img/check_id.gif  
+  inflating: paddler-main/img/close.gif  
+  inflating: paddler-main/img/concert1.jpg  
+  inflating: paddler-main/img/concert2.jpg  
+  inflating: paddler-main/img/concert3.jpg  
+  inflating: paddler-main/img/concert4.jpg  
+  inflating: paddler-main/img/concert5.jpg  
+  inflating: paddler-main/img/delete.png  
+ extracting: paddler-main/img/free.png  
+  inflating: paddler-main/img/id_title.gif  
+  inflating: paddler-main/img/join_button.gif  
+  inflating: paddler-main/img/list.png  
+  inflating: paddler-main/img/list_search_button.gif  
+  inflating: paddler-main/img/list_title1.gif  
+  inflating: paddler-main/img/list_title2.gif  
+  inflating: paddler-main/img/list_title3.gif  
+  inflating: paddler-main/img/list_title4.gif  
+  inflating: paddler-main/img/list_title5.gif  
+  inflating: paddler-main/img/list_top_title.gif  
+  inflating: paddler-main/img/login_button.gif  
+  inflating: paddler-main/img/login_key.gif  
+  inflating: paddler-main/img/login_msg.gif  
+  inflating: paddler-main/img/logo.gif  
+  inflating: paddler-main/img/logo2.png  
+  inflating: paddler-main/img/main_bg.gif  
+  inflating: paddler-main/img/main_img.jpg  
+  inflating: paddler-main/img/member01.gif  
+  inflating: paddler-main/img/member02.gif  
+ extracting: paddler-main/img/memo.png  
+  inflating: paddler-main/img/memo_button.gif  
+  inflating: paddler-main/img/memo_ripple_button.png  
+  inflating: paddler-main/img/menu01.gif  
+  inflating: paddler-main/img/menu02.gif  
+  inflating: paddler-main/img/menu03.gif  
+  inflating: paddler-main/img/menu04.gif  
+  inflating: paddler-main/img/menu05.gif  
+  inflating: paddler-main/img/menu06.gif  
+  inflating: paddler-main/img/menu07.gif  
+  inflating: paddler-main/img/modify.png  
+  inflating: paddler-main/img/moto.gif  
+  inflating: paddler-main/img/mul.png  
+  inflating: paddler-main/img/no_join.gif  
+  inflating: paddler-main/img/ok.png  
+  inflating: paddler-main/img/ok_ripple.gif  
+  inflating: paddler-main/img/pw_title.gif  
+  inflating: paddler-main/img/response.png  
+  inflating: paddler-main/img/ripple.png  
+  inflating: paddler-main/img/ripple_view.gif  
+  inflating: paddler-main/img/select_search.gif  
+  inflating: paddler-main/img/skky.jpg  
+  inflating: paddler-main/img/skky.png  
+  inflating: paddler-main/img/sky.jpg  
+  inflating: paddler-main/img/sky.png  
+  inflating: paddler-main/img/title_comment.gif  
+  inflating: paddler-main/img/title_concert.gif  
+  inflating: paddler-main/img/title_download.gif  
+  inflating: paddler-main/img/title_free.gif  
+  inflating: paddler-main/img/title_greet.gif  
+  inflating: paddler-main/img/title_join.gif  
+  inflating: paddler-main/img/title_join.psd  
+  inflating: paddler-main/img/title_latest1.gif  
+  inflating: paddler-main/img/title_latest2.gif  
+  inflating: paddler-main/img/title_left_menu.gif  
+  inflating: paddler-main/img/title_login.gif  
+  inflating: paddler-main/img/title_member_modify.gif  
+  inflating: paddler-main/img/title_membership.gif  
+  inflating: paddler-main/img/title_memo.gif  
+  inflating: paddler-main/img/title_qna.gif  
+  inflating: paddler-main/img/title_survey.gif  
+  inflating: paddler-main/img/write.png  
+  inflating: paddler-main/img/write_form_title.gif  
+  inflating: paddler-main/img/고유진.png  
+  inflating: paddler-main/img/박종범.png  
+  inflating: paddler-main/img/안태욱.png  
+  inflating: paddler-main/img/진현철.png  
+  inflating: paddler-main/index.php  
+   creating: paddler-main/lib/
+  inflating: paddler-main/lib/dbconn.php  
+  inflating: paddler-main/lib/func.php  
+  inflating: paddler-main/lib/left_menu.php  
+  inflating: paddler-main/lib/top_login1.php  
+  inflating: paddler-main/lib/top_login2.php  
+  inflating: paddler-main/lib/top_menu1.php  
+  inflating: paddler-main/lib/top_menu2.php  
+   creating: paddler-main/login/
+  inflating: paddler-main/login/login.php  
+  inflating: paddler-main/login/login_form.php  
+  inflating: paddler-main/login/logout.php  
+  inflating: paddler-main/login/member_form_modify.php  
+  inflating: paddler-main/login/modify.php  
+   creating: paddler-main/member/
+  inflating: paddler-main/member/check_id.php  
+  inflating: paddler-main/member/check_nick.php  
+  inflating: paddler-main/member/insert.php  
+  inflating: paddler-main/member/login_form.php  
+  inflating: paddler-main/member/member_form.php  
+  inflating: paddler-main/member/member_form_modify.php  
+   creating: paddler-main/memo/
+  inflating: paddler-main/memo/delete.php  
+  inflating: paddler-main/memo/delete_comment_process.php  
+  inflating: paddler-main/memo/delete_ripple.php  
+  inflating: paddler-main/memo/delete_ripple_process.php  
+  inflating: paddler-main/memo/insert.php  
+  inflating: paddler-main/memo/insert_ripple.php  
+  inflating: paddler-main/memo/memo.php  
+   creating: paddler-main/quote/
+  inflating: paddler-main/quote/quote.php  
+   creating: paddler-main/quote/quote/
+ extracting: paddler-main/quote/quote/0.php  
+  inflating: paddler-main/quote/quote/1.php  
+ extracting: paddler-main/quote/quote/10.php  
+  inflating: paddler-main/quote/quote/100.php  
+  inflating: paddler-main/quote/quote/11.php  
+  inflating: paddler-main/quote/quote/12.php  
+  inflating: paddler-main/quote/quote/13.php  
+  inflating: paddler-main/quote/quote/14.php  
+  inflating: paddler-main/quote/quote/15.php  
+  inflating: paddler-main/quote/quote/16.php  
+  inflating: paddler-main/quote/quote/17.php  
+  inflating: paddler-main/quote/quote/18.php  
+  inflating: paddler-main/quote/quote/19.php  
+ extracting: paddler-main/quote/quote/2.php  
+  inflating: paddler-main/quote/quote/20.php  
+ extracting: paddler-main/quote/quote/21.php  
+  inflating: paddler-main/quote/quote/22.php  
+ extracting: paddler-main/quote/quote/23.php  
+  inflating: paddler-main/quote/quote/24.php  
+  inflating: paddler-main/quote/quote/25.php  
+  inflating: paddler-main/quote/quote/26.php  
+  inflating: paddler-main/quote/quote/27.php  
+  inflating: paddler-main/quote/quote/28.php  
+ extracting: paddler-main/quote/quote/29.php  
+  inflating: paddler-main/quote/quote/3.php  
+  inflating: paddler-main/quote/quote/30.php  
+  inflating: paddler-main/quote/quote/31.php  
+  inflating: paddler-main/quote/quote/32.php  
+ extracting: paddler-main/quote/quote/33.php  
+  inflating: paddler-main/quote/quote/34.php  
+  inflating: paddler-main/quote/quote/35.php  
+  inflating: paddler-main/quote/quote/36.php  
+  inflating: paddler-main/quote/quote/37.php  
+  inflating: paddler-main/quote/quote/38.php  
+  inflating: paddler-main/quote/quote/39.php  
+  inflating: paddler-main/quote/quote/4.php  
+ extracting: paddler-main/quote/quote/40.php  
+  inflating: paddler-main/quote/quote/41.php  
+  inflating: paddler-main/quote/quote/42.php  
+  inflating: paddler-main/quote/quote/43.php  
+ extracting: paddler-main/quote/quote/44.php  
+ extracting: paddler-main/quote/quote/45.php  
+  inflating: paddler-main/quote/quote/46.php  
+  inflating: paddler-main/quote/quote/47.php  
+  inflating: paddler-main/quote/quote/48.php  
+  inflating: paddler-main/quote/quote/49.php  
+  inflating: paddler-main/quote/quote/5.php  
+ extracting: paddler-main/quote/quote/50.php  
+  inflating: paddler-main/quote/quote/51.php  
+  inflating: paddler-main/quote/quote/52.php  
+ extracting: paddler-main/quote/quote/53.php  
+  inflating: paddler-main/quote/quote/54.php  
+  inflating: paddler-main/quote/quote/55.php  
+  inflating: paddler-main/quote/quote/56.php  
+  inflating: paddler-main/quote/quote/57.php  
+  inflating: paddler-main/quote/quote/58.php  
+  inflating: paddler-main/quote/quote/59.php  
+  inflating: paddler-main/quote/quote/6.php  
+  inflating: paddler-main/quote/quote/60.php  
+ extracting: paddler-main/quote/quote/61.php  
+  inflating: paddler-main/quote/quote/62.php  
+  inflating: paddler-main/quote/quote/63.php  
+  inflating: paddler-main/quote/quote/64.php  
+  inflating: paddler-main/quote/quote/65.php  
+ extracting: paddler-main/quote/quote/66.php  
+  inflating: paddler-main/quote/quote/67.php  
+  inflating: paddler-main/quote/quote/68.php  
+  inflating: paddler-main/quote/quote/69.php  
+  inflating: paddler-main/quote/quote/7.php  
+ extracting: paddler-main/quote/quote/70.php  
+  inflating: paddler-main/quote/quote/71.php  
+  inflating: paddler-main/quote/quote/72.php  
+  inflating: paddler-main/quote/quote/73.php  
+  inflating: paddler-main/quote/quote/74.php  
+  inflating: paddler-main/quote/quote/75.php  
+  inflating: paddler-main/quote/quote/76.php  
+  inflating: paddler-main/quote/quote/77.php  
+  inflating: paddler-main/quote/quote/78.php  
+  inflating: paddler-main/quote/quote/79.php  
+  inflating: paddler-main/quote/quote/8.php  
+  inflating: paddler-main/quote/quote/80.php  
+ extracting: paddler-main/quote/quote/81.php  
+  inflating: paddler-main/quote/quote/82.php  
+  inflating: paddler-main/quote/quote/83.php  
+  inflating: paddler-main/quote/quote/84.php  
+  inflating: paddler-main/quote/quote/85.php  
+  inflating: paddler-main/quote/quote/86.php  
+  inflating: paddler-main/quote/quote/87.php  
+  inflating: paddler-main/quote/quote/88.php  
+  inflating: paddler-main/quote/quote/89.php  
+  inflating: paddler-main/quote/quote/9.php  
+  inflating: paddler-main/quote/quote/90.php  
+  inflating: paddler-main/quote/quote/91.php  
+  inflating: paddler-main/quote/quote/92.php  
+ extracting: paddler-main/quote/quote/93.php  
+  inflating: paddler-main/quote/quote/94.php  
+ extracting: paddler-main/quote/quote/95.php  
+  inflating: paddler-main/quote/quote/96.php  
+ extracting: paddler-main/quote/quote/97.php  
+  inflating: paddler-main/quote/quote/98.php  
+  inflating: paddler-main/quote/quote/99.php  
+  inflating: paddler-main/view.php   
+root@roror:/home/roror/paddler# ls
+paddler-main  paddler-main.zip
+root@roror:/home/roror/paddler# cd paddler-main/
+root@roror:/home/roror/paddler/paddler-main# ls
+anonym  code.sh  css  download  encoder  free  greet  img  index.php  lib  login  member  memo  quote  view.php
+root@roror:/home/roror/paddler/paddler-main# cd ..
+root@roror:/home/roror/paddler# mv paddler-main /var/www/html
+root@roror:/home/roror/paddler# cd /var/www/html
+root@roror:/var/www/html# ls
+DVWA  css  index.php  js  mutillidae  paddler-main  pentest
+root@roror:/var/www/html# cd paddler-main/
+root@roror:/var/www/html/paddler-main# ls
+anonym  code.sh  css  download  encoder  free  greet  img  index.php  lib  login  member  memo  quote  view.php
+root@roror:/var/www/html/paddler-main# cd ..
+root@roror:/var/www/html# git clone https://github.com/lmoroz/bWAPP.git
+'bWAPP'에 복제합니다...
+remote: Enumerating objects: 1322, done.
+remote: Counting objects: 100% (245/245), done.
+remote: Compressing objects: 100% (76/76), done.
+remote: Total 1322 (delta 228), reused 169 (delta 169), pack-reused 1077 (from 2)
+오브젝트를 받는 중: 100% (1322/1322), 20.78 MiB | 16.17 MiB/s, 완료.
+델타를 알아내는 중: 100% (1102/1102), 완료.
+root@roror:/var/www/html# ls
+DVWA  bWAPP  css  index.php  js  mutillidae  paddler-main  pentest
+root@roror:/var/www/html# cd bWAPP/
+root@roror:/var/www/html/bWAPP# ls
+ClientAccessPolicy.xml  Dockerfile  INSTALL.txt  README.md  apache2  bWAPP  bWAPP_intro.pdf  crossdomain.xml  docker-compose.yml  evil  release_notes.txt  testcases
+root@roror:/var/www/html/bWAPP# cat crossdomain.xml 
+<?xml version="1.0"?>
+<!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">
+<cross-domain-policy>
+  <allow-access-from domain="*" />
+</cross-domain-policy>root@roror:/var/www/html/bWAPP# 
+root@roror:/var/www/html/bWAPP# cd ..
+root@roror:/var/www/html# mkdir paddler
+root@roror:/var/www/html# cd bWAPP/
+root@roror:/var/www/html/bWAPP# ls | egrep -v "*.xml"
+grep: 경고: 정규 표현식 시작 부분에 * 연산자
+Dockerfile
+INSTALL.txt
+README.md
+apache2
+bWAPP
+bWAPP_intro.pdf
+docker-compose.yml
+evil
+release_notes.txt
+testcases
+root@roror:/var/www/html/bWAPP# ls | egrep -v "*.xml" | xargs rm -f
+grep: 경고: 정규 표현식 시작 부분에 * 연산자
+rm: 'apache2'을(를) 제거할 수 없습니다: 디렉터리입니다
+rm: 'bWAPP'을(를) 제거할 수 없습니다: 디렉터리입니다
+rm: 'evil'을(를) 제거할 수 없습니다: 디렉터리입니다
+rm: 'testcases'을(를) 제거할 수 없습니다: 디렉터리입니다
+root@roror:/var/www/html/bWAPP# ls
+ClientAccessPolicy.xml  apache2  bWAPP  crossdomain.xml  evil  testcases
+root@roror:/var/www/html/bWAPP# cd ,,
+bash: cd: ,,: 그런 파일이나 디렉터리가 없습니다
+root@roror:/var/www/html/bWAPP# cd ..
+root@roror:/var/www/html# mv bWAPP/ bWAPP_old
+root@roror:/var/www/html# mv ./bWAPP_old/* ./
+root@roror:/var/www/html# ls
+ClientAccessPolicy.xml  DVWA  apache2  bWAPP  bWAPP_old  crossdomain.xml  css  evil  index.php  js  mutillidae  paddler  paddler-main  pentest  testcases
+
+
+root@roror:/home/roror/paddler# ls
+paddler-main  paddler-main.zip
+root@roror:/home/roror/paddler# cd paddler-main/
+root@roror:/home/roror/paddler/paddler-main# ls
+anonym  code.sh  css  download  encoder  free  greet  img  index.php  lib  login  member  memo  quote  view.php
+root@roror:/home/roror/paddler/paddler-main# cd ..
+root@roror:/home/roror/paddler# mv paddler-main /var/www/html
+root@roror:/home/roror/paddler# cd /var/www/html
+root@roror:/var/www/html# ls
+DVWA  css  index.php  js  mutillidae  paddler-main  pentest
+root@roror:/var/www/html# cd paddler-main/
+root@roror:/var/www/html/paddler-main# ls
+anonym  code.sh  css  download  encoder  free  greet  img  index.php  lib  login  member  memo  quote  view.php
+root@roror:/var/www/html/paddler-main# cd ..
+root@roror:/var/www/html# git clone https://github.com/lmoroz/bWAPP.git
+'bWAPP'에 복제합니다...
+remote: Enumerating objects: 1322, done.
+remote: Counting objects: 100% (245/245), done.
+remote: Compressing objects: 100% (76/76), done.
+remote: Total 1322 (delta 228), reused 169 (delta 169), pack-reused 1077 (from 2)
+오브젝트를 받는 중: 100% (1322/1322), 20.78 MiB | 16.17 MiB/s, 완료.
+델타를 알아내는 중: 100% (1102/1102), 완료.
+root@roror:/var/www/html# ls
+DVWA  bWAPP  css  index.php  js  mutillidae  paddler-main  pentest
+root@roror:/var/www/html# cd bWAPP/
+root@roror:/var/www/html/bWAPP# ls
+ClientAccessPolicy.xml  Dockerfile  INSTALL.txt  README.md  apache2  bWAPP  bWAPP_intro.pdf  crossdomain.xml  docker-compose.yml  evil  release_notes.txt  testcases
+root@roror:/var/www/html/bWAPP# cat crossdomain.xml 
+<?xml version="1.0"?>
+<!DOCTYPE cross-domain-policy SYSTEM "http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">
+<cross-domain-policy>
+  <allow-access-from domain="*" />
+</cross-domain-policy>root@roror:/var/www/html/bWAPP# 
+root@roror:/var/www/html/bWAPP# cd ..
+root@roror:/var/www/html# mkdir paddler
+root@roror:/var/www/html# cd bWAPP/
+root@roror:/var/www/html/bWAPP# ls | egrep -v "*.xml"
+grep: 경고: 정규 표현식 시작 부분에 * 연산자
+Dockerfile
+INSTALL.txt
+README.md
+apache2
+bWAPP
+bWAPP_intro.pdf
+docker-compose.yml
+evil
+release_notes.txt
+testcases
+root@roror:/var/www/html/bWAPP# ls | egrep -v "*.xml" | xargs rm -f
+grep: 경고: 정규 표현식 시작 부분에 * 연산자
+rm: 'apache2'을(를) 제거할 수 없습니다: 디렉터리입니다
+rm: 'bWAPP'을(를) 제거할 수 없습니다: 디렉터리입니다
+rm: 'evil'을(를) 제거할 수 없습니다: 디렉터리입니다
+rm: 'testcases'을(를) 제거할 수 없습니다: 디렉터리입니다
+root@roror:/var/www/html/bWAPP# ls
+ClientAccessPolicy.xml  apache2  bWAPP  crossdomain.xml  evil  testcases
+
+root@roror:/var/www/html/bWAPP# cd ..
+root@roror:/var/www/html# mv bWAPP/ bWAPP_old
+root@roror:/var/www/html# mv ./bWAPP_old/* ./
+root@roror:/var/www/html# ls
+ClientAccessPolicy.xml  DVWA  apache2  bWAPP  bWAPP_old  crossdomain.xml  css  evil  index.php  js  mutillidae  paddler  paddler-main  pentest  testcases
+
+
+root@roror:/var/www/html/bWAPP# cd admin
+root@roror:/var/www/html/bWAPP/admin# ls
+index.php  phpinfo.php  settings.php
+root@roror:/var/www/html/bWAPP/admin# vi settings.php 
+19 // Database connection settings
+ 20 $db_server = "localhost";
+ 21 $db_username = "roror";
+ 22 $db_password = "qhdks12";
+ 23 $db_name = "bWAPP";
+ 24 
+
+
+ 27       <p class="lead">SQL Injection Pentest, <a href="./wordpress" target="_blank"><b>Wordpress 게시판</b></a></p>
+ 28     </div>
+ 29 
+
+ 50             <h5 class="my-0 font-weight-normal">Paddler</h5>
+ 51           </div>
+ 52           <div class="card-body">
+ 53             <button type="button" class="btn btn-md btn-block btn-outline-danger" onclick="window.open('paddler')">Access</button>
+ 54           </div>
+
+ 58 <!-- low menu  -->  // 31 ~ 56 복사하고 밑에 붙여넣음
+ 63             <h5 class="my-0 font-weight-normal">bee-box</h5>
+ 64           </div>
+ 65           <div class="card-body">
+ 66             <button type="button" class="btn btn-md btn-block btn-outline-info" onclick="window.open('dWAPP')">Access</button>
+71             <h5 class="my-0 font-weight-normal">mutillidae</h5>
+ 72           </div>
+ 73           <div class="card-body">
+ 74             <button type="button" class="btn btn-md btn-block btn-outline-primary" onclick="window.open('mutillidae')">Access</button>
+
+

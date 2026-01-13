@@ -1,0 +1,468 @@
+ hydra 란? 
+• 다양한 프로토콜을 지원하는 로그인 크래커 
+• 새로운 모듈을 쉽게 추가할 수 있으며, 유연하고 매우 빠른 것이 특징 
+• 리눅스, 윈도우 Cygwin, 솔라리스, FreeBSD, OS X 등에서 사용 가능 
+지원 프로토콜 : AFP, Cisco AAA, Cisco auth, Cisco enable, CVS, Firebird, FTP, HTTP-FORMGET, HTTP-FORM-POST, HTTP-GET, HTTP-HEAD, HTTP-PROXY, HTTPS-FO RM-GET, HTTPS-FORM-POST, HTTPS-GET, HTTPS-HEAD, HTTP-Proxy, ICQ, IMAP, IRC, LDAP, MS-SQL, MYSQL, NCP, NNTP, Oracle Listener, Oracle SID , Oracle, PC-Anywhere, PCNFS, POP3, POSTGRES, RDP, Rexec, Rlogin, Rsh, SAP/R3, SIP, SMB, SMTP, SMTP Enum, SNMP, SOCKS5, SSH(v1 / v2), Subv ersion, Teamspeak(TS2), Telnet, VMware-Auth, VNC, XMPP, POP3, IMAP, SMTP
+
+주요 옵션 설명 
+-l 로그인에 필요한 아이디를 알고 있는 경우 로그인 아이디 입력 
+-p 로그인에 필요한 패스워드를 알고 있는 경우 로그인 패스워드 입력 
+-L 로그인에 필요한 아이디를 모를 경우 사용될 아이디 파일 지정 
+-P 로그인에 필요한 패스워드를 모를 경우 사용될 패스워드 파일 지정 
+-x 브루트포스에 사용할 최소, 최대 길이와 문자셋 조건 지정 
+-C 브루트포스에 사용할 파일로 콜론(ID:PASS)으로 구분된 파일 지정 
+-M 병렬 공격을 위한 파일 서버 목록 파일 지정 
+-t 병렬 연결 수를 지정(기본 값 : 16) -U 서비스 모듈 사용 내역 확인 
+• 예) # hydra -l msfadmin -P password.lst 192.168.108.129 ftp -v -V
+• 예) # hydra -l test –x 1:8:a1% 192.168.108.251 rdp 
+
+
+ medusa 란? 
+• 네트워크 서비스에 대한 신속하고 대규모 병렬 모드를 지원하는 공격 도구임 
+• 스레드 기반으로 동시에 여러 호스트와 사용자 패스워드 브루트포스 공격 가능 
+• 모듈형 디자인으로 MOD 파일이 존재하며, MOD 파일은 수정할 수 있음 
+지원 프로토콜 : AFP, CVS, FTP, HTTP, IMAP, MS-SQL, MYSQL, NCP(NetWare), NNTP, PC-A nywhere, POP3, 
+PostgreSQL, Rexec, Rlogin, Rsh, SMB, SMTP(AUTH/VRFY), SMTP, SSHv2, SVN, Telnet, VMware-Auth, VNC 
+
+-h 타겟이 되는 호스트 이름이나 IP 주소 지정 
+-u 로그인에 필요한 아이디를 알고 있는 경우 로그인 아이디 입력 
+-p 로그인에 필요한 패스워드를 알고 있는 경우 로그인 패스워드 입력 
+-C 브루트포스에 사용할 파일로 콜론(ID:PASS)으로 구분된 파일 지정 
+-M 실행하고자 하는 서비스 모듈 지정 
+-d 알려진 모든 모듈을 덤프 
+-n 기본적인 TCP 서비스 포트가 아닐 경우 특정 포트 지정 
+-s SSL(Secure Socket Layer) 사용 
+• 예) # medusa –h 192.168.108.129 -l user -P password.lst -M ftp 
+
+
+
+gid : gid(generator id)는 특정 룰이 발생했을 때 Snort 엔진의 어느부분에서 룰을 발생시켰는지 구분하기 위해 사용한다. gid 1-100dms 전처리기와 디코더에서 사전에 할당되어 있다.  
+
+페이로드(Payload) - 보안(용어, 암기) - 산기
+
+
+----------------------------------------------------------------------------------
+
+alert tcp any any -> 10.0.0.200 any (msg:"Web abd words..."; content:"|61 62 63|"; nocase; sid:2025010101;)
+
+alert tcp any any -> 10.0.0.200 any (msg:"POST method offset"; content:"POST"; offset:0; sid:2025010102;)
+
+
+
+POST /DVWA/login.php HTTP/1.1
+Host: 10.0.0.200
+Content-Length: 77
+Cache-Control: max-age=0
+Accept-Language: ko-KR,ko;q=0.9
+Origin: http://10.0.0.200
+Content-Type: application/x-www-form-urlencoded
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Referer: http://10.0.0.200/DVWA/login.php
+Accept-Encoding: gzip, deflate, br
+Cookie: security=low; PHPSESSID=sfhsjsrt4s8o1u7b8vvqt93ua7
+Connection: keep-alive
+
+username=x&password=x&Login=Login&user_token=a628f2dfb44ea421bd5cd7f93331e19c
+
+
+POST /DVWA/login.php HTTP/1.1
+
+Host: 10.0.0.200
+
+Content-Length: 84
+
+Cache-Control: max-age=0
+
+Accept-Language: ko-KR,ko;q=0.9
+
+Origin: http://10.0.0.200
+
+Content-Type: application/x-www-form-urlencoded
+
+Upgrade-Insecure-Requests: 1
+
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+
+Referer: http://10.0.0.200/DVWA/login.php
+
+Accept-Encoding: gzip, deflate, br
+
+Cookie: security=low; PHPSESSID=sfhsjsrt4s8o1u7b8vvqt93ua7
+
+Connection: keep-alive
+
+
+
+username=
+
+
+----------------------------------------------------------------------------------
+
+
+offset 지정한 바이트 만큰 떨어진 위치부터 탐색 시작
+
+python
+data='''내용 붙여넣기'''
+
+http_client_body    (offset)
+
+
+
+distance 이전 content 설정 값 매칭 후 탐색할 위치를 지정.  ( 이전 content 패턴에 매치된 경우, 몇바이트 떨어진 위치에서 다음 content를 검사할건지 지정)
+룰 작성시 이전 항목의 content와 매치되는 부분을 찾으면 distance에서 지정한 byte만큼 떨어진 지점부터 다음 content에 포함된 항목을 페이로드에서 찾는다. content 옵션이 distance 옵션 앞에 와야 한다.
+예시) abc가 매칭된 위치에서 10바이트 떨어진 위치부터 test 문자열을 탐색 시작. 
+Content:”abc”; nocase; 
+content:”test”; distance:10; 
+0123456ABC(미탐), 012345678ABC(정탐), 0123456789ABC(정탐) 
+offset 이후 3바이트 그리고 2바이트 이후 ABC가 나타나면 탐지된다 ( ? )
+content:"ABC";content:"DEF";distance:1; ( ABC 와 DEF  사이 거리가 1byte 만큼 떨어져 있는지 확인한다. )
+
+alert tcp any any -> 10.0.0.200 any (msg:"DVWA last login..."; content:"login"; nocase; offset:29; depth:5; http_client_body; content:"login"; distance:2; http_client_body; nocase; sid:2025010104;)
+alert tcp any any -> 10.0.0.200 any (msg:"DVWA low"; content:"sec"; http_cookie; offset:0; depth:3; content:"low"; distance:6; http_cookie; sid:2025010102;) 
+
+
+DVWA 로그인창 실습
+alert tcp any any -> any any (msg:"Web, Content"; content:"login"; nocase; offset:29; depth:5; http_client_body; content:"L"; distance:1; within:2; http_client_body; sid:2020202020;)
+DVWA Login 창에서 바디부분 username=admin&password=1234& 범위에서(29) 깊이(depth) 5에 Login이 있고 1바이트후 = 대문자(L) ogin 있다.
+
+--------------------------------------------------------------------------------------
+
+
+SELECT first_name, last_name FROM users WHERE user_id = '1';
+
+
+
+pcre:"/SELECT\b.*FROM/Ui";
+
+SELECT first_name, last_name FROM users WHERE user_id = '1';
+
+1' or 1=1#
+1%27+or+1%3D1%23
+http://roror.co.kr/DVWA/vulnerabilities/sqli/?id=1%27+or+1%3D1%23&Submit=Submit
+
+
+' union select 1,database()#
+' union select 1,database()#
+
+select comment_id,name from guestbook union select 1,(select user from users limit 1);
+
+information_schema.COLUMNS
+SELECT TABLE_NAME,COLUMN_NAME FROM information_schema.COLUMNS;
+
+' union select 1,(select user from users limit 1)#
+' union select 1,(select user from users limit 3,1)#
+
+SELECT first_name, last_name FROM users WHERE user_id = '1' union select 1,(select user from users limit 1);
+
+-------------------------------------------------------------------------------------
+
+
+
+pcre:"//";
+pcre:"/SELECT\b.*FROM/Ui";
+SELECT first_name, last_name FROM users WHERE user_id = '1';
+1' or 1=1#
+1%27+or+1%3D1%23
+http://roror.co.kr/DVWA/vulnerabilities/sqli/?id=1%27+or+1%3D1%23&Submit=Submit
+alert tcp any any -> any any (msg:"[TEST]SQL injection"; content:"+or+"; content:"%27%3D%27"; nocase; distance:0; within:20; pcre:"/^(GET|POST)/"; sid:2019101003;)
+
+
+
+
+' union select 1,2#
+' union select 1,database()#
+
+> select comment_id, name from guestbook union select 1,2;
+
+' union select 1,(select user from users limit 1)#
+' union select 1,(select user from users limit 3,1)#
+' union SELECT TABLE_NAME,COLUMN_NAME FROM information_schema.COLUMNS#
+
+
+1' or 'a'='a' #, 1' or 'a'='a' #, and, xor, not 탐지
+alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; flow:to_server,established; pcre:"/((%27|%22)|('|\"))(\s|%20|\+)*(or|and|xor|not)(\s|%20|\+)*((%27|%22)|('|\"))?[^\s]+((%27|%22)|('|\"))?(\s|%20|\+)*=(\s|%20|\+)*((%27|%22)|('|\"))?[^\s]+((%27|%22)|('|\"))?(\s|%20|\+)*(--|#)?/i"; sid:1000004; rev:1;)
+
+
+alert tcp any any -> any 80 (msg:"SQL Injection Attempt"; flow:to_server,established; content:"'"; nocase; http_uri; pcre:"/('|\")[\s]*(or|and|xor|not)[\s]*('|\")?[^\s]+('|\")?[\s]*=[\s]*('|\")?[^\s]+('|\")?[\s]*(--|#)?/Ui"; sid:1000004;)
+
+content:"'"; nocase;
+• 목적: 패킷에 싱글 따옴표(')가 포함되어 있는지 대소문자 구분 없이 검사한다.
+• 이유: 싱글 따옴표는 SQL Injection 시도에서 자주 사용되므로, 이를 통해 공격 가능성이 있는 패킷을 선별한다.
+
+http_uri;
+• Snort가 URL 디코딩된 HTTP URI를 검사하도록 지정한다.
+
+
+
+
+
+rawbytes : 탐지된 패킷 내용 데이터를 원시 데이터로 유지하여 비교한다.  (오른쪽 이미지 룰 미리보기)앞서 살펴본 전처리기에선 일부 공격 패턴의 경우 엔진에서 정규화 시키기 때문에 패킷 원본과 비교가 필요 할 때 사용
+
+
+isdataat : Payload의 특정 위치에 데이터가 존재하는지 확인하거나 옵션을 이용해 이전 content 패턴과 매치후 상대적인 위치에 대해 데이터가 존재하는지 확인   형식) isdataat:[!]<int>[,relative];   예) DVWA 로그인창 테스트 : alert tcp any any -> any 80 (content:"POST"; isdataat:1,relative; content:"|2f|"; within:2; sid:2020202020;)    
+설명 : 80포트로 향한 패킷에서 POST가 확인되면 1바이트 이후 시점에서 hex값(2f)를 찾는데 찾는 범위는 1바이트 떨어진 시점에서 2바이트 안에서 찾는다.
+
+
+urilen : URI 필드의 사이즈를 옵션으로 사용한다. 공격 패턴 매치와 비교하고 추가로 탐지한 URI의 길이가 범위에 포함되는지 여부도 비교한다.
+ 비교조건은 (>)크다,(<) 작다, (<>)다르다. (:)같다 4가지가 있다.    형식) urilen:int<>int;          urilen:[<,>]<int>;    예) alert tcp any any -> any 80 (content:"ABC"; urilen:5;)        : "ABC" 문자열이 포함될 경우 URI길이가 5바인트인지 추가로 비교
+    * URI(Uniform Resource Identifire)는 리소스를 식별하는 문자열이다.       URL 또는 URN의 형태로 쓸수 있다.
+
+실습
+# python -c 'print(len("/dvwa/login.php"))‘       (POST 로그인창)
+alert tcp any any -> any 80 (content:"dvwa"; urilen:15; sid:2020202020;)
+
+
+
+
+
+네트워크 계층과 전송 계층에서 수행하는 플러딩 공격 탐지 규칙을 응용하면 응용 계층 기반의 무차별 대입 공격도 탐지한다.
+alert tcp any any -> 192.168.0.18 21 (msg:"FTP Brute Force Attack";flags:S;threshold:type both,track by_src,count 10,seconds 2;sid:2018050501;)     ( ftp root 로그인 탐지 : content:"USER root"; )
+alert tcp any any -> 192.168.0.18 22 (msg:"SSH Brute Force Attack";flags:S;threshold:type threshold,track by_src,count 10,seconds 2;sid:2018050502;)
+alert tcp any any -> 192.168.0.18 80 (msg:"Telnet Brute Force Attack";flags:S;threshold:type limit,track by_src,count 10,seconds 2;sid:2018050503;)   ( Telnet root 로그인 성공 : content:"login"; pcre:"/root@.*#/"; )
+크로스 사이트 스크립트 : content:"<script>"; http_uri (XSS 탐지)
+SQL 인젝션 :  DVWA 로그인 ( 1' or 'a'='a' )를 탐지함다. (공백 or 공백 ‘=’를 탐지)
+alert tcp any any -> any any (msg:"[TEST]SQL injection"; content:"+or+"; content:"%27%3D%27"; nocase; distance:0; within:20; pcre:"/^(GET|POST)/"; sid:2019101003;)
+
+
+정상적인 접속의 경우 아무런 변화가 없다.
+하지만 관리자의 경우 대부분 차단하는 것이 일반적이다.  
+이처럼 관리자 계정으로 접속시 탐지 가능한 스노트 규칙을 설정해보자.
+해당 탐지 규칙을 설정하기 위해서는 와이어 샤크 탐지 규칙을 설정할 수 있다. 
+즉 페이로드 차원에서 각 계정별 접속시 나타나는 고유한 문자열 또는 헥사 코드를 이용 검색해야 한다.
+사실 다양한 유형 중에서 해당 서비스에만 나타나는 고유한 문자열 또는 헥사 코드 검사야말로 탐지 규칙 설정의 핵심이다.
+
+[wireshark]
+ftp.request.command == USER  ( user root )
+[룰 작성] - FTP
+alert tcp any any -> 192.168.0.18 21 (msg:"FTP Root User";content:"user root";nocase;sid:2018050501;)
+[룰 작성] - SSH
+alert tcp any any -> 192.168.0.18 22 (msg:"ToDetectSSH";content:"SSH";nocase;offset:0;depth:4;sid:2018050501;)  # 이전에 탐지한 내용에 추가
+offset:0 문자열 시작
+depth:문자열 종료(4바이트 깊이)
+즉! 응용계층, SSH 문자열을 페이로드 0바이트와(에서) 4바이트 사이에서 검색하라는 의미
+offset/depth 설정이 없다면 스노트는 주어진 페이로드 영역의 해당 문자열을 처음 위치부터 순차적으로 검색해 나간다.
+따라서 검색하는 과정에서 부하가 일어날 수 있다.
+offset/depth 설정이 있다면, 부하를 줄일수 있다, 하지만 정확하지 않으면 미탐이 발생할 수 있다(신중히 테스트후 규칙작성)
+SSH의 경우 서비스 자체가 VPN 기법을 적용한 프로토콜인 만큼 페이로드 영역은 암호문 상태이다(계정별 접속 구분은 불가능하다)
+
+
+[응용 계층 문자열 시작위치와 문자열 종료위치를 이용한 Open 탐지,  실습]   53부터 0이다   Open 의 O 자리는 8자리이다)
+alert tcp any any -> 192.168.0.18 22 (msg:"ToDetectSSH";content:"Open";nocase;offset:8;dept
+
+
+content:"GET";depth:3;  처음부터 3byte 까지 GET 문자가 있는지 확인한다.  (depth를 안쓰면 전체 다 확인 -> 속도 저하 )
+
+
+
+
+
+
+
+1. 추가옵션  ( 주로 to_server 사용 )
+ - established : 세션이 연결된 상태의 트래픽만 매칭 
+ - Stateless : 세션의 연결 유무와 상관 없이 매칭 
+ ex) flow:to_server,established
+
+2. TCP계층의 재조립(reassembly) 시 함께 동작한다.
+ to_server, to_client, from_server, from_client
+ only_stream  rebuild된 패킷 만
+ no_stream    rebuild되지 않은 패킷 만  
+ established  통신이 established 된 패킷만  
+ stateless      상태 상관없이 활성화 되며, 비정상 무작위공격에 대비
+
+1. priority 	우선 순위를 숫자로 지정. 1(높음)-10(낮음) 	priority:1; 	
+2. classtype 	스노트 규칙을 분류하는 옵션.
+#vi /etc/snort/classification.config
+config classification: attempted-admin,Attempted Administrator Privilege Gain,1
+config classification: 분류명, 분류설명, 우선순위
+1) 분류명 : 룰에서 classtype:에 사용할 영문 키워드 (코드형 ID)
+2) 설명 : 사람이 읽기 좋은 설명 문자열 (alert에 함께 출력됨)
+3) 우선순위 (Priority) : 경고 심각도 (1=높음, 2=중간, 3=낮음)
+config classification: drdos-attack,DRDoS Reflection Attempt,2
+config classification: icmp-test,ICMP Test Alert,3
+# vi /etc/snort/rules/local.rules
+alert udp any any -> any any (msg:"UDP Reflection Test"; classtype:drdos-attack; sid:1000002; rev:1;)
+alert icmp any any -> any any (msg:"ICMP Test Rule"; sid:1000001; reference:cve,2023-52889; classtype:icmp-test; rev:1;)
+
+
+
+1. reference 	취약점의 참고가 되는 정보(URL 등)를 연결
+config reference: url       http://
+config reference: cve       http://cve.mitre.org/cgi-bin/cvename.cgi?name=
+[설정방법]
+reference:url,www.security.com/123.htm; 
+reference:cve,2012-1823; 
+
+2. reference.config 설명
+ 1) https://www.cve.org/
+ 2) https://www.cve.org/CVERecord?id=CVE-2023-52889
+
+3. 참고
+# vi /etc/snort/snort.conf
+include reference.config   (상대경로 및 절대경로로 작성, 이미 작성됨)
+(참고만)output alert_unified2: filename snort.alert, limit 128, nostamp
+       unified2 로그는 사람이 직접 읽는 게 아니라, barnyard2나 snorby, base, sguil 같은 프론트엔드에서 파싱해서 보여준다.
+(참고만) output alert_full: alert.full 
+
+4. # vi /etc/snort/reference.config   (이미 설정됨)
+config reference: cve       http://cve.mitre.org/cgi-bin/cvename.cgi?name=
+
+5. # vi /etc/snort/rules/local.rules
+alert icmp any any -> any any (msg:"ICMP Test Rule"; sid:1000001; reference:cve,2023-52889; classtype:attempted-recon; rev:1;)
+
+6. -A는 콘솔 출력이 아니라 출력 형식 지정만 하기 때문에 -l 없이 실행하면 로그는 안 남고 콘솔에도 안 보일 수 있다.
+# snort -A full -q -u snort -g snort -c /etc/snort/snort.conf -l /var/log/snort   (소문자 L 이다.)
+# tail -f /var/log/snort/alert
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+0000   00 0c 29 59 41 95 00 50 56 f2 b0 60 08 00 45 00
+0010   01 3b ed d2 00 00 80 06 28 d8 3d 6e d5 13 ac 10
+0020   64 80 00 50 04 1e 40 f9 12 27 23 04 b1 4f 50 18
+0030   fa f0 77 78 00 00 e9 e2 e2 f8 92 fd dc 9f 52 8f
+0040   6b 62 be 29 66 fb 15 72 fa 87 4f 07 37 c7 8b ef
+0050   62 fa f4 f1 71 7c 49 7e ee 4f a9 47 b5 b1 5f 14
+0060   b3 7d 8a b9 7d 43 a7 83 9b e3 c5 f7 b1 7d 7a 78
+0070   b8 be 24 bf 77 27 d4 a3 da d8 af 8a 59 be c5 5c
+0080   be a1 d3 c1 cd f1 e2 fb d8 be bd 3c 5c 5f 12 5f
+0090   bb 93 ea 51 ed 6c 57 c5 2c df 62 ae 5f 50 e9 e0
+00a0   e6 f8 f1 7d ec 5f 5e 9e 2e 2f 89 2f dd c9 f5 2b
+00b0   e4 d6 a6 aa 14 4a ca 2e ca f1 d0 80 82 2d cd 59
+00c0   9f 8c 2a 87 ff 00 64 a6 7b 31 1d 1f 1e dc a2 6f
+00d0   29 94 54 a0 01 db aa 8c 47 1c 64 9a 25 4e d3 ad
+00e0   1b fc 95 89 3e f0 a7 8b 53 c2 38 a5 67 f2 68 75
+00f0   ff 00 36 00 0f 7c d3 6f b8 ca 73 b8 f9 f0 9e 2d
+0100   e3 9e 37 bf 7f fe f1 f7 0e 47 b3 7d df 87 99 b7
+0110   b1 5d 9c dd f9 9f f9 6e 5f 07 66 a4 f7 91 69 b6
+0120   99 3b 9e ef 4f 2f c4 bd f5 df f4 bd 9c bf 16 f7
+0130   a8 dd dc ba af a9 3b ee f3 57 3f c7 b5 b4 5b f4
+0140   7d bc ff 00 1a d6 af ff d9
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

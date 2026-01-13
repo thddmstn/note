@@ -1,0 +1,427 @@
+netplan, systemd-networkd, NetworkManager, ipupdown
+systemd-networkd-wait-online.service   // 랜카드 체크
+
+root@elk:/home/roror# systemctl list-unit-files --state=enabled | grep Networ
+root@elk:/home/roror# systemctl enable --now systemd-networkd
+root@elk:/home/roror# systemctl enable --now systemd-resolved
+
+root@elk:/home/roror# vi /etc/systemd/resolved.conf 
+DNS=10.0.0.200
+FallbackDNS=8.8.8.8
+// 주석 삭제 후 추가
+
+
+
+  .network → IP 주소, Gateway, DNS 설정
+  .netdev → bridge, bond, vlan 등 가상 인터페이스 정의
+  .link → 인터페이스 이름, MAC 주소, 옵션 지정
+
+
+root@elk:/etc/systemd/network# vi 10-ens33.network
+[Match]
+Name=ens33
+
+[Network]
+#DHCP=yes
+Address=10.0.0.222/24
+Gateway=10.0.0.1
+DNS=10.0.0.200
+DNS=8.8.8.8
+
+root@elk:/etc/systemd/network# vi 20-ens36.network
+[Match]
+Name=ens36
+
+[Network]
+Address=192.168.1.1/24
+LinkLacalAddressing=no
+IPv6AcceptRA=no
+
+
+root@elk:/etc/systemd/network# ls
+10-ens33.network  20-ens36.network   // 숫자 작은게 먼저 실행됨
+
+apt install  isc-dhcp-server
+apt install iptables-persistent
+
+root@elk:/home/roror# vi /etc/default/isc-dhcp-server 
+INTERFACESv4="ens36"
+
+root@elk:/etc/systemd/network# vi /etc/dhcp/dhcpd.conf
+ 10 option domain-name "dns.google.com";
+ 11 option domain-name-servers 10.0.0.200,8.8.8.8;
+ 24 authoritative;
+113 subnet 192.168.1.0 netmask 255.255.255.0 {
+114   range 192.168.1.10 192.168.1.30;
+115   option subnet-mask 255.255.255.0;
+116   option routers 192.168.1.1;
+117   option broadcast-address 192.168.1.255;
+118 }
+
+
+- iptables
+*nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A POSTROUTING -s 192.168.123.0/24 -o enp0s6 -j MASQUERADE     # 외부 IP DHCP시
+#-A POSTROUTING -s 10.0.0.0/24 -o enp0s6 -j SNAT --to-source 192.168.64.12   # 외부 IP STATIC 구현시
+-A PREROUTING -d 192.168.64.12 -p TCP --dport 80 -j DNAT --to 10.0.0.2:80
+#-A PREROUTING -d 192.168.123.222 -p TCP --dport 21:443 -j DNAT --to 10.0.0.100 (여러 포트 포워딩)
+COMMIT
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [66:8043]
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+#-A FORWARD -j NFQUEUE --queue-num=4
+#-A INPUT -p icmp --icmp-type echo-request -j NFQUEUE --queue-num=4
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 5000:6000 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 1:65000 -j DROP
+-A INPUT -p udp -m state --state NEW -m udp --dport 1:65000 -j DROP
+#-A INPUT -j REJECT --reject-with icmp-host-prohibited
+#-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT
+
+
+
+
+
+
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A POSTROUTING -s 192.168.1.0/24 -o ens33 -j MASQUERADE
+#-A POSTROUTING -s 10.0.0.0/24 -o enp0s6 -j SNAT --to-source 192.168.64.12
+#-A PREROUTING -d 192.168.64.12 -p TCP --dport 80 -j DNAT --to 10.0.0.2:80
+#-A PREROUTING -d 192.168.123.222 -p TCP --dport 21:443 -j DNAT --to 10.0.0.100
+COMMIT
+
+*filter
+#:INPUT ACCEPT [0:0]  // black list 방식
+:INPUT DROP [0:0]  // white list 방식
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [66:8043]
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+#-A FORWARD -j NFQUEUE --queue-num=4
+#-A INPUT -p icmp --icmp-type echo-request -j NFQUEUE --queue-num=4
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 443 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 5000:6000 -j ACCEPT
+#-A INPUT -p tcp -m state --state NEW -m tcp --dport 1:65000 -j DROP
+#-A INPUT -p udp -m state --state NEW -m udp --dport 1:65000 -j DROP
+#-A INPUT -j REJECT --reject-with icmp-host-prohibited
+#-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT
+
+root@elk:/etc/dhcp# netfilter-presistent reload
+root@elk:/etc/dhcp# iptables -nL
+
+root@elk:/etc/dhcp# apt install apache2
+root@elk:/etc/dhcp# systemctl start apache2
+
+
+root@elk:/etc/apache2/sites-enabled# vi 000-default.conf 
+  9         ServerName elk.roror.co.kr  // 옛날에는 이렇게 안하면 오류뜸 요즘은 바뀜
+ 10 
+ 11         ServerAdmin roror@roror.co.kr
+ 12         DocumentRoot /var/www/html
+
+root@elk:/etc/apache2/sites-enabled# systemctl restart apache2
+
+root@elk:/etc/apache2/sites-enabled# vi /etc/sysctl.conf
+net.ipv4.ip_forward=1  // 포워딩 활성화 --> mint에서 인터넷 됨
+root@elk:/etc/apache2/sites-enabled# sysctl -p
+net.ipv4.ip_forward = 1
+
+
+
+
+
+root@elk:/etc/systemd/network# vi br0.netdev 
+[NetDev]
+Name=br0
+Kind=bridge
+
+
+root@elk:/home/roror# vi /etc/systemd/network/10-ens33.network 
+[Match]
+Name=ens33
+
+[Network]
+#DHCP=yes
+Bridge=br0
+Address=10.0.0.123/24
+Gateway=10.0.0.1
+DNS=10.0.0.200
+DNS=8.8.8.8
+
+
+root@elk:/etc/systemd/network# vi br0.network
+[Match]
+Name=br0
+
+[Network]
+Address=10.0.0.222/24  
+              
+root@elk:/etc/systemd/network# systemctl restart systemd-networkd
+
+root@elk:/etc/systemd/network# vi 10-ens33.network 
+[Match]
+Name=ens33
+
+[Network]
+#DHCP=yes
+Bridge=br0
+Address=10.0.0.123/24
+#Gateway=10.0.0.1
+#DNS=10.0.0.200
+#DNS=8.8.8.8
+
+root@elk:/etc/systemd/network# vi br0.network 
+[Match]
+Name=br0
+
+[Network]
+Address=10.0.0.222/24
+Gateway=10.0.0.1
+DNS=8.8.8.8
+
+
+
+
+[NetDev]
+Name=br0
+Kind=bridge
+
+
+-netdev
+[Match]
+Name=br0
+
+- network
+[Network]
+Address=10.0.0.222/24
+Address=10.0.0.123/24
+Gateway=10.0.0.1
+DNS=10.0.0.200
+DNS=8.8.8.8
+
+- ens33
+[Match]
+Name=ens33
+
+[Network]
+Bridge=br0 
+LinkLocalAddressing=no
+IPv6AcceptRA=no 
+
+
+- ens36
+[Match]
+Name=ens36
+
+[Network]
+Address=192.168.1.1/24
+LinkLocalAddressing=no
+IPv6AcceptRA=no
+
+# systemctl restart systemd-networkd
+# systemctl restart isc-dhcp-server
+
+-A POSTROUTING -s 192.168.1.0/24 -o br0 -j MASQUERADE
+-A POSTROUTING -s 192.168.1.0/24 -o br0 -j SNAT --to-source 10.0.0.123
+# netfilter-persistent reload
+
+- iptables
+NFQUEUE... 
+
+
+[Match]
+Name=ens36
+
+[Network]
+LinkLocalAddressing=no
+IPv6AcceptRA=no
+
+
+
+
+
+# systemctl stop isc-dhcp-server
+
+config daq: afpacket
+config daq_mode: inline
+#config daq_var: queue=4
+config policy_mode: inline
+
+
+#drop icmp  any any -> any any (msg:"ToDetected Dos";threshold:type both,track by_dst, count 30,seconds 2; sid:2018050504;)
+drop tcp any any -> any 22 (msg:"ToDetected SSH"; content:"SSH"; sid:2018050505;)
+#drop tcp any any -> any 80 (msg:"ToDetected HTTP"; flags:S; sid:2018050506;) 
+
+
+snort -A console -Q -q -u snort -g snort -c /etc/snort/snort.conf -i ens33:ens36
+
+/usr/sbin/ip link set dev ens33 promisc on && /usr/sbin/ip link set dev ens36 promisc on && /usr/sbin/ethtool -K ens33 tx off rx off tso off gso off gro off lro off && /usr/sbin/ethtool -K ens36 tx off rx off tso off gso off gro off lro off
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

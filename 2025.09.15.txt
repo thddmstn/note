@@ -1,0 +1,185 @@
+리눅스 종료
+halt
+poweroff
+shutdown -h now
+init 0
+
+shutdown -h +5  (특정 시간  종료 : ex) 12:00) 
+
+재부팅
+reboot
+shutdown -r now
+init 6
+
+
+
+vim만든사람 중동사람 브람무레나르..
+나노단축기
+
+
+Redhat - su (모든 사용자로 로그인 할 수 있다) su -c 어떤 사용자로도 들어가지 않고 로그인..?
+Debian - sudo (관리자로 실행, 변수처리 후 일부 명령어만 사용가능)
+
+- 계정 생성(관리자만 사용 가능) 중요!
+useradd 계정명 (adduser 계정명)
+
+- 패스워드 변경
+passwd 계정명(관리자만 사용 가능)
+passwd (자기 자신의 패스워드 변경)
+
+- 계정 삭제
+userdel -r 계정명(-r 사용자 파일/디렉토리 모두 삭제)
+
+- su
+관리자(root)는 다른 계정으로 전환시 패스워드를 요구하지 않는다.
+su - ( - 를 입력시 해당(지정한 계정)되는 사용자의 환경변수를 읽는다.)
+env (전역 변수)
+set  (터미널 변수, 지역)
+
+$ su -s /bin/sh - root  (shell 을 본셸로 로그인)
+
+$ sudo 명령어 (관리자 권한으로 명령 실행)
+$ sudo cat /etc/shadow  (관리자의 권한)
+$ sudo -u user cat /etc/shadow (user 권한으로 실행) (실행 안됨)
+
+- sudo 환경 설정
+# visudo  또는 # vi /etc/sudoers
+100 root    ALL=(ALL)       ALL
+107 %wheel  ALL=(ALL)       ALL  ( %wheel 에서 % 는 group를 의미한다.)
+user@localhost:~$ sudo cat /etc/shadow   (권한 없음)
+(user 사용자를 모든 권한 부여방법) user    ALL=(ALL)       ALL
+
+$ cat /etc/group | grep wheel 
+wheel:x:10:roror   (roror 계정은 wheel  그룹에 속해 있다.)
+
+
+- 일반계정사용자가 sudo 실행시 패스워드 없이 실행
+ # vi /etc/sudoers
+roror    ALL=(ALL)       NOPASSWD: ALL
+#%wheel  ALL=(ALL)       ALL  ( %wheel 에 roror 계정이 있다.)
+
+- 일반계정사용자가 su 실행시 패스워드 없이 실행
+# vi /etc/pam.d/su
+auth            sufficient      pam_wheel.so trust use_uid (주석 해제)
+
+
+- NetworkManager 방식의 랜카드 설정(Kali, Redhat(Alma, Rocky))
+ 
+
+
+ifconfig 로 인터페이스 이름 출력,.,.?
+ens160:
+
+-gateway출력해주는 명령어
+route -n   // n은 숫자로 출력해주는 명령어
+nmcli d show ens160
+netstat -nr
+ip route show
+
+- DNS 출력
+nmcli d show ens160
+resolvectl status (systemd-resolved 사용시)
+cat /etc/reslov.conf  (파일 이름, dns 서버 IP 주소를 저장하고 있다)
+
+
+
+root@localhost:/home/roror# nmcli connection modify ens160 ipv4.addresses 10.0.0.200/24
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.addr 10.0.0.200/24
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.gateway 10.0.0.1
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.dns 10.0.0.200,8.8.8.8
+root@localhost:/home/roror# nmcli c modi ens160 ipv4.method manual
+root@localhost:/home/roror# nmcli c down ens160; nmcli c up ens160
+연결이 성공적으로 활성화되었습니다 (D-버스 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/3)
+root@localhost:/home/roror# ip -o -4 a
+1: lo    inet 127.0.0.1/8 scope host lo\       valid_lft forever preferred_lft forever
+2: ens160    inet 10.0.0.200/24 brd 10.0.0.255 scope global noprefixroute ens160\       valid_lft forever preferred_lft forever
+
+root@localhost:/etc/NetworkManager/system-connections# cat ens160.nmconnection 
+
+root@localhost:/home/roror# nmcli c
+NAME  UUID                                  TYPE      DEVICE 
+lo    7e64b881-3e25-4310-8023-0e389d4ace22  loopback  lo     
+root@localhost:/home/roror# nmcli d
+DEVICE  TYPE      STATE          CONNECTION 
+lo      loopback  연결됨 (외부)  lo         
+ens160  ethernet  연결 끊겼음    --         
+root@localhost:/home/roror# nmcli d up ens160
+'ens160' 장치가 '9a1b6b7d-b2a4-457a-bd86-b92797464101' 통해 성공적으로 활성화되었습니다.
+
+- device 활성화
+# nmcli d up ens160
+
+# systemctl restart NetworkManager
+# nmcli net off
+# nmcli net on
+# nmcli c down ens160
+# nmcli c up ens160
+
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.addresses  10.0.0.200/24
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.gateway  10.0.0.1
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.method manual
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.dns 10.0.0.200,8.8.8.8
+root@localhost:/etc/NetworkManager/system-connections# nmcli c down ens160;nmcli c up ens160
+'ens160' 연결이 성공적으로 비활성화되었습니다 (D-Bus 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/5)
+연결이 성공적으로 활성화되었습니다 (D-버스 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/6)
+
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.method auto
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.gateway ""
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.dns ""
+root@localhost:/etc/NetworkManager/system-connections# nmcli c modi ens160 ipv4.address ""
+root@localhost:/etc/NetworkManager/system-connections# nmcli c down ens160; nmcli c up ens160
+
+
+-----------------------------------------
+NetworkManager
+
+1. 명령어 : nmcli, nmtui(다이어로그 박스 형식)
+
+2. 명령어를 사용해서 IP/SM,GW,DNS 를 입력하면 
+/etc/NetworkManager/system-connections  에 인터페이스 이름으로 저장된다. [ ipv4 ] 탭에
+
+3. Connection 이름 변경
+# nmcli c modify Wired\ connection\ 1 con-name eth0
+
+4. 컨넥션 추가
+# nmcli c add type ethernet con-name eth0 ifname eth0
+# nmcli c add type ethernet con-name ens33-test ifname ens33 (dhcp 설정)
+# nmcli c add type ethernet con-name ens33-test ifname ens33 ip4 192.168.10.10/24 gw4 192.168.10.1 (고정)
+
+5. 컨넥션 삭제
+# nmcli c delete eth0		
+
+6. 연결 상태 
+nmcli networking connectivity
+
+7. 그외 명령어
+nmcli general (status|hostname)
+nmcli (-t, -p, -v)
+nmcli d show(status, help)
+nmcli networking off
+nmcli networking on
+
+8. 프로파일 새로 읽어 오기
+nmcli c reload
+nmcli c reload connection-name
+
+9. 실습
+1. 명령을 이용하여 고정 IP 설정 가능한가?
+  - 제거 방법(파일수정, 명령어 이용)
+2. Interface (랜카드 장치) 외 Connection 제거 가능한가?
+3. Connection 이름 및 파일 이름을 device명-test 로 생성 가능한가?
+4. Connection 이름을 device  명으로 변경 가능한가?
+5. nmcli 를 이용하여 Network 중지 가능한가?
+6. Connection 중지/실행
+7. 랜카드 재시작 방법은 알고 있는가?
+
+
+
+명령어 사용해서 ens160.nmconnection 파일 수정..?
+
+
+
+
+
+
+

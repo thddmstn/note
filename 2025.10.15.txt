@@ -1,0 +1,98 @@
+- SW0, 1 둘다 설정
+Switch(config)#vlan 10
+Switch(config-vlan)#vlan 20
+Switch(config)#int range f0/1-2
+Switch(config-if-range)#int g 0/1
+Switch(config-if)#sw mo tr
+
+- 스위치 3/4
+Switch(config)#vl 10
+Switch(config-vlan)#vl 20
+Switch(config-vlan)#int ra f0/1-2
+Switch(config-if-range)#sw mo tr
+Switch(config-if-range)#int f0/23
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 10
+Switch(config-if)#int f0/24
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 20
+
+
+-------------------------
+PC0/Server1   PING 테스트
+
+
+PVST 설정
+1) 기본 값 확인
+Switch#show spanning-tree 
+SW 1  :  Base ethernet MAC Address       : 000B.BE96.1824
+
+- SW 1
+Switch(config)#spanning-tree vlan 10 root primary
+Switch(config)#sp vl 20 ro se
+
+- SW 0
+Switch(config)#spanning-tree vlan 20 root primary
+Switch(config)#sp vl 10 ro se
+
+
+- 라우터 설정 Inter-VLAN
+SW 1 
+Switch(config)#int f0/24
+Switch(config-if)#sw mo tr
+
+
+R1(config)#int f0/0
+R1(config-if)#no sh
+R1(config-if)#int f0/0.10
+R1(config-subif)#encapsulation dot1Q 10
+R1(config-subif)#ip add 168.126.64.1 255.255.255.0
+R1(config-subif)#int f0/0.20
+R1(config-subif)#en do 20
+R1(config-subif)#ip add 168.126.65.1 255.255.255.0
+
+- 서로 다른 VLAN 간 통신 확인
+
+
+- Static Routing   (수동 프로토콜)
+  소규모 네트워크, 관리자가 직접 설정, 대규모에는 관리가 어렵다, 빠르다.
+Default : ip route 0.0.0.0 0.0.0.0 (상대편 라우터 IP 주소 또는 자신의 인터페이스)
+
+
+
+1. IP 설정
+204.200.7.5
+204.200.7.6
+192.168.0.1/24 (DHCP)
+
+1) 아이피 설정(모든 장치)
+interface.....
+ip address x.x.x.x x.x.x.x
+no shutdown
+
+2) 장치간, ping 연결 확인
+Router(config)#ip dhcp pool korea
+Router(dhcp-config)#network 192.168.0.0 255.255.255.0
+Router(dhcp-config)#default-router 192.168.0.1
+Router(dhcp-config)#dns-server 168.126.65.3
+Router(config)#ip dhcp excluded-address 192.168.0.1
+
+
+Static Routing
+ex) ip route (상대쪽네트워크주소) (서브넷마스크) (나와 연결된 상대편 라우터 주소)
+R3 :   ip route 0.0.0.0 0.0.0.0 204.200.7.5
+R1 :   ip route 0.0.0.0 0.0.0.0 204.200.7.1
+R2 :   ip route 0.0.0.0 0.0.0.0 204.200.7.2
+        ip route 0.0.0.0 0.0.0.0 204.200.7.6
+
+RIP Routing 설정
+route rip
+version 2   (최근에는 모두 version 2 이다. 다만 시험에서 명시하지 않으면 사용하지 않는다.)
+network (연결된 인터페이스 주소(serial, ethernet...)를 모두 적어준다.)
+sh run   으로 확인!
+
+route ospf 1  
+network (연결된 인터페이스 주소) (와일드카드마스크) area 0     (area 0 값은 주어진다.)
+ 와일드카드마스크 : 255.255.255.0(서브넷마스크) --->  0.0.0.255 (처럼 표현)
+ 또는 0.0.0.0 으로 작성 (실습에서는 두개를 모두 사용해보자)
+

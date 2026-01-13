@@ -1,0 +1,363 @@
+
+6. dovecot 설치
+ # dnf -y install dovecot   IMAP/POP3 서버 + LDA(또는 LMTP) → MDA((Mail Delivery Agent) 역할을 수행
+  - 기능 : 메일을 사용자의 메일박스에 저장하고, 클라이언트가 IMAP/POP3를 통해 메일을 읽을 수 있게 제공한다.
+  - 사용 예시 : Postfix 같은 MTA에서 받은 메일을 Dovecot을 통해 사용자에게 전달하거나, 사용자가 Thunderbird/Outlook 등으로 메일을 읽을 때 사용한다.
+  - Dovecot는 MDA 역할을 한다. (LDA/LMTP 제공), MTA(Postfix 등)에서 전달된 메일을 사용자 Mailbox(~/Maildir, mbox 등)에 실제로 저장하는 프로그램
+  - (MDA)프로그램 : procmail, maildrop, dovecot-lda, dovecot-lmtp, Cyrus deliver
+  - LDA와 LMTP는 둘 다 메일을 최종 사용자 Mailbox에 “배달”하는 기술, 즉 MDA(메일 배달 에이전트)의 두 가지 방식
+   1) LDA = 로컬 배달 에이전트 : Postfix 같은 MTA가 메일을 내부 프로그램에 넘겨서 해당 프로그램이 “메일을 파일 형태로 직접 저장하는 방식”.
+     동작 방식 : Postfix → (배달명령 실행) → dovecot-lda 실행 → Maildir에 저장
+   2) LMTP = 로컬용 SMTP라고 보면 된다, SMTP처럼 동작하지만 메일을 최종 사용자에게 배달하는 목적의 프로토콜. Dovecot와 Postfix가 소켓 기반 통신으로 메일을 주고받는 방식이다.  동작 방식 : Postfix → LMTP 프로토콜로 메일 전달 → Dovecot LMTP → Maildir 저장
+
+
+
+25(SMTP)	MTA ↔ MTA, 서버 간 메일 전달 (서버 간 발송 (AUTH 없음))
+587(Submission)	클라이언트(Outlook, Thunderbird, 휴대폰 등) → 서버로 메일 제출(사용자 인증 필수 (AUTH))
+ - 메일 클라이언트가 “SMTP 인증을 거쳐 메일을 제출(submit)하는 용도”로 사용되는 포트다.
+ - 25번을 사용하면, 악성 스팸 봇이 25번으로 직접 발송하는 문제가 많아짐
+ - ISP에서 25번 outbound를 차단하는 경우 많음
+ - 인증(SMTP AUTH)을 강제하고 보안 향상을 위해 별도 포트 필요 그래서 RFC 6409에서 587 포트를 "메일 제출 목적의 표준 포트"로 규정했다.
+ - Submission 포트(587)에서 사용하는 보안
+   STARTTLS (권장) : 평문으로 시작 → TLS로 암호화 전환, 587 기본 방식
+   AUTH PLAIN / LOGIN / CRAM-MD5 (계정 인증 방법들)
+465(SMTPS)	TLS로 고정된 SMTP (Deprecated였지만 일부 서버에서 사용됨)
+
+
+dnf install dovecot -y
+
+
+root@roror:/etc/dovecot# vi dovecot.conf 
+ 24 protocols = imap pop3 lmtp submission
+ 30 listen = *, ::
+
+
+
+root@roror:/etc/dovecot/conf.d# vi 10-auth.conf 
+ 10 disable_plaintext_auth = no
+100 auth_mechanisms = plain login
+
+
+
+
+
+
+
+disable_plaintext_auth = no
+# 일반 텍스트 인증 허용(주석제거)
+ - 강제로 보안 SSL/TLS 적용할 경우는 YES, 
+ - 클라이언트 POP/IMAP 세팅시 보안 포트 995/993로 연결, 혼합 사용시 NO 세팅
+
+auth_mechanisms = plain login
+# 내용추가(인증 설정)
+ - plain: 사용자 이름과 비밀번호를 Base64로 인코딩된 평문으로 전송
+ - login: Microsoft Outlook 등 일부 클라이언트에서 요구하는 형식 (비슷하게 평문 방식)
+
+
+root@roror:/etc/dovecot# vi ./conf.d/10-mail.conf 
+ 24 mail_location = maildir:~/Maildir
+
+
+root@roror:/etc/dovecot# vi ./conf.d/10-master.conf   // 인증관련?
+110   unix_listener /var/spool/postfix/private/auth {
+111     mode = 0666
+112     user = postfix
+113     group = postfix
+114   }
+
+
+--------
+
+
+
+# 아래의 내용 주석해제 및 내용 추가 (Dovecot이 Postfix와 SASL 인증을 연동하기 위해 사용하는 UNIX 소켓 구성)
+# SASL (Simple Authentication and Security Layer) : "다양한 인증 방식을 서버와 클라이언트가 표준화된 방식으로 주고받게 해주는 인증 프레임워크"
+# Postfix smtp-auth - Postfix는 SASL 인증을 위해 Dovecot에 인증 요청을 전달해야 한다.
+unix_listener /var/spool/postfix/private/auth {
+    mode = 0666                                      
+    user = postfix                                     
+    group = postfix                                   
+}
+
+systemctl enable --now dovecot
+
+systemctl restart dovecot postfix
+
+
+
+root@kali:/home/kali# apt install thunderbird -y
+
+
+
+
+Dovecot의 submission 서비스(587 포트) 사용시 오류 발생
+  (1) Kali에서 Alma서버에 접속하여 Rocky서버로 메일 전송시 오류 발생한다.
+    (maillog)Error: No relay host configured for submission proxy (submission_relay_host is unset)
+  (2) Dovecot이 “메일을 외부로 릴레이(Postfix로 전달)”할 설정이 없어서 발생하는 오류이다.    즉, submission은 열려 있지만, 보내는 메일(MSA) 역할을 수행할 릴레이 대상이 없다.
+  (3) Submission 역할은 Postfix에게 맡기기(가장 일반적 / 추천)
+    대부분의 시스템은 Postfix가 submission(587) 포트를 운영한다.
+    Dovecot이 submission을 제공할 필요가 전혀 없다. Dovecot의 submission 서비스를 꺼버리면 바로 해결된다.
+
+
+
+root@roror:/etc/dovecot/conf.d# vi  10-master.conf 
+ 48 service submission-login {
+ 49   inet_listener submission {
+ 50     #port = 587  // 열어줘야됨?
+ 51   }
+
+
+root@roror:/etc/dovecot/conf.d# vi ../dovecot.conf 
+ 24 protocols = imap pop3 lmtp
+
+
+
+
+
+/etc/ssl/server-cert.pem
+/etc/ssl/server-key.pem
+
+
+root@roror:/etc/postfix# vi main.cf
+718 #smtpd_tls_cert_file = /etc/pki/tls/certs/postfix.pem
+724 #smtpd_tls_key_file = /etc/pki/tls/private/postfix.key
+729 #smtpd_tls_security_level = may
+
+
+# STARTTLS 구성 설정 
+tls_random_source=dev:/dev/urandom  # Postfix가 TLS(암호화) 기능을 사용할 때 난수(random data)를 생성하는 방식
+# 수신 연결용 SMTPD TLS 구성
+smtpd_use_tls = yes
+smtpd_tls_cert_file = /etc/ssl/server-cert.pem
+smtpd_tls_key_file = /etc/ssl/server-key.pem
+smtpd_tls_session_cache_database = lmdb:${data_directory}/smtpd_scache
+# 서버(Postfix) 측에서 TLS 연결 시, 클라이언트와의 TLS 세션 정보를 캐시하여 다음 연결 시 재사용할 수 있게 한다.
+smtpd_tls_security_level = may     # encrypt 변경시 587 포트 강제
+# 외부 연결용, 송신용 SMTP TLS 구성
+smtp_use_tls = yes
+smtp_tls_cert_file = /etc/ssl/server-cert.pem
+smtp_tls_key_file = /etc/ssl/server-key.pem
+smtp_tls_session_cache_database = lmdb:${data_directory}/smtp_scache
+smtp_tls_security_level = may
+# SMTP-Auth settings(인증설정)
+smtpd_sasl_type = dovecot       # dovecot unix_listener /var/spool/postfix/private/auth { 와 연동
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_local_domain = $myhostname
+smtpd_relay_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination
+
+
+
+-----------------강사님 메모----------------------------------------
+
+(참고) # SMTP-Auth settings(인증설정)
+- SMTP AUTH(Dovecot 연동)는 submission(587) 포트를 사용할 때 의미가 있다.
+- Postfix에서 SMTP 인증(SMTP AUTH)을 Dovecot과 연동해서 사용하기 위한 필수 설정 블록이다.
+즉, 메일 클라이언트(Thunderbird, Outlook, iPhone 등)가 SMTP로 메일 보낼 때 “로그인”할 수 있도록 만드는 설정이다.
+- Postfix master.cf 에 submission 포트(587) 활성화 및Dovecot auth 서비스에서 /var/spool/postfix/private/auth 소켓 열기
+- 기능 : 메일 클라이언트에서 SMTP 로그인 가능, submission(587) 포트에서 인증 필수, 외부 사용자가 계정만 있으면 메일발송 가능, 내부 스팸 릴레이 방지, Postfix ↔ Dovecot 계정 통합
+
+
+
+-----------------------------------------------------
+
+
+root@roror:/etc/postfix# vi master.cf
+ 19 submission inet n       -       n       -       -       smtpd
+ 20   -o syslog_name=postfix/submission
+ 21   -o smtpd_tls_security_level=encrypt
+ 22   -o smtpd_sasl_auth_enable=yes
+ 23 #  -o smtpd_tls_auth_only=yes
+ 24 #  -o local_header_rewrite_clients=static:all
+ 25 #  -o smtpd_reject_unlisted_recipient=no
+ 34   -o smtpd_recipient_restrictions=permit_sasl_authenticated,reject
+ 35   -o milter_macro_daemon_name=ORIGINATING
+
+
+root@roror:/etc/dovecot/conf.d# vi 10-ssl.conf 
+  8 ssl = yes
+ 14 ssl_cert = </etc/ssl/server-cert.pem
+ 15 ssl_key = </etc/ssl/server-key.pem
+
+
+root@roror:/etc/dovecot/conf.d# vi 10-master.conf 
+ 17 service imap-login {
+ 18   inet_listener imap {
+ 19     port = 143
+ 20   }
+ 21   inet_listener imaps {
+ 22     port = 993
+ 23     ssl = yes
+ 24   }
+ 38 service pop3-login {
+ 39   inet_listener pop3 {
+ 40     port = 110
+ 41   }
+ 42   inet_listener pop3s {
+ 43     port = 995
+ 44     ssl = yes
+ 45   }
+ 46 }
+ 48 service submission-login {
+ 49   inet_listener submission {
+ 50     port = 587
+ 51   }
+ 52   inet_listener submissions {
+ 53     port = 465
+ 54   }
+ 55 }
+
+root@roror:/etc/dovecot/conf.d# systemctl stop dovecot postfix
+root@roror:/etc/dovecot/conf.d# ps -ef | grep -E "dovecot|postfix"
+root@roror:/etc/dovecot/conf.d# systemctl start postfix
+root@roror:/etc/dovecot/conf.d# systemctl start dovecot
+
+
+
+root@kali:/home/kali# openssl s_client -servername roror.co.kr -connect mail.roror.co.kr:465
+
+
+
+
+
+------roundcubemail----------------------------------------
+
+MariaDB [(none)]> create database roundcubemail;
+Query OK, 1 row affected (0.001 sec)
+
+MariaDB [(none)]> grant all privileges on roundcubemail.* to roundcube@'localhost' identified by 'qhdks12';
+Query OK, 0 rows affected (0.014 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.002 sec)
+
+
+root@roror:/var/log# dnf --enablerepo=epel install roundcubemail
+
+root@roror:/var/log# dnf --enablerepo=epel install ImageMagick ImageMagick-devel
+
+
+---------------강사님메모-----------------------------
+
+postconf -n | grep sasl
+postconf -n | grep relay
+postfix check
+
+
+RoundCube Mail
+grant all privileges on roundcubemail.* to roundcube@'localhost' identified by 'pass';
+
+
+(이미지를 자동으로 변환·편집·처리해주는 도구다. GUI 프로그램이 아니라 명령어/라이브러리 기반이라 서버에서 많이 사용한다.)
+# dnf --enablerepo=epel install roundcubemail
+# dnf install ImageMagick ImageMagick-devel
+
+(pecl: PHP Extension Community Library — PHP 확장 모듈을 설치/관리하는 CLI 도구)
+# pecl install imagick
+# vi /etc/php.ini
+extension=imagick.so
+date.timezone = Asia/Seoul
+
+ImageMagick은 이미지 처리 및 변환을 위한 소프트웨어 슈트이다. 다양한 이미지 파일 형식을 지원하며, 이미지를 만들고 편집하며 변환할 수 있는 강력한 기능을 제공한다.
+
+cd /usr/share/roundcubemail/SQL
+# mysql roundcubemail < mysql.initial.sql
+
+root@roror:/etc/roundcubemail# cp -p config.inc.php.sample config.inc.php
+
+
+# vi /etc/httpd/conf.d/roundcubemail.conf
+<Directory /usr/share/roundcubemail/installer/>
+    <IfModule mod_authz_core.c>
+        # Apache 2.4
+        #Require local
+        Require ip 10.0.0.0/24
+    </IfModule>
+
+
+# vi /etc/roundcubemail/config.inc.php
+$config['enable_installer'] = true; 
+# systemctl restart httpd php-fpm
+http://10.0.0.200/roundcubemail/installer/   접속 확인(Ok 확인)
+
+
+---------------------------------------------------------------
+
+
+root@roror:/etc/roundcubemail# vi config.inc.php
+ 28 $config['db_dsnw'] = 'mysql://roundcube:qhdks12@localhost/roundcubemail';
+ 29 $config['default_host'] = 'tls://mail.roror.co.kr';
+ 30 $config['smtp_server'] = 'tls://mail.roror.co.kr';
+ 39 $config['smtp_port'] = '587';
+ 54 $config['product_name'] = 'Roror Roundcubemail Webmail';
+
+$config['default_port'] = 143;
+$config['smtp_auth_type'] = 'LOGIN';
+$config['smtp_helo_host'] = 'mail.roror.co.kr';
+$config['mail_domain'] = 'roror.co.kr';
+$config['useragent'] = 'ROROR Webmail';
+
+$config['imap_conn_options'] = array(
+  'ssl'         => array(
+    'verify_peer' => true,
+    'CN_match' => 'roror.co.kr',
+    'allow_self_signed' => true,
+    'ciphers' => 'HIGH:!SSLv2:!SSLv3',
+  ),  
+);
+$config['smtp_conn_options'] = array(
+  'ssl'         => array(
+    'verify_peer' => true,
+    'CN_match' => 'roror.co.kr',
+    'allow_self_signed' => true,
+    'ciphers' => 'HIGH:!SSLv2:!SSLv3',
+  ),  
+);
+
+
+root@roror:/etc/roundcubemail# vi /etc/httpd/conf.d/roundcubemail.conf 
+ 13         #Require local
+ 14         Require ip 10.0.0.0/24
+ 30         Require local
+ 31         #Require ip 10.0.0.0/24
+
+
+http://roror.co.kr/roundcubemail
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

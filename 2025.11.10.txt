@@ -1,0 +1,307 @@
+
+
+root@elk:/etc/netplan# apt install snort*
+root@elk:/etc/netplan# snort --daq-list
+root@elk:/etc/netplan# vi /etc/snort/snort.conf 
+192 config daq: afpacket  // snort가 네트워크 트래픽을 받아들이는 방식 결정 (afpacket : 리눅스 커널의 af
+193 # config daq_dir: <dir>
+194 config daq_mode: inline
+195 config policy_mode: inline
+196 # config daq_var: <var>
+
+root@elk:/etc/netplan# vi /etc/snort/rules/local.rules 
+drop icmp any any -> any any (msg:"To Detected ICMP Song"; threshold:type both,track by_dst,count 10,seconds 2; sid:2025111002;)
+drop tcp any any -> any 23 (msg:"To Detected Telnet Song"; flags:S; sid:2025111001;)
+
+root@elk:/etc/netplan# snort -A console -Q -q -u snort -g snort -c /etc/snort/snort.conf -i ens33:ens36 -N
+// rule에 오류있는지 확인(오류 있으면 오류메세지 뜨는듯..?)
+
+
+597,725s/^/#/
+
+root@elk:/etc/snort# ip link set dev ens33 promisc on
+root@elk:/etc/snort# ip link set dev ens36 promisc on
+root@elk:/etc/snort# ifconfig
+ens33: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+ens36: flags=4419<UP,BROADCAST,RUNNING,PROMISC,MULTICAST>  mtu 1500
+// promisc 확인(무작위 모드)
+
+//tcpdump, wireshark, snort, suricata 등.. 네트워크를 모니터링 할려면 다른 패킷도 확인을 해야한다. 그래서 무작위로 패킷을 확인한다.
+
+root@elk:/etc/snort# ethtool ens33
+
+root@elk:/etc/snort# ethtool -k ens33 | grep receive-offload
+
+root@elk:/etc/snort# ethtool -K ens33 gro off lro off
+root@elk:/etc/snort# ethtool -K ens36 gro off lro off
+root@elk:/etc/snort# ethtool -k ens33 | grep receive-offload
+
+root@elk:/etc/snort# snort -A console -Q -q -u snort -g snort -c /etc/snort/snort.conf -i ens33:ens36 -N
+
+
+
+root@elk:/home/roror# vi /etc/systemd/system/snort-nic.service 
+[Unit]
+Description=Set Snort3 NIC .... GRO/LRO OFF
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ethtool -K ens33 gro off lro off
+ExecStart=/usr/sbin/ethtool -K ens36 gro off lro off
+TimeoutStartSec=0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+
+
+
+root@elk:/home/roror# vi /etc/netplan/50-cloud-init.yaml 
+      interfaces:
+        - ens33
+        - ens36  // 추가(IDS..?)
+
+
+
+
+
+Ubuntu 24.04.3 (특히 최신 커널 6.8 계열 + systemd 255.x 기반)에서는 Snort + AF_PACKET inline 모드에서 “처음엔 트래픽이 통하고 몇 초 후 완전히 끊기는” 현상이 실제로 여러 사용자에게 보고되고 있다. Ubuntu 24.04의 네트워크 스택(특히 GRO/LRO 및 offload 처리 방식 변화) + snort3-daq-afpacket 모듈의 커널 호환성 문제일 가능성이 크다.
+
+Ubuntu 24.04의 최신 커널에서는 NIC가 “down → up” 되거나, 재시작 / VM suspend 후 resume / Snort 종료 후 재시작할 때마다 드라이버(vmnet3, e1000e, ixgbe 등)가 GRO, LRO, TSO, GSO, RX/TX checksum offload 기능을 자동으로 다시 켜진다. 
+
+이 기능이 다시 켜지면
+- Snort inline 모드(AF_PACKET)가 받는 패킷 헤더가 변형된다.
+- 일부 패킷을 drop 하거나, 연결이 느려지고, 1~2분 뒤 다시 끊기는 현상이 재발할 수 있다.
+- 즉, libdaq 빌드로 “버퍼 정지 문제” 는 잡혔지만 udev 규칙은 여전히 “NIC 자동 offload 복귀 문제” 를 막아주는 역할을 한다.
+
+vi /etc/udev/rules.d/99-disable-offload.rules      // NIC 등록시 고정(자동으로 비활성화)
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="ens33", RUN+="/usr/sbin/ethtool -K ens33 gro off lro off tso off gso off tx off rx off"
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="ens36", RUN+="/usr/sbin/ethtool -K ens36 gro off lro off tso off gso off tx off rx off"
+
+
+udevadm control --reload
+udevadm trigger
+udevadm test /sys/class/net/ens33 2>&1 | grep ethtool
+
+
+[Unit]
+Description=Snort3 NIC Setup (Promisc + GRO/LRO OFF)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '/usr/sbin/ip link set dev ens33 promisc on && /usr/sbin/ip link set dev ens36 promisc on && /usr/sbin/ethtool -K ens33 tx off rx off tso off gso off gro off lro off && /usr/sbin/ethtool -K ens36 tx off rx off tso off gso off gro off lro off'
+TimeoutStartSec=0
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+Snort libdaq 3.1.x 버전 이슈, Snort3 패키지에 포함된 libdaq 모듈이 커널 6.8 이후 네트워크 메모리 관리 API와 부분적으로 불일치. → 버퍼 해제 시점이 꼬여서 몇 분 후 트래픽 중단.
+# apt install autoconf automake libtool pkg-config build-essential libpcap-dev libnet1-dev
+# cd ~/libdaq
+# ./bootstrap
+# ./configure --enable-afpacket-module
+# make
+# make install
+# snort --daq-list
+
+
+root@elk:/home/roror# vi /usr/bin/run
+  1 #!/bin/bash 
+  2 if [ $(id -u) -eq 0 ];then
+  3         echo "$(id -un)로 로그인 하였습니다. 관리자로 로그인 하세요!" 
+  4         exec sudo bash "$0" "$0"
+  5         exit;
+  6 fi
+
+root@elk:/home/roror# chmod 755 /usr/bin/run
+
+
+root@elk:/home/roror# apt install xterm
+
+root@elk:/home/roror# xterm -fg black -bg white -fn *-fixed-*-*-*-20-* -e "cat /etc/passwd;bash"
+
+
+root@elk:/home/roror# vi /usr/bin/run
+  1 #!/bin/bash
+  2 if [ $(id -u) -ne 0 ];then
+  3         echo "$(id -un)로 로그인 하였습니다. 관리자로 로그인 하세요!" 
+  4         exec sudo bash "$0" "$0"
+  5         exit;
+  6 else
+  7         xterm -fg black -bg white -fn *-fixed-*-*-*-20-* -e \
+  8         "echo 'snort -A console -Q -q -u snort -g snort -c /etc/snort/snort.conf -i ens33:ens36'; \
+  9         snort -A console -Q -q -u snort -g snort -c /etc/snort/snort.conf -i ens33:ens36;bash"
+ 10         pkill snort
+ 11 fi
+
+
+roror@elk:~$ vi .local/share/applications/snort.desktop
+[Desktop Entry]
+Name=Snort
+Exec=bash -c "run"
+Type=Application
+Terminal=true
+Icon=/home/roror/Documents/snort_logo.png
+Keywords=snort;
+
+
+
+
+wireshark 통계 (프로토콜 계층 통계) // 전체 트래픽 분석
+
+?????dat?
+
+http.request.uri contains ".exe"
+http.request.uri contains ".zip"
+
+http matches"(?i)\\.(zip|exe)"
+http matches"(?i)\\.(zip|exe|dat)"
+
+http.request.uri contains "dat"
+
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET 80 (msg:"[POSSIBLE MALWARE] Suspicious .dat download via PowerShell"; flow:to_server, established; content:".dat"; http_uri; content:"User-Agent"; http_header; content:"PowerShell"; http_header; nocase; sid:1001010; rev:1;)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

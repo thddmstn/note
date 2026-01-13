@@ -1,0 +1,352 @@
+
+리눅스에서 사용하는 SMTP 서버로는 Postfix, sendmail, exim, Qmail 등이 있다
+CentOS 최근 버전에는 Postfix 가 기본으로 설치되어 있다
+- 메일 서버 구조
+1) 사용자는 자신의 이메일 클라이언트이용해서 메일을 작성한다.
+  - Gmail, Naver, Microsoft Outlook 등 (MUA, mail user agent)    MS(확장자 .eml)
+  - 메일을 보낸다.
+2) 메일을 처리하는 소프트웨어 MTA(Message Transfer Agent)에 접속한다.
+  - Sendmail, Exim, postfix 등
+  - MUA의 이메일 메시지는 SMTP(Simple Mail Transfer Protocol)을 통해 MTA에 전달된다.
+3) 메일을 받은 MTA는 MDA(Mail Delivery Agent)에 넘겨준다.
+  - MDA는 이메일 수신자의 편지함에 메일을 배달한다.
+  - MDA가 MTA가 동일 패키지에 들어 있을때도 있다.(Citadel, Microsoft Exchange)
+  - Procmail, Maildrop, Dovecot 등이 있다.
+  - 전송자의 MDA가 보낸 메일은 수신자의 편지함(mailbox)에 도달한다.
+  - mailbox는 수신자가 접근할 수 있는 영역
+4) mailbox에 도달하면 수신자는 MUA를 이용해서 편지함에 접근할 수 있다.
+  - 사용자는 메일박스에 도착한 메일을 메일 클라이언트 (MUA)로 열어 볼 수 있다.
+5) 보낼때는 SMTP, mailbox에 접근시 POP(Post Office Protocol), IMAP(Internet Message Access Protocol)를 사용
+
+- 설명
+sendmail.mc: 이 파일은 Sendmail 메일 서버의 매크로 설정 파일이다. 이 파일은 인간이 읽기 쉽고 이해하기 쉬운 형태로 Sendmail의 설정을 정의할 수 있게 해준다. 사용자는 이 파일을 수정하여 메일 서버의 동작 방식을 조정할 수 있다.
+
+m4 sendmail.mc: m4는 매크로 프로세서로, Sendmail 설정 파일을 생성하기 위해 사용된다. m4는 Sendmail 설정 파일의 매크로를 확장하고 템플릿을 생성하는 역할을 한다. sendmail.mc 파일을 m4로 처리하면, 매크로가 확장되고 설정 파일의 실제 내용이 생성된다.
+
+> sendmail.cf: >는 리다이렉션 기호로, 명령의 출력을 지정한 파일에 저장하는 데 사용된다. 여기서는 sendmail.mc 파일을 처리한 결과를 sendmail.cf 파일에 저장한다. sendmail.cf 파일은 실제로 Sendmail 메일 서버가 사용하는 설정 파일이다.
+
+
+root@roror:/etc/mail# dnf --enablerepo=epel install sendmail
+root@roror:/etc/mail# dnf --enablerepo=epel install sendmail-cf
+
+[root@rocky roror]# dnf install epel-release
+[root@rocky roror]# dnf install sendmail sendmail-cf
+
+
+root@roror:/etc/mail# firewall-cmd --permanent --add-service={smtp,pop3,imap,smtp-submission,smtps,pop3s,imaps}
+
+[root@rocky roror]# firewall-cmd --permanent --add-service={smtp,pop3,imap,smtp-submission,smtps,pop3s,imaps}
+
+root@roror:/etc/mail# vi sendmail.mc
+ 56 TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl
+ 57 define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl
+121 DAEMON_OPTIONS(`Port=smtp,Addr=0.0.0.0, Name=MTA')dnl
+
+
+- 설명
+TRUST_AUTH_MECH` 매크로를 사용하여 인증 메커니즘을 정의
+confAUTH_MECHANISMS는 메일 서버가 허용하는 인증 메커니즘을 설정
+ - EXTERNAL, GSSAPI, DIGEST-MD5, CRAM-MD5, LOGIN, PLAIN 메커니즘을 모두 허용
+
+root@roror:/etc/mail# m4 sendmail.mc > sendmail.cf
+
+root@roror:/etc/mail# vi sendmail.cf
+  89 Cwroror.co.kr
+
+- 명령어, 리다이렉션, sendmail(file), access
+m4 sendmail.mc > sendmail.cf
+makemap hash access[.db] < access
+
+
+- RELAY(허용), DISCARD(차단), REJECT(차단, 메시지)
+   - OK        : (host에서 설정된) 메일의 모든것을 허용(relay)
+   - RELAY    : (host에서 설정된) 메일의 수신/발신을 허용
+   - REJECT   : (host에서 설정된) 메일의 수신/발신을 거부
+   - DISCARD : /etc/sendmail.cf에서 설정된 $#discard mailer에 지정된곳으로 메일을 폐기
+                  # 발신자는 메일일 발신된것으로 알게됨
+   - 501 메시지 : (host에서 설정된) 메일의 Email과 일치된 메일을 받지않음
+   - 502 메시지 : 발신메일주소에 host명이 없을경우에 메일을 받지않음
+   - 503 메시지 : (host에서 설정된) 도메인과 관련된 메일을 받지않음
+
+- access에서 ip적을 때 마지막에 . 을 사용하지 않는다.
+
+
+root@roror:/etc/mail# vi access
+ 10 Connect:localhost.localdomain           RELAY
+ 11 Connect:localhost                       RELAY
+ 12 Connect:127.0.0.1                       RELAY
+ 13 Connect:10.0.0                          RELAY
+
+
+root@roror:/etc/mail# makemap hash access < access
+// 안됨.. 명령어는 외워둘 것
+
+
+root@roror:/etc/mail# systemctl restart sendmail
+
+// rocky도 똑같이
+
+
+ali@kali:~$ telnet roror.co.kr 25
+Trying 10.0.0.200...
+Connected to roror.co.kr.
+Escape character is '^]'.
+220 roror.co.kr ESMTP Sendmail 8.18.1/8.18.1; Mon, 8 Dec 2025 12:25:36 +0900
+mail from: roror@roror.co.kr
+250 2.1.0 roror@roror.co.kr... Sender ok
+rcpt to: roror@rocky.co.kr
+250 2.1.5 roror@rocky.co.kr... Recipient ok
+data
+354 End data with <CR><LF>.<CR><LF>
+form: fix1004@naver.com
+to: roror@rocky.co.kr
+subject: CentOS Test
+Mail Server...test
+.
+250 2.0.0 5B83Pa2c083325 Message accepted for delivery
+^]   // ctrl + ]
+telnet> quit
+Connection closed.
+
+
+
+
+
+
+
+---------------------------postfix------------------------------------------------
+
+dnf install postfix -y
+
+root@roror:/etc/postfix# vi main.cf
+
+ 98 myhostname = mali.roror.co.kr
+106 mydomain = roror.co.kr
+122 myorigin = $mydomain
+136 inet_interfaces = all
+137 #inet_interfaces = $myhostname
+138 #inet_interfaces = $myhostname, localhost
+139 #inet_interfaces = localhost
+187 #mydestination = $myhostname, localhost.$mydomain, localhost
+188 mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain
+290 mynetworks = 127.0.0.0/8, 10.0.0.0/24, 192.168.1.0/24
+324 relay_domains = $mydestination
+600 smtpd_banner = $myhostname ESMTP $mail_name
+751 message_size_limit = 10485760  // 이메일크기제한(10M)
+752 mailbox_size_limit = 1073741824  // 메일박스크기제한(1G)
+
+
+
+
+
+
+
+------------강사님 메모----------------------------
+
+
+
+1. # vi /etc/ssl/openssl.cnf
+[ rocky.co.kr ]
+subjectAltName = DNS:rocky.co.kr, DNS:www.rocky.co.kr, DNS:mail.rocky.co.kr
+2. 키 생성
+ 1) # cd /etc/pki/tls/certs
+ 2) # openssl genrsa -aes128 2048 > rocky.co.kr.key
+   Enter PEM pass phrase:  (암호입력)
+   Verifying - Enter PEM pass phrase:  (암호입력)
+3. 패스워드 제거
+[root@rocky certs]# openssl rsa -in rocky.co.kr.key -out rocky.co.kr.key 
+Enter pass phrase for rocky.co.kr.key:  (암호입력)
+writing RSA key
+4.  인증서 정보 설정
+[root@rocky certs]# openssl req -utf8 -new -key rocky.co.kr.key -out rocky.co.kr.csr
+- 국가 --> 시/도 --> 지역 --> 조직(이름) --> 조직(단위) --> 호스트이름 순으로 입력
+A challenge password []: enter
+An optional company name []: enter
+5. 생성한 키를 이용한 인증서 생성
+[root@rocky certs]# openssl x509 -in rocky.co.kr.csr -out rocky.co.kr.crt -req -signkey rocky.co.kr.key -extfile /etc/ssl/openssl.cnf -extensions rocky.co.kr -days 3650
+6. 관리를 위해 키 복사
+# cp -a /etc/pki/tls/certs/rocky.co.kr.key /etc/pki/tls/private/
+
+
+
+
+
+myorigin = $mydomain : 서버에서 메일 발송시 나타나는 도메인, From 도메인
+
+compatibility_level = 3.8
+queue_directory = /var/spool/postfix
+command_directory = /usr/sbin
+daemon_directory = /usr/libexec/postfix
+data_directory = /var/lib/postfix
+mail_owner = postfix
+myhostname = mail.roror.co.kr    // 호스트 이름 설정
+mydomain = roror.co.kr   // 도메인 이름 지정
+myorigin = $mydomain    // 주석제거(서버에서 메일 발송시 나타나는 도메인, From 도메인)
+inet_interfaces = all  // 어떤 네트워크 인터페이스에서 메일을 수신할지를 지정, 메일받을 주소 입력, IP
+inet_protocols = all  // IPv4, IPv6 프로토콜 지정
+mydestination = $myhostname, localhost.$mydomain, localhost, $mydomain   // 메일 수신 도메인 지정
+unknown_local_recipient_reject_code = 550
+mynetworks = 127.0.0.0/8, 10.0.0.0/24, 192.168.1.0/24     // 로컬 네트워크 지정
+relay_domains = $mydestination
+# 메일 서버가 메일을 중계(자기 자신이 아닌 다른 메일 서버로 메일을 전달해주는 행위) 할 대상을 지정
+# 중계할 수 있는 도메인 목록을 설정하는 부분이다.
+# 1) 메일 서버가 roror.co.kr 도메인의 메일을 중계할 수 있다.
+# 2) 만약 클라이언트가 roror.co.kr 으로 메일을 보내면 이 메일 서버가 중계할 수 있다.
+# 3) roror.co.kr이 최종 목적지일 수도 있고, 경유를 통해 다른 서버로 전달될 수도 있다.
+
+alias_maps = lmdb:/etc/aliases
+alias_database = lmdb:/etc/aliases
+ 
+  
+smtpd_banner = $myhostname ESMTP $mail_name     // 배너
+debug_peer_level = 2
+debugger_command =
+	 PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
+	 ddd $daemon_directory/$process_name $process_id & sleep 5
+sendmail_path = /usr/sbin/sendmail.postfix
+newaliases_path = /usr/bin/newaliases.postfix
+mailq_path = /usr/bin/mailq.postfix
+setgid_group = postdrop
+html_directory = no
+manpage_directory = /usr/share/man
+sample_directory = /usr/share/doc/postfix/samples
+readme_directory = /usr/share/doc/postfix/README_FILES
+smtpd_tls_cert_file = /etc/pki/tls/certs/postfix.pem
+smtpd_tls_key_file = /etc/pki/tls/private/postfix.key
+smtpd_tls_security_level = may
+smtp_tls_CApath = /etc/pki/tls/certs
+smtp_tls_CAfile = /etc/pki/tls/certs/ca-bundle.crt
+smtp_tls_security_level = may
+default_database_type = lmdb
+shlib_directory = /usr/lib64/postfix
+meta_directory = /etc/postfix
+message_size_limit = 10485760
+mailbox_size_limit = 1073741824
+
+
+# firewall-cmd --add-service={smtp,pop3,imap,smtp-submission,smtps,pop3s,imaps} --permanent
+# firewall-cmd --reload
+
+
+
+
+메일 보내기(최근 SPF / DKIM / DMARC 설정되지 않으면 메일 전송 안된다.)
+ ▷ (참고)발신 도메인 인증 (SPF/DKIM/DMARC)
+ 이전에는 Postfix 기본 설정만으로도 메일이 잘 갔지만, 현재는 보안 정책 강화로 인해 반드시 PTR 레코드, SPF, DKIM 등 발신자 인증 설정이 필요하다. 이 조건들을 모두 설정해야 Gmail, Naver 등 주요 메일 서버로 메일이 성공적으로 전달될 수 있다. DNS 레코드에 SPF를 추가하여 발신 서버를 인증한다.
+
+ 1) SPF  → 발신 서버(IP) 인증 (DNS, zone에 roror.co.kr. IN TXT "v=spf1 mx ip4:<공인 IP> -all" 설정)  - 도메인(roror.co.kr)에서 메일을 보낼 수 있는 IP 주소 목록을 DNS에 선언하는 것
+  - 메일 수신 서버(NAVER/Gmail)는 다음을 체크한다.(SPF는 반드시 퍼블릭 DNS에만 적용된다.)
+    메일 헤더 From: roror.co.kr, DNS TXT 레코드에서 SPF 정책 조회, 실제 발신 IP가 SPF 안에 있는지 검사
+ 2) DKIM → 메일 위변조 방지(서명)  - DKIM은 메일 자체에 디지털 서명을 넣어 메일 위변조를 방지하는 시스템
+ 3) DMARC → SPF/DKIM 정책 통합 관리
+  - DMARC는 SPF와 DKIM 결과를 바탕으로 메일을 어떻게 처리할지 정책을 정의하는 기능
+
+
+
+----------------------------------------------------------------------------
+
+
+[roror@rocky ~]$ echo "This is a Test Email" | mail -s "Rocky Test Mail" -r roror@rocky.co.kr roror@roror.co.kr
+
+root@roror:/home/roror# ls /var/spool/postfix/  // 큐 디렉토리, 메일 전송시 사용
+
+
+
+root@roror:/home/roror# vi /etc/postfix/main.cf
+447 home_mailbox = Maildir/
+
+root@roror:/home/roror# echo 'export MAIL=$HOME/Maildir' >> /etc/profile
+root@roror:/home/roror# tail -1 /etc/profile
+
+
+
+
+
+---------강사님 메모-----------------------------------------------
+
+
+$ echo "This is a Test Eamil" | mail -s "Rocky Test Mail" -r roror@rocky.co.kr roror@roror.co.kr
+
+- 참고
+# ls /var/spool/postfix/   (큐 디렉토리, 메일 전송시 사용)
+# ls /var/spool/mail/
+
+5. 메일 디렉토리 변경(main.cf)
+home_mailbox = Maildir/        // 사용자 홈 : cur(읽은메일)  new(새 메일)  tmp(임시파일)
+echo 'export MAIL=$HOME/Maildir' >> /etc/prifile
+
+
+
+
+6. dovecot 설치
+ # dnf -y install dovecot   IMAP/POP3 서버 + LDA(또는 LMTP) → MDA((Mail Delivery Agent) 역할을 수행
+  - 기능 : 메일을 사용자의 메일박스에 저장하고, 클라이언트가 IMAP/POP3를 통해 메일을 읽을 수 있게 제공한다.
+  - 사용 예시 : Postfix 같은 MTA에서 받은 메일을 Dovecot을 통해 사용자에게 전달하거나, 사용자가 Thunderbird/Outlook 등으로 메일을 읽을 때 사용한다.
+  - Dovecot는 MDA 역할을 한다. (LDA/LMTP 제공), MTA(Postfix 등)에서 전달된 메일을 사용자 Mailbox(~/Maildir, mbox 등)에 실제로 저장하는 프로그램
+  - (MDA)프로그램 : procmail, maildrop, dovecot-lda, dovecot-lmtp, Cyrus deliver
+  - LDA와 LMTP는 둘 다 메일을 최종 사용자 Mailbox에 “배달”하는 기술, 즉 MDA(메일 배달 에이전트)의 두 가지 방식
+   1) LDA = 로컬 배달 에이전트 : Postfix 같은 MTA가 메일을 내부 프로그램에 넘겨서 해당 프로그램이 “메일을 파일 형태로 직접 저장하는 방식”.
+     동작 방식 : Postfix → (배달명령 실행) → dovecot-lda 실행 → Maildir에 저장
+   2) LMTP = 로컬용 SMTP라고 보면 된다, SMTP처럼 동작하지만 메일을 최종 사용자에게 배달하는 목적의 프로토콜. Dovecot와 Postfix가 소켓 기반 통신으로 메일을 주고받는 방식이다.  동작 방식 : Postfix → LMTP 프로토콜로 메일 전달 → Dovecot LMTP → Maildir 저장
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

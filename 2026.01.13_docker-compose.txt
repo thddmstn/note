@@ -1,0 +1,216 @@
+[root@rocky compose]# cat docker-compose.yml 
+services:
+  db:
+    build:
+      context: ./mysql
+      dockerfile: Dockerfile
+    container_name: pentest_db
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROROR_PASSWORD: qhdks12
+      MYSQL_DATABASE: pentest
+      MYSQL_USER: roror
+      MYSQL_PASSWORD: qhdks12
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pentest:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: pentest_img:latest
+    ports:
+      - "8000:80"
+    restart: always
+    environment:
+      MYSQL_ROROR_PASSWORD: qhdks12
+      PENTEST_DB_PASSWORD: qhdks12
+      DB_SERVER: "db"
+      DB_DATABASE: "dvwa"
+      DB_USER: "dvwa"
+      DB_PASSWORD: "qhdks12"
+
+volumes:
+  db_data:
+
+
+
+
+
+----------------------------------------------------------------------------------
+
+1. 파일 구조
+/root/docker/pentest/
+├── docker-compose.yml
+├── board/
+│   ├── Dockerfile
+│   ├── entrypoint.sh
+│   └── pentest.tar.gz
+└── mysql/
+    ├── Dockerfile
+    └── entrypoint.sh
+
+
+2. 기존 컨테이너 삭제
+# docker stop `docker ps -a -q`  && docker rm `docker ps -a -q`
+
+
+3. compose 생성
+# vi /docker/pentest/docker-compose.yml
+# (복사 시작) ----------------------------------------------
+services:
+  # MySQL 서비스 (이름을 반드시 db로 해야 board 컨테이너에서 인식함)
+  db:
+    build:
+      context: ./mysql
+      dockerfile: Dockerfile
+    container_name: pentest_db
+    restart: always
+    environment:
+      - MYSQL_ROROR_PASSWORD=password  # 원하는 비밀번호로 변경
+    ports:
+      - "3306:3306"
+    # 데이터 영구 저장이 필요하면 아래 주석 해제 (단, 현재 entrypoint 로직상 초기화 문제 발생 가능성 있음)
+    # volumes:
+    #   - db_data:/var/lib/mysql
+
+  # 웹 서버 (Apache + PHP)
+  board:
+    build:
+      context: ./board
+      dockerfile: Dockerfile
+    container_name: pentest_web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - db
+    environment:
+      - MYSQL_ROROR_PASSWORD=password  # db 서비스와 동일해야 함
+      - PENTEST_DB_PASSWORD=password     # DVWA용 비밀번호
+    # entrypoint.sh에서 'db' 호스트네임을 찾으므로 networks 설정은 기본 브리지 사용 시 자동 해결됨
+
+# volumes:
+#   db_data:
+# (복사 끝) ----------------------------------------------
+
+
+4. build
+# cd /docker/pentest
+# chmod +x board/entrypoint.sh mysql/entrypoint.sh
+# docker-compose up -d --build
+
+
+
+
+
+------------------------------------
+
+DATA 디렉토리 포함
+mysql/entrypoint.sh는 실행될 때마다 DB를 초기화(--initialize-insecure)하도록 되어 있다. 
+데이터를 영구 저장(volumes)하게 되면, 두 번째 실행부터는 "폴더가 비어있지 않다"는 에러가 발생하여 DB가 죽는다
+
+1) 기존 컨테이너 삭제
+# docker stop `docker ps -a -q`  && docker rm `docker ps -a -q`
+# docker rmi pentest-board:latest pentest-db:latest
+
+1) mysql 파일 수정
+# vi /docker/pentest/mysql/entrypoint.sh
+(복사 시작) --------------------------------- 
+#!/bin/bash
+set -e
+
+# 1. 환경 설정 및 로그 권한 확보
+mkdir -p /var/log/mysql /var/run/mysqld
+chown -R mysql:mysql /var/lib/mysql /var/log/mysql /var/run/mysqld
+
+# 2. 초기 설정 SQL 파일 생성
+cat <<EOF > /tmp/setup.sql
+CREATE DATABASE IF NOT EXISTS pentest;
+CREATE USER IF NOT EXISTS 'roror'@'%' IDENTIFIED BY '$MYSQL_ROROR_PASSWORD';
+GRANT ALL PRIVILEGES ON *.* TO 'roror'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EOF
+
+# 3. 데이터가 없으면 초기화 후 서버 실행, 있으면 바로 실행
+if [ ! -d "/var/lib/mysql/mysql" ]; then
+    echo "[Entrypoint] Initializing and Starting MySQL..."
+    mysqld --initialize-insecure --user=mysql
+    exec mysqld --user=mysql --init-file=/tmp/setup.sql
+else
+    echo "[Entrypoint] Starting existing MySQL..."
+    exec mysqld --user=mysql --init-file=/tmp/setup.sql
+fi
+(복사 끝) --------------------------------- 
+
+
+
+2) docker-compose.yml 생성
+# vi /docker/pentest/docker-compose.yml
+(복사  시작) --------------------------------- 
+
+services:
+  # 1. 로그 데이터 전용 컨테이너 (BusyBox)
+  busy:
+    image: busybox:latest
+    container_name: busy
+    command: sleep infinity
+    volumes:
+      - db_log:/var/log/mysql      # DB 로그가 쌓이는 위치
+      - pentest_log:/var/log/apache2 # 웹 로그가 쌓이는 위치 (Ubuntu Apache 기본 경로)
+
+  # 2. MySQL 서비스
+  db:
+    build:
+      context: ./mysql
+      dockerfile: Dockerfile
+    image: pentestdb:latest
+    container_name: db
+    restart: always
+    environment:
+      - MYSQL_ROROR_PASSWORD=qhdks12
+    volumes:
+      - db_data:/var/lib/mysql     # DB 데이터 영구 저장
+    # 로그 볼륨을 busy 컨테이너와 공유 (service:busy를 통해 공유하거나, 같은 볼륨 마운트)
+    volumes_from:
+      - busy
+
+  # 3. 웹 서비스 (Board)
+  pentest:
+    build:
+      context: ./board
+      dockerfile: Dockerfile
+    image: pentest_img:latest
+    container_name: pentest_web
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - MYSQL_ROROR_PASSWORD=qhdks12
+      - PENTEST_DB_PASSWORD=qhdks12
+    # 로그 볼륨을 busy 컨테이너와 공유
+    volumes_from:
+      - busy
+
+volumes:
+  db_data:
+  db_log:
+  pentest_log:
+(복사 끝) --------------------------------- 
+
+# docker-compose down -v
+# docker-compose up -d --build
+# docker-compose logs
+
+
+
+

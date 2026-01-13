@@ -1,0 +1,394 @@
+slow HTTP Header DoS Attacke
+
+Slow 계열 공격
+HTTP, APPLICATION 레벨의 공격
+저대역폭/트래픽이 적다 -> 웹서버의 연결자원/가용량을 소진 시키는 공격
+
+HTTP GET Flooding 공격은 공격자가 동일한 동적 콘텐츠에 대한 HTTP GET요청을 다량으로 발생시켜 공격 대상 웹서버가 해당 요청을 처리하기 위해 서버 자원을 과도하게 사용하도록 하여(부하) 정상적인 요청을 처리하지 못하도록 하는 서비스 거부 공격이다.
+정적 : HTML
+동적 : jsp,asp,php 등
+GET : 해당 자원을 달라고 요청
+POST : 테이터를 전달하여 이를 처리한 결과를 달라고 요청
+
+
+[임계값 추가를 이용한 HTTP GET 플러딩 공격 탐지]
+HTTP GET Flooding : 반복적으로 웹서비스 접속을 수행해 과부하를 유발 시키는 공격 ( F5 Reload 공격)
+alert tcp any any -> 192.168.0.18 80 (content:"GET / HTTP/1.";nocase;threshold:type both,track by_src,count 10,seconds 2;sid:2018050501;)
+
+[HTTP Slow Loris Attack] 슬로우 로리스 공격 
+Slowloris 공격이라고도 부른다.
+HTTP Header 정보를 비정상적으로 조작하여 웹서버가 온전한 Header정보가 올때 까지 기다리도록 한다.
+서버가 연결 상태를 유지할 수 있는 가용자원은 한계가 있으므로 임계치를 넘어가면 다른 정상적인 접근을 거부하게 된다.
+Slowloris 동작
+HTTP에선 헤더의 끝을 /r/n 이라는 개행문자로 구분한다. (CRLF, Carriage Return, Line Feed)
+공격자는 이 마지막 개행문자를 보내지 않고 지속적으로 의미없는 변수를 추가한다.
+서버는 헤더 정보가 아직 전송 중이라고 인식하고 연결을 유지한다.
+
+[ 대응 ]
+공격자가 동시에 많은 세션을 유지하므로 방화벽 등을 통하여 세션 임계치 제한을 설정한다.
+공격자가 헤더를 천천히 전달하며 연결 시간을 지속시키므로 연결 타임아웃 시간을 적절히 짧게 두어 의심되는 연결이 종료되도록 한다. 단, 너무 짧게 둘 경우 일부 느린 네트워크의 정상적인 연결에 대해서도 가용성을 해칠 수 있다.
+
+HTTP 헤더와 바디를 구분하는 방법은?    헥사코드 참고   \r\n\r\n  이다..  (0d0a0d0a) - CRLF
+공격자가 이러한 식별자의 값을 조작해 전송하면 웹서버에서는 HTTP 헤더의 끝이 없기 때문에 전산 자원을 계속 HTTP 헤더 수신에만 할당할 수 밖에 없고 그 과정에서 과부하가 발생한다.
+슬로우 로리스 공격은 상당히 파괴적이다.(특히나 slowloris 공격은 다량의 좀비를 이용한 DDoS공격이 아닌 DoS공격이며 HTTP 특성을 이용하므로 더욱 탐지가 힘든편이다.)
+
+showhttptest
+주의사항 : 이 도구는 Apache서버의 특성을 타겟으로 만들어졌다.
+slowloris 공격과 같은 경우에는 Apache가 아니라도 공격이 가능하나 RUDY, Slow Read, Apach Killer 공격 옵션은 아파치가 아닐 경우(Custom Webserver, IIS Webserver)에는 공격이 통하지 않는것이 확인되었다. 
+또는 POST 공격대상이 없는 경우에도 마찬가지일 수 있다. 웹서버의 특성마다 다를 수 있기에 참조하길 바라며 실습으로는 Apache를 이용하였다.
+
+-H // slow headers aka slowloris (디폴트 설정이기에 대문자 옵션을 주지 않으면 기본.)
+-B // R-U-Dead-Yet , RUDY 공격
+-R // Apache 취약점 공격
+-X // Slow Read 공격
+-g // 변화되는 소캣의 상태 통계 생성. -o와 같이 사용
+-o [file_name] // report 보고서 출력파일 생성. -g 옵션을 주고 실행하여야 한다.
+-c // 타겟에 연결시도할 최대 세션숫자. 시스템 성능에 따라 1000~4000 정도까지 충분히 높게주어야 결과확인이 쉽다.
+-i // 데이터간 전송 간격
+-l // 테스트 시간 제한
+-r // 초당 연결 수. 높게 설정할수록 가파르게 연결 세션이 올라간다.
+-s // 헤더의 내용 길이. 필요한 경우에 사용한다. RUDY와 같이 사용
+-t [verb] // request시 지정 단어를 사용
+-u [URL] // 타겟 URL
+-x [bytes] // 탐지를 피하기 위한 random한 문자열을 X- 다음에 붙여준다. 
+-p [Seconds] // 지정한 시간(초)이 흐른 후에도 응답이 없으면 접속 불가능하다고 판단한다.
+
+---------------------------------------------------------------------------------
+
+root@kali:/home/kali# apt install slowhttptest
+root@kali:/home/kali# apt install etherape
+
+----------------------------------------------------------------------------------
+
+- 패킷 분석
+- snort 룰 작성
+
+[^0d0a]0d0a  ---->      \x0d  ----->  pcre:"/[^\x0d\x0a]\x0d\x0a/"
+alert tcp any any -> any any (msg:"To Detected Slowloris Attack"; flow:to_server,established; pcre:"/[^\x0d\x0a]\x0d\x0a/"; threshold:type both,track by_src,count 10,seconds 2; sid:2025121212;)
+
+flow:to_server,established ---> 3way handsharke 연결 이후 서버로 향하는 패킷 탐지(제어)
+
+
+
+
+
+
+Slow HTTP POST DoS (RUDY 공격)
+ - Content-Type (MIME)타입 / 네트워크 보안 참고
+ - Content-Type를 얼마만큼 보내는데 Content_Length에 지정
+
+RUDY 공격 실습 (RUDY는 R-U-Dead-Yet의 약자로서 풀어쓰면 'Are you dead yet?‘)
+POST 메소드로 대량의 데이터를 장시간에 걸쳐 분할 전송하여 연결을 장시간 유지시킨다.
+서버가 POST 데이터를 모두 수신하지 않았다고 판단하면 전송이 다 이루어질때 까지 연결을 유지하는 성격을 이용한다.
+예를 들어 Content-Length를 100000byte로 하고 데이터는 일정한 간격으로 1byte씩 전송한다.
+이러한 연결을 다량 만들어 각각의 연결이 장시간 유지되도록 하여 가용성을 해친다.
+-
+
+HTTP POST 메소드에서 content-length 값을 지정하여 서버의 가용량을 할당하는데,
+HTTP POST 메소드를 이용하여 서버로 전달할 대량의 데이터를 장시간에 걸쳐 분할 전송하면 서버는 POST 데이터가 모두 수신하지 않았다고 판단하여 연결을 장시간 유지하게 하는 공격
+정상 파일의 경우 Content-Length 값과 데이터 값이 동일하다.
+
+
+POST에서 발생하는 Content-Length(내가 보낼 요청 바디의 길이)application/x-www-form-urlencoded 기본 폼 전송
+multipart/form-data 파일 업로드
+application/json REST API
+text/plain 단순 텍스트
+text/xml
+XML APIapplication/xml
+XML 데이터
+
+
+RUDY(Slow HTTP POST DoS) 는 Snort에서 “완벽 차단”보다는 “행위 기반 탐지” 로 접근해야 하고, 실무에서는 여러 룰을 조합해서 사용하면 된다.
+alert tcp any any -> $HOME_NET $HTTP_PORTS (
+    msg:"RUDY Possible Slow HTTP POST - Content-Length detected";
+    flow:to_server,established;
+    content:"POST"; http_method;
+    content:"Content-Length:"; http_header;
+    classtype:attempted-dos;
+    sid:1000001;
+    rev:1;
+)
+
+- Content-Length 값이 큰 POST 요청
+alert tcp any any -> $HOME_NET $HTTP_PORTS (
+    msg:"RUDY Suspicious Large Content-Length POST";
+    flow:to_server,established;
+    content:"POST"; http_method;
+    content:"Content-Length:"; http_header;
+    pcre:"/Content-Length:\s*(1[0-9]{5,}|[2-9][0-9]{4,})/H";
+    classtype:attempted-dos;
+    sid:1000002;
+    rev:1;
+)
+
+- 다량의 POST + Content-Length 요청
+alert tcp any any -> $HOME_NET $HTTP_PORTS (
+    msg:"RUDY Slow HTTP POST DoS Attempt (Threshold)";
+    flow:to_server,established;
+    content:"POST"; http_method;
+    content:"Content-Length:"; http_header;
+    detection_filter:track by_src, count 20, seconds 60;
+    classtype:attempted-dos;
+    sid:1000003;
+    rev:1;
+)
+
+- Body 거의 없는 POST 탐지
+alert tcp any any -> $HOME_NET $HTTP_PORTS (
+    msg:"RUDY Possible Slow POST - Small Body with Large Content-Length";
+    flow:to_server,established;
+    content:"POST"; http_method;
+    content:"Content-Length:"; http_header;
+    dsize:<200;
+    detection_filter:track by_src, count 10, seconds 60;
+    classtype:attempted-dos;
+    sid:1000004;
+    rev:1;
+)
+
+
+slowhttptest에서 WHACKUR는 Slow HTTP POST(RUDY) 공격 유형을 의미하며, -B 옵션이 존재할 경우 기능적으로는 중복될 수 있으나 공격 유형을 명확히 정의하는 역할을 한다.”
+
+----------------------------------------------------------------------------------
+
+
+root@kali:/home/kali# slowhttptest -B -c 4000 -i 100 -r 200 -s 4096 -t WHACKUR -x 3 -g -o rudy -u http://roror.co.kr
+
+
+--------------------------------------------------------------------------------------
+
+
+HTTP_SlowRead 공격
+TCP 흐름제어(Flow Control)란 연결된 상호간에 수신 가능한 양만큼만 데이터를 전송하는 제어방식
+즉! 수신측의 수신버퍼(Recive Buffer)에 충분한 여유 공간이 없다고 송신측에게 알려주면 송신측은 수신측 window를 수정하여 전송한다.
+공격자는 TCP 세그먼트 헤더 중 윈도우 크기(Window Size 를 0으로 고정) 항목을 최소로 설정해 웹 서버가 데이터를 느리게 응답하도록 함으로서 연결을 계속 유지한다. 
+이 과정에서 과부하를 유발시키는 공격이 바로 HTTP Slow Read 공격이다. 
+이전에 소개한 공격은 HTTP 헤더 항목을 조작해 과부하를 유발시키는 방식인 반면 슬로우 HTTP 리드 공격은 TCP 헤더 항목을 악용한 방식이라고 할 수 있겠다.
+
+대응책 : 동시연결에 대한 임계치 설정을 통한 차단
+       방화벽을 이용한 룰 설정 등
+Iptables –A INPUT –p tcp –dport 80 –m –connlimit –connlimit-above 30 –j LOG --log-prefix “[SLOW_DROP]”
+Iptables –A INPUT –p tcp –dport 80 –m –connlimit –connlimit-above 30 –j DROP
+Apache 연결 또는 읽기타임아웃 설정을 통한 차단
+
+
+
+
+
+
+- 참고사항
+-리눅스 기반에 설계된 네트워크 보안 모니터링(NSM) 도구     •  NSM : Network Security Monitoring
+•NIDS : Network Intrusion Detection System (네트워크 기반, 주로 다룰 내용)
+•HIDS : Host-based Instrusion Detection System (호스트 기반, 이상징후)
+
+- 자격증(용어 학습)
+자산(Asset)
+위협(Threat)
+취약점(Vulnerability)
+익스플로잇(Exploit)
+위험도(Risk)
+이상징후(Anomaly)
+사건(Incident)
+
+
+
+[IDS Engine]
+Snort/Suricata (signature),  Bro(데이터수집, 이상징후탐지) OSSEC(HIDS), Argus(네트워크수집),  Netsniff-NG(네트워크수집),  ETC
+
+
+[Evaluation Mode]  최적화된 설정으로 자동으로 설치  ( 체크 )
+
+[Production Mode] 사용자 설정(아래 세부 옵션)
+-Server : 해당 옵션 사용 시 네트워크 모니터링 불가능.
+-Sensor : 이미 서버로 설치된 경우 센서 기능 추가. 네트워크 모니터링 가능.
+-Standalone : 서버와 센서를 함께 구성 가능.
+
+
+방화벽 세팅(기본)
+sudo ufw status verbose(sudo ufw status)
+sudo ufw enable (기본?)
+sudo ufw disable
+sudo ufw show raw  (기본정책확인)
+sudo ufw default allow (기본정책허용)
+sudo ufw default deny (기본정책차단)
+
+UFW 허용
+#ufw allow <port>/<optional: protocal> 
+#ufw allow 3389
+#ufw allow 22/tcp
+
+UFW 차단
+#ufw deny <port>/<optional: protocal> 
+#ufw deny 3389
+#ufw deny 22/tcp
+
+
+UFW 룰의 삭제
+ufw deny 22/tcp 설정이 되어있다고 가정
+sudo ufw delete deny 22/tcp
+
+특정한 IP주소 허용
+sudo ufw allow from <ip address> 
+sudo ufw allow from 192.168.0.100
+sudo ufw allow from 192.168.0.0/24
+
+특정 IP 주소와 일치하는 포트 허용
+sudo ufw allow from <ip address> to <protocol> port <port number> 
+
+특정 IP 주소와 프로토콜, 포트 허용
+$ sudo ufw allow from <ip address> to <protocol> port <port number> proto <protocol name>
+예) 192.168.0.100 주소와 tcp 프로토콜 22번 포트 허용
+sudo ufw allow from 192.168.0.100 to any port 22 proto tcp
+
+룰 번호 확인
+#ufw status numbered
+#ufw delete 1  (1번룰 삭제)
+#ufw insert 1 allow from 192.168.0.100  (1번 삽입)
+
+문제, 특정 아이피만 22번 접속(또는 차단) 가능하게 설정
+- 레이어 개념, 위쪽이 우선 적용된다.
+
+
+
+스구일(Sguil)
+-네트워크 보안 모니터링 및 탐지 이벤트 분석 도구
+-일반 GUI 응용 프로그램
+-TCL/TK 를 지원하는 모든 운영 체제에서 실행 가능
+
+• 운영체제지원 목록 : Linux, MacOS, Window ..
+-참고 사이트 : http://bammv.github.io/sguil/index.html
+-최신 버전 : 0.9.0
+
+•기능
+-기본 인터페이스
+-메인 창 활용
+   •Quick Query
+   •Transcript / Wireshark / Network Miner / Bro
+   •Update Event Status
+-보고서
+
+
+[상단 메뉴]
+-File : AutoCat, 비밀번호 변경, 카테고리 확인 기능 제공   (Change Fone : 폰트 변경)
+-Query : 쿼리문을 이용하여 이벤트 검색 제공
+-Reports : 탐지 된 이벤트의 내용들을 정리된 리포트로 제공
+
+[메인창]
+ST : 이벤트 상태(영향도),   위험 레드
+Sport : 출발지 포트
+CNT : 중복되는 이벤트 개수
+Dst IP : 목적지 IP
+Sensor : 탐지된 센서의 네트워크 명
+Dport : 목적지 포트
+Alert ID : 경고 ID
+Pr(Proto) : 숫자로 표현한 IP 프로토콜 ICMP=0 / TCP=6 / UDP=17
+TCP/IP ( RFC : http://www.networksorcery.com/enp/,  http://www.ietf.org/assignments/,  http://www.iana.org/protocols)
+Date/Time : 이벤트 수집 된 날짜와 시간
+Src IP : 출발지 IP
+Event Message : 탐지된 이벤트에 대한 메시지
+
+[서브창]
+
+
+Quick Query  : DB(MySQL)에 저장된 이벤트보기
+
+Quick Query [1/2]
+- [ ST ]필드는 카테고리를 기준으로 데이터를 검색(뒤쪽에서 설명)
+    ST / Src IP / Sport / Dst IP / Dport 값을 기준으로 데이터 베이스 결과를 출력
+    사용 방법 : 마우스 오른쪽 클릭 후 사용
+
+Quick Query [2/2]
+- Src IP, Dst IP, Sport, Dport는 해당 값들을 기준으로 데이터를 검색
+
+기능키 [1/2]
+-이벤트를 카테고리 별로 분류하는 기능
+-사용 방법 : [ST] 필드에서 마우스 오른쪽 클릭 후 Update Event Status 항목 사용
+
+"F1"	"선택한 이벤트를 “카테고리 1 : (비인가 된 Root/Admin 접근)”으로 분류"
+"F2"	"선택한 이벤트를 “카테고리 2 : (비인가 된 사용자 접근)”으로 분류"
+"F3"	"선택한 이벤트를 “카테고리 3 : (비인가 된 접근 시도)”으로 분류"
+"F4"	"선택한 이벤트를 “카테고리 4 : (성공한 DoS 공격)”으로 분류"
+"F5"	"선택한 이벤트를 “카테고리 5 : (부족한 보안 실행이나 정책 위반)”으로 분류"
+"F6"	"선택한 이벤트를 “카테고리 6 : (정찰/조사/스캔)”으로 분류"
+"F7"	"선택한 이벤트를 “카테고리 7 : (바이러스 감염)”으로 분류"
+"F8"	"선택한 이벤트 제거(만료)"
+"F9"	"선택한 이벤트를 Escalated Events로 이동하여 분류 ->  중복 이벤트 세부적 확인 가능“
+
+Reports : 보고서 기능
+
+
+[Alert ID 마우스 우클릭]
+Transcript / WireShark / Network Miner / Bro
+- 특정 이벤트의 Alert ID를 마우스 우클릭으로 네트워크 분석 도구 제공
+
+
+
+vi /etc/network/interfaces
+
+up ip link set $IFACE promisc on arp off up
+down ip link set $IFACE promisc off down
+post-up ethtool -G $IFACE rx 4096; for i in rx tx sg tso ufo gso gro lro; do ethtool -K $IFACE $i off; done
+post-up echo 1 > /proc/sys/net/ipv6/conf/eth0/disable_ipv6
+
+
+
+# rule-update
+# nsm --sensor --restart --only-snort-alert
+# nsm_sensor_ps-restart
+# nsm --server --status
+# nsm --all --status
+
+#!/bin/bash
+echo "1) local.rules"
+echo "2) downloaded.rules"
+read rules_up
+
+if [ $rules_up -eq 1 ]
+then
+        cat /etc/nsm/rules/local.rules > /etc/nsm/rules/downloaded.rules
+        nsm --sensor --restart --only-snort-alert
+fi
+
+if [ $rules_up -eq 2 ]
+then
+        /usr/sbin/rule-update.all
+fi
+
+
+
+Porxy Server 구축(apache,,,,, 여러 방법, squid)
+
+
+
+----------------------------------------------------------------------------------
+
+root@elk:/home/roror# apt install squid
+
+
+root@elk:/home/roror# vi /etc/squid/squid.conf 
+1604 http_access allow localhost
+1605 http_access allow localnet
+
+
+vi /etc/profile.d/proxy.sh
+MY_PROXY_URL="elk.roror.co.kr:3128"
+
+HTTP_PROXY=$MY_PROXY_URL
+HTTPS_PROXY=$MY_PROXY_URL
+http_proxy=$MY_PROXY_URL
+https_proxy=$MY_PROXY_URL
+FTP_PROXY=$MY_PROXY_URL
+ftp_proxy=$MY_PROXY_URL
+
+export HTTP_PROXY HTTPS_PROXY FTP_PROXY http_proxy https_proxy ftp_proxy
+
+
+root@elk:/home/roror# systemctl restart squid
+
+root@elk:/home/roror# vi /etc/iptables/rules.v4
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 3128 -j ACCEPT
+
+root@elk:/home/roror# netfilter-persistent reload
+
+
+

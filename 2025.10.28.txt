@@ -1,0 +1,367 @@
+
+tr.. grep root /etc/passwd | tr : "\n"  ..?
+옵션 : -d(명령의 첫 매개변수로 주어진 문자들을 입력 스트림에서 삭제한다.), -s(중복 문자들을 '압착'한다. 즉 같은 문자가 연달아 여러번 나오면 하나의 문자로 대체한다.)
+
+roror@roror:~$ sed 's/$/\r/' linux_file.txt 
+
+roror@roror:~$ sed -i 's/$/\r/' linux_file.txt 
+
+
+roror@roror:~$ ls -l /etc | pr > test1.txt
+
+
+roror@roror:~$ grep -A 3 roror /etc/passwd
+roror:x:1000:1002:roror:/home/roror:/bin/bash
+saslauth:x:981:76:Saslauthd user:/run/saslauthd:/sbin/nologin
+apache:x:48:48:Apache:/usr/share/httpd:/sbin/nologin
+hacker:x:0:0::/root:/bin/bash
+
+
+who 로그인한 사용자의 로그인멸, 터미널, 로그인 시간 등을 출력
+w 로그인한 사용자와 사용자가 수행 중인 작업을 출력
+
+CLI(Command Lind Interface) : 명령어 기반(텍스트)
+TUI, CUI
+Terminal : 서버의 로컬 또는 원격으로 접속할 수 있는 콘솔
+console : 서버의 로컬 장치에서 직접 명령어를 작성할 수 잇는 입출력 장치
+shell : 명렁어를 해석하여 전달해주는 소프트웨어
+tty(Tele Type Writer) 콘솔 및 터미널 환경
+pty(Pseudo-Terminal) : 가상 터미널 환경(pty는 마스터(master)와 슬레이브(slave) 쌍으로 구성되며, 마스터는 터미널 에뮬레이터나 제어 프로세스가 관리하고, 슬레이브는 사용자 세션이 연결되는 쪽이다.)
+pts(Pseudo-Terminal Slave) : 원격 터미널 환경
+
+
+root@roror:/home/roror# mv ./{*.zip,linux_file.txt} ./test
+
+
+test.txt - 내가 원하는 줄만 출력
+1. 줄표시
+2. 줄펴시는 없지만 내가 원하는 줄만..
+
+
+
+
+roror@roror:~$ cat -n test.txt | awk '$1 ==4'
+     4  -rw-r--r--. 1 roror usermgr   0 10월 28일  11:21 test.txt
+
+df
+
+lsblk
+du
+
+
+
+configure, make, make install
+레드햇 RPM, 데비안 dpkg, 수세 YaST
+
+- 개별 설치는 원하는 패키지만 설치가 가능하고, 전체 패키(관리)시 설치를 하면 필요없는 패키지도 설치가 될 수 있다.
+개별 패키지 설치 : rpm, dpkg YaST - 의존성 상관없이 설치, 즉 관리자가 알아서 관련 패키지를 찾아서 설치해야 한다.
+Redhat : rpm -ivh mc.rpm  (확장자)
+Debian : dpkg -i mc.deb
+패키지 설치 : apt, apt-get, yum, dnf, Zypper, pavman(arch linux) - 의존성 관련 알아서 설치해준다.
+
+
+
+
+
+---------------------------------------------------------------------
+
+
+
+
+- systemctl enable --now daemon
+위의 명령어는 아래의 1,2 을 실행한것과 같다.
+ 1) systemctl start daemon
+ 2) systemctl enable daemon
+
+
+
+root@elk:/home/roror# vi /etc/sysctl.conf  // 영구적 설정이 필요할 때 사용
+net.ipv4.ip_forward=1   // 주석 삭제
+
+
+
+root@elk:/proc/1651# ls -l cwd
+lrwxrwxrwx 1 root root 0 Oct 28 07:11 cwd -> /    // 실행 위치
+root@elk:/proc/1651# ls -l exe
+lrwxrwxrwx 1 root root 0 Oct 28 07:07 exe -> /usr/sbin/sshd   // 실행 파일
+
+- 재부팅 시 초기화 된다.(임시 사용)
+root@elk:/proc/sys/net/ipv4# echo "0" > /proc/sys/net/ipv4/icmp_echo_ignore_all   // ping됨
+root@elk:/proc/sys/net/ipv4# echo "1" > /proc/sys/net/ipv4/icmp_echo_ignore_all   // ping 안됨
+
+root@elk:/proc/sys/net/ipv4# echo "1" > /proc/sys/net/ipv4/ip_forward
+
+
+root@elk:/proc/sys/net/ipv4# vi /etc/sysctl.conf   // net.ipv4.ip_forward=1 주석 삭제되어있음
+root@elk:/proc/sys/net/ipv4# cat /proc/sys/net/ipv4/ip_forward
+0   // 변경 사항이 반영되지 않음
+root@elk:/proc/sys/net/ipv4# sysctl -p   // 내용을 다시 불러와 커널 파라미터에 반영함 
+net.ipv4.ip_forward = 1
+root@elk:/proc/sys/net/ipv4# cat /proc/sys/net/ipv4/ip_forward
+1   // 반영됨
+
+
+PID 1번 이름
+init
+systemd
+
+
+
+root@elk:/proc/sys/net/ipv4# vi /etc/iptables.conf 
+(포트포워딩)PREROUTING - DNAT(destination NAT)
+(MASQUERADE)POSTROUTING - 매스커레이드 - NAT - 공유기(인터넷 공유) - SNAT(source NAT)
+
+
+
+
+# vi /etc/iptables.conf
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A POSTROUTING -s 192.168.1.0/24 -o ens33 -j MASQUERADE
+# -A POSTROUTING -s 10.0.0.0/24 -o enp0s6 -j SNAT --to-source 192.168.64.12
+#-A PREROUTING -d 10.0.0.222 -p TCP --dport 80 -j DNAT --to 192.168.1.100:80
+-A PREROUTING -d 10.0.0.222 -p TCP --dport 21:443 -j DNAT --to 192.168.1.100
+COMMIT
+
+
+
+
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [66:8043]
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+#-A FORWARD -j NFQUEUE --queue-num=4
+#-A INPUT -p icmp --icmp-type echo-request -j NFQUEUE --queue-num=4
+-A INPUT -p icmp -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 21 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 5000:6000 -j ACCEPT
+-A INPUT -p tcp -m state --state NEW -m tcp --dport 1:65000 -j DROP
+-A INPUT -p udp -m state --state NEW -m udp --dport 1:65000 -j DROP
+#-A INPUT -j REJECT --reject-with icmp-host-prohibited
+#-A FORWARD -j REJECT --reject-with icmp-host-prohibited
+COMMIT
+
+
+
+
+
+
+
+
+root@elk:/home/roror# vi /etc/rc.local 
+
+#!/bin/bash
+/etc/init.d/iptables start 2>> /var/log/iptables.err
+systemctl start isc
+exit 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

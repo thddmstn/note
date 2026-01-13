@@ -1,0 +1,295 @@
+192.168.101.155/26
+192.168.99.3/27
+gw:192.168.99.30
+
+sn:29
+192.168.100.57 , 62
+56~63
+
+10.10.10.1
+10.10.10.30
+
+192.168.0.57
+192.168.0.62
+
+192.168.1.14
+162.168.1.1
+
+문제 1번
+GIJeong Company 에서 60대의 PC를 구성하려고 한다. 192.160.0.0/24 네트워크의 두번째 구간을 사용하고자 한다.
+네트워크 아이디, 사용가능한 첫번째, 마지막 주소, 브로드캐스트 주소를 확인하라.
+
+192.160.0.128
+192.168.0.129
+192.168.0.254
+192.168.0.255
+
+문제 2번VLSM (Variable Length Subnet Mask)
+1) 한 네트워크 주소 공간에서 서브넷 마스크를 가변적으로 적용하여 IP 주소를 더 효율적으로 사용하는 방법이다.
+2) 네트워크의 규모와 필요 호스트 수에 따라 서브넷 크기를 다르게 설계할 수 있다.
+
+1) 네트워크 대역 : 192.168.0.0/24
+2) 부서별 요구사항
+A : 50대
+B : 30대
+C : 10대
+3) C 네트워크의 네트워크 ID, 브로드캐스트, 사용가능한 첫번째, 마지막 IP 서술 하시오.
+
+192.168.0.0/26
+192.168.0.0
+192.168.0.63
+192.168.0.1
+192.168.0.62
+
+192.168.0.64/27
+192.168.0.64
+192.168.0.95
+192.168.0.65
+192.168.0.94
+
+192.168.0.96/28
+192.168.0.96
+192.168.0.111
+192.168.0.97
+192.168.0.110
+
+
+
+VPN이 L2계층에서 사용하는 프로토콜
+L2F (cisco)
+PPTP
+L2TP
+
+tracert
+
+OSPF란 동적 라우팅 프로토콜로 대표적인 링크 상태 라우팅 프로토콜이다. (개방형 라우팅 프로토콜)
+대규모 네트워크를 구성할 때 많이 사용. 구역(area) 개념을 사용 metric을 cost라고 부르며,
+홉카운트 홉(라우터 1개)
+홉카운트 15개 : RIP (거리기반 distance vecter)
+
+
+사설ip, 공인ip : nat
+사설망, 공중망 : vpn
+가정이나 작은 규모의 기업에서 인터넷에서 접속할때 쓰이는 라우터 : 브로드밴드 라우터..?
+
+ssl 암호화기반 인터넷 보안 프로토콜. netscape가 개발 ssl/tls 사용하는 웹사이트의 URL에는 "HTTP"대신 "HTTPS"가 있음.
+
+ips
+iaas paas saas
+
+ARP스푸핑 : 공격자가 자신을 라우터라고 속이는 2계층 공격으로, 이 공격은 위조된 ARP Reply 패킷을 보내는 방법을 사용한다. 자신의 MAC주소가 라우터라며 주기적으로 브로드캐스트한다.
+
+OWASP top-10 : 오픈소스 웹 애플리케이션 보안 프로젝트로 주로 웹에 관한 정보노출, 악성 파일 및 스크립트, 보안 취약점 등을 연구하며, 10대 웹 어플리케이션의 취약점을 발표하였다.
+
+top : 메모리 사용정보 확인 명령어
+
+grub 부트로더
+init 최초의 프로세스(1)
+systemb 시스템 부팅시 마운트 설정..?아 잠온다... 
+
+백그라운드 실행 : &  ex) sleep 10199 &
+
+듀얼스택 기술
+
+포트 미러링 : 특정 포트로 흐르는 패킷을 다른 임의의 포트로 Copy해 보내는 기술로서, 네트워크기반 IDS를 구축하기 위래 Switching Hub에서 사용하는 기능
+
+
+1) 128비트 주소, 사실상 무제한에 가까운 주소 공간이다.
+2) 콜론(:) 구분, 16진수 표기8개의 블록으로 구성
+3) IPSec 기본 내장, IPv4보다 보안 강화
+4) NAT 불필요, 직접 연결 가능
+5) 간소화된 헤더로 라우팅 성능 향상
+6) IPv6 헤더에는 체크섬이 간소화 되고 응용계층에 의존한다.
+7) IPv6는 DHCP없이도(로컬) 자동 주소 설정(Stateless Address Autoconfiguration, SLAAC) 기능을 기본적으로 지원한다.
+8) IPV6는 패킷 크기를 고정된 크기로만 전송한다.
+9) IPv6는 ARP를 사용하여 MAC 주소를 확인한다
+
+
+
+Flow Control (흐름 제어)
+설명
+ - Flow Control (흐름 제어)는 송신자가 수신자의 데이터 처리 속도를 초과하지 않도록 제어하는 기법이다.
+ - 수신 윈도우 크기(Receive Window)를 설정하여 송신자가 보낼 수 있는 데이터 양을 조절한다.
+ - TCP에서는 슬라이딩 윈도우(Sliding Window) 기법을 사용하여 흐름 제어를 수행한다.
+
+ 📌 오답 해설
+  - Congestion Control (혼잡 제어): 네트워크 내의 패킷이 과부하 상태가 되는 것을 방지하는 기술 (예: TCP의 Slow Start, AIMD)
+  - Error Control (오류 제어): 데이터 전송 중 오류를 검출하고 재전송하는 기법 (예: TCP의 ACK & Retransmission)
+  - Multiplexing (다중화): 여러 개의 프로세스가 하나의 네트워크 연결을 공유하도록 하는 기법
+
+
+문제) 실시간성이 중요한 온라인 게임이나 유튜브에서 라이브 스트리밍 사용  (UDP)
+보기1) 신뢰성, 순서 중요, 패킷 손실이나 에러가 발생하면 재전송을 요구, 연결 프로토콜
+보기2) 비연결 프로토콜이며, 단순한 요청 응답구조가 필요한 경우 사용, DNS에서도 사용
+
+TCP,           UDP 
+
+설명 
+1) 온라인 게임
+UDP: 게임 캐릭터의 움직임, 공격, 위치 정보 등 실시간으로 반응해야 하는 데이터는 UDP를 사용한다. 속도가 가장 중요하고, 몇 개의 패킷이 손실되더라도 게임 흐름에 큰 지장이 없기 때문이다.
+TCP: 게임 로그인, 채팅 메시지, 아이템 거래 내역 등 신뢰성이 중요한 데이터는 TCP를 사용한다. 이 데이터는 손실되거나 변조되면 게임 진행에 심각한 문제가 생기므로, 반드시 정확하게 전송되어야 한다.
+
+2) 동영상 유튜브 실시간 스트리밍
+UDP: 과거에는 TCP 기반의 RTMP 프로토콜이 주로 사용되었지만, 최근에는 지연 시간을 줄이기 위해 UDP를 기반으로 한 QUIC 프로토콜이 도입되고 있다.
+TCP: 현재 유튜브 스트리밍에서 가장 널리 사용되는 HLS나 MPEG-DASH 프로토콜은 HTTP(TCP 기반)를 사용한다. 영상 데이터를 작은 덩어리로 나눠 전송하여 네트워크 환경에 따라 화질을 자동으로 조절하는 장점이 있다.
+
+3) TCP (Transmission Control Protocol)
+신뢰성: 데이터를 주고받기 전에 연결을 설정하고, 데이터가 손실되면 재전송을 요청하여 모든 패킷이 정확하게 순서대로 도착하는 것을 보장한다.
+속도: 연결 설정 과정과 데이터 검증 절차 때문에 UDP보다 속도가 느리다.
+주요 용도: 이메일, 웹 페이지(HTTP/S), 파일 전송(FTP) 등 데이터의 정확성이 중요한 서비스에 사용된다.
+
+4) UDP (User Datagram Protocol)
+신뢰성: 연결을 설정하지 않고 데이터를 '보내고 잊는(fire-and-forget)' 방식으로 전송하여, 데이터의 도착이나 순서를 보장하지 않는다. 일부 데이터 손실이 발생할 수 있다.
+속도: 오버헤드가 적어 TCP보다 훨씬 빠르다.
+주요 용도: 온라인 게임, 동영상 스트리밍, VoIP(인터넷 전화) 등 실시간성이 중요한 서비스에 사용된다. 이 경우, 몇 개의 프레임이 손실되더라도 전체 흐름이 끊기지 않는 것이 더 중요하기 때문이다.
+
+
+
+Alert Protocol : 합의된 압축 알고리즘을 이용한 메시 압축 기능이다.
+Alert Protocol은 SSL/TLS 프로토콜에서 오류 및 경고 메시지를 전송하는 데 사용된다. 
+이 프로토콜은 합의된 보안 매개변수에 문제가 있거나 연결을 종료해야 할 때 사용된다. 따라서 압축 알고리즘과는 직접적인 관련이 없다.
+
+디렉토리에 스티키 비트가 설정되어 있으면 디렉터리에는 누구나 파일을 생성할 수 있다.
+chmod 1777 /directory (umask 022)
+
+VLAN 트렁킹 프로토콜 : VTP
+
+init 0: 시스템 종료
+init 1: 안전모드
+init 3: 멀티모드
+init 5: GUI지원
+init 6: 재부팅
+
+174p WAP 웹어플리케이션방화벽
+175p 6
+176p 2 / 3,6
+
+mount
+umount  (unmount 아님)
+
+
+
+
+
+Alert Protocol : 합의된 압축 알고리즘을 이용한 메시 압축 기능이다.
+Alert Protocol은 SSL/TLS 프로토콜에서 오류 및 경고 메시지를 전송하는 데 사용된다. 
+이 프로토콜은 합의된 보안 매개변수에 문제가 있거나 연결을 종료해야 할 때 사용된다. 따라서 압축 알고리즘과는 직접적인 관련이 없다.
+
+
+1) 주소표기방식은 aaaa: * 8 로 표현한다. 
+2) 체크섬이 필요없다. 
+3) 응용프로그램에 의존한다.  (전송계층에 의존)
+4) 32비트 주소체계(대략 42억개)이다.   (128bit)
+5) 유니 캐스트, 멀티 캐스트, 브로드 캐스트를 사용한다. 
+6) IPsec(인터넷 프로토콜 보안)을 기본적으로 지원한다. 
+7) 128비트 주소체계이다. IPv6 와 관련 있는건
+
+
+1) RIP는 최대 홉 수 15를 지원하며, 30초마다 전체 라우팅 정보를 브로드캐스한다.
+2) ✅ 정답 (옳지 않음)
+ - EIGRP (Enhanced Interior Gateway Routing Protocol)
+    EIGRP의 기본 최대 홉 수는 100, 최대 255까지 확장 가능하다.(Default Hop Count 100이 아니라, 기본 최대 홉 수 100이며, 255까지 확장 가능)
+    "대역폭, 지연, 신뢰성, 부하, MTU 같은 여러 Metric 지원
+
+3) DUAL (Diffusing Update Algorithm)을 사용하는 프로토콜은 EIGRP이다. 토폴로지 변경 시 빠르게 수렴할 수 있도록 설계되었다.
+
+4) 링크 상태 정보를 전달하는 라우팅 프로토콜은 OSPF (Open Shortest Path First)이다.
+    OSPF는 Area 개념을 사용하여 네트워크를 계층적으로 관리하고, Shortest Path First (SPF) 알고리즘을 사용하여 최단 경로를 계산한다.
+
+
+✅ Type 6 : Destination (존재하지 않는 잘못된 Type)
+✅ Type 10 : Timestamp Reply (잘못된 Type, 실제로는 Router Solicitation)
+
+
+
+
+------------------------------------------------------------------------------------------
+
+Switch(config)#vlan 10
+Switch(config-vlan)#vlan 20
+Switch(config-vlan)#int fa0/1
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 10
+Switch(config-if)#int fa0/2
+Switch(config-if)#switchport mode access
+Switch(config-if)#switchport access vlan 20
+Switch(config-if)#int g0/1
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 10
+Switch(config-if)#int g0/2
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 20
+
+Router(config-if)#int fa0/0
+Router(config-if)#ip add 10.10.10.1 255.255.255.0
+Router(config-if)#no sh
+
+Router(config)#int f0/1
+Router(config-if)#ip add 10.10.20.1 255.255.255.0
+Router(config-if)#sh
+
+
+Switch(config)#vlan 10
+Switch(config-vlan)#name vlan-10
+Switch(config-vlan)#vlan 20
+Switch(config-vlan)#name vlan-20
+Switch(config-vlan)#vlan 30
+Switch(config-vlan)#name vlan-30
+Switch(config-vlan)#int fa0/1
+Switch(config-if)#sw mo acc 
+Switch(config-if)#sw acc vl 10
+Switch(config-if)#int fa0/2
+Switch(config-if)#sw mo acc
+Switch(config-if)#sw acc vl 20
+Switch(config-if)#int fa0/3
+Switch(config-if)#sw m acc
+Switch(config-if)#sw a vl 30
+
+Switch(config)#int fa0/24
+Switch(config-if)#switchport mode trunk 
+Switch(config-if)#
+
+
+R1#conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+R1(config)#int f0/0
+R1(config-if)#no sh
+
+R1(config-if)#int fa0/0.10
+R1(config-subif)#
+%LINK-5-CHANGED: Interface FastEthernet0/0.10, changed state to up
+
+%LINEPROTO-5-UPDOWN: Line protocol on Interface FastEthernet0/0.10, changed state to up
+R1(config-subif)#encapsulation dot1Q 10
+R1(config-subif)#ip address 168.126.64.1 255.255.255.0
+
+R1(config-subif)#int fa0/0.20
+R1(config-subif)#en do 20
+R1(config-subif)#ip add 168.126.65.1 255.255.255.0
+
+R1(config-subif)#int fa0/0.30
+R1(config-subif)#en do 30
+R1(config-subif)#ip add 168.126.66.1 255.255.255.0
+R1(config-subif)#
+
+
+Static Routing(Default)
+ip route 0.0.0.0 0.0.0.0 (상대방의IP 또는 자신의 인터페이스)
+
+R1(config)#ip route 0.0.0.0 0.0.0.0 204.200.7.2
+R2(config)#ip route 0.0.0.0 0.0.0.0 204.200.7.1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

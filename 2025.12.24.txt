@@ -1,0 +1,530 @@
+1. dnf install -y policycoreutils
+  sestatus : SELinux 상태 확인
+  getenforce : Enforcing / Permissive / Disabled 확인
+  setenforce : 실시간 모드 전환
+
+2. dnf install -y policycoreutils-python-utils
+  semanage : 파일/포트/사용자 Context 영구 관리
+  restorecon : 정책 기반 Context 복구
+  audit2why : AVC 원인 분석
+
+
+3. dnf install -y setroubleshoot setroubleshoot-server
+  AVC Denial 자동 해석, “왜 막혔는지”를 사람 말로 설명해준다
+  sealert -a /var/log/audit/audit.log
+
+4. dnf install -y checkpolicy  
+  audit2allow : AVC 기반 정책 생성
+  checkpolicy : 정책 컴파일
+  semodule : 정책 모듈 로드
+
+  예)
+  audit2allow -a
+  audit2allow -M mypolicy
+  semodule -i mypolicy.pp
+
+
+
+SELinux의 MLS / MCS 한 번에 이해하기
+  - user : role : type : level(MLS/MCS)
+  - 같은 권한이어도, 데이터 등급이나 분류가 다르면 접근 못 하게 하는 장치
+  - MAC  (강제적 접근통제)
+     ├─ Bell-LaPadula → 기밀성
+     └─ Biba          → 무결성
+   - Biba 
+     신뢰되지 않은 데이터가 중요한 데이터에 영향을 주지 못하게
+     No Read Down(높은 무결성 주체는 낮은 무결성 데이터를 읽지 못함) 
+     No Write Up(낮은 무결성 주체는 높은 무결성에 쓰지 못함)
+
+
+Bell-LaPadula랑 헷갈릴 때 비교
+    모델	            읽기 금지              쓰기 금지
+    Bell-LaPadula    아래 → 위             위 → 아래
+    Biba               위 → 아래             아래 → 위
+
+
+MLS(Multi-Level Security) : Bell-LaPadula 모델의 No Read Up / No Write Down
+  - 군대 / 정부 / 국방 / 정보기관에서 쓰는 엄격한 보안 모델
+  - 기밀은 위로만 올라가고, 절대 아래로 내려오지 않게 막는 용도(s0 < s1 < s2 < s3)
+  - No Read Up (NRU) : 낮은 등급이 높은 등급을 읽지 못함(높은 등급 → 낮은 정보 읽기)
+  - No Write Down (NWD) : 높은 등급이 낮은 등급에 쓰지 못함(낮은 등급 → 높은 곳에 쓰기)
+
+
+MCS (Multi-Category Security) - 수평 분리 모델
+ - 레벨은 같고, 카테고리만 다름 (s0:c1,c2 와 s0:c3 는 같은 보안 레벨, 카테고리 다름 접근 불가)
+
+
+------------------------------------------------------------------------------------
+
+
+root@roror:/home/roror# semanage user -a -R "user_r" -r s0 roror_u
+
+root@roror:/home/roror# dnf install setools-console
+root@roror:/home/roror# seinfo -r
+
+root@roror:/home/roror# semanage login -a -s roror_u hacker
+
+
+
+------------------------------------------------------------------------------
+
+
+ - SELinux에서 시스템 상의 모든 파일(객체)은 기본적으로 object_r이라는 특수한 Role을 가진다
+ - 프로세스 (id -Z)사용자가 활동 중인 '주체'이므로 실제 역할이 할당됨
+
+# restorecon -RFv /home/hacker  // hacker 디렉터리 컨텍스트 설정 복원(파일정책)
+
+
+SELinux는 기본적으로 로컬에서 실행되는 su, gnome-terminal, login, Xsession 등에서는 SELinux 사용자 매핑이 자동 적용되지 않도록 설계되어 있다
+- 안정성 우선
+ 로컬에서 많은 시스템 관리 작업이나 GUI 세션이 발생하는데, 매번 staff_u, user_u 같은 제약이 강제되면 예상치 못한 서비스 중단이나 접근 오류가 발생할 수 있음.
+ 특히 GUI 환경(GDM, GNOME 등)은 unconfined_u에서 실행되지 않으면 많은 프로그램이 동작하지 않음.
+- 명시적 보안 환경만 제한
+ SELinux는 “기본은 허용, 필요 시 제한” 철학을 따른다.
+ 그래서 원격 접속(SSH), 명시적 context 전환(newrole) 같은 보안 의도가 분명한 상황에만 SELinux user context가 적용된다.
+
+
+Role 
+ㄴ SELinux user Role에 대한 권한을 가짐, Role은 domain에 대한 권한을 가지고 있음
+ㄴ domain 및 SELinux user에대한 중계자 역활을 수행
+ㄴ 어떤 domain에 들어갈수 있는가, 어떤 object type이 access 가능한지 여부를 제어
+ㄴ escalation attacks 감소에 도움이 됨 
+SELinux 사용자와 SELinux 역할(Role)이 기본적으로 연결되어 있다. 
+SELinux 사용자를 변경하면 자동으로 해당 사용자가 기본적으로 할당된 역할로 변경된다.
+
+# seinfo -r
+# sesearch --role_allow
+
+dnf install policycoreutils-newrole   // role를 바로 변경
+
+
+# semanage login -a -s staff_u hacker
+ls -lZ
+id -Z
+
+# sesearch -A -s passwd_file_t
+httpd_sys_content_t
+
+# sesearch -A -s httpd_sys_content_t  // 특정 타입의 정책 검색
+# sesearch -A -t httpd_sys_content_t
+ •  sesearch -A -t httpd_sys_content_t 명령은 SELinux 타입(httpd_sys_content_t)과 관련된 모든 허용 규칙(Allow Rules)을 출력한다. 
+    이를 통해 특정 타입(httpd_sys_content_t)이 다른 타입, 프로세스, 객체와 상호작용할 수 있는 권한을 알 수 있다
+ • SELinux 에서는 파일, 디렉터리, 장치 등의 시스템 자원에 대해 타입(Type)이라는 레이블(식별자)를 붙인다.
+또한 프로세스에 붙는 레이블은 도메인(Domain)이라고 부른다 프로세스에 대해 타입(도메인)을 할당하여 제어하는 구조를 TE(Type Enforcememt)라고 한다. 
+TE 구조에서는 취약점이 있는 프로세스를 통해 침해 사고가 발생한다 해도 침해를 입은 프로세스에 허용된 최소한의 권한만뺏기게 된다.
+
+
+Level
+ㄴ MLS 및 MCS 속성
+ㄴ MLS Level이 다른경우 lowlevel-highlevl, level이 동일한경우 lowlevel-lowlevel = lowlevel (s0-s0 = s0)
+ㄴ sensitivity-category pair 카테고리가 없는경우에는 sensitivity 표기
+ㄴ category가 연속인 경우 단축이 가능 (c0.c3 = c0,c1,c2,d3)
+ㄴ Redhat linux에서 지원하는 sensitivity,는 S0 하나이다. category는 0-1023까지 1024개를 지원한다. 모든 권한은 S0에서 가진다.
+ㄴ MLS는 Bell-La Padula 강제하고, LSPP 환경에서 사용됨, MLS을 사용하려면 selinux-policymls package 설치해야함, 
+ㄴ X Windows system 에서는 지원하지 않음
+
+MCS (Multi Category Security)
+MCS는 사용자 및 리소스를 범주 레이블을 부여하여 카테고리별로 액세스 제어를 할 것입니다. 
+사용자가 파일 등의 리소스에 액세스 할 때 부서별로 액세스 제한을 거는 등로 사용할 수 있습니다.
+그러나 현재는 Docker과 OpenShift 등 컨테이너 사이의 보안을 유지하기 위해 사용되는 경우가 주류입니다. 기업 사용자를 개별적으로 설정하고 이용하는 것은별로 없기 때문에 자세한 내용은 생략합니다.
+
+MLS (Multi Level Security)
+MLS는 카테고리 별 액세스 제어 (MCS) 레벨 별 접근 제어를 추가 한 기능입니다. 사용자 나 프로세스가 액세스 할 수있는 범위를 세부적으로 제어 할 수있어 매우 고급 보안을 제공합니다. 그러나 운영 및 관리가 힘들고 강력한 보안을 요구하는 국방 / 군사 시스템 등으로 사용되는 같은 기능이라고 할 수 있습니다. 이쪽도 기업 사용자를 개별적으로 설정하고 이용하는 것은별로 없기 때문에 자세한 내용은 생략합니다.
+
+
+1) 강제 접근 제어 : 프로세스 -> SELinux(정책파일) -> 접근,확인
+2) 최소권한 : (역할기반 접근 제어 = RBAC : Role Base Access Control).
+3) TE : [타입 : httpd_sys_content_t ] <- [httpd 프로세스] -> [타입 : admin_home_t ]접근불가
+4) 도메인전이 : [init 프로세스] init_t 도메인 --- 생성 ---> [httpd 프로세스] httpd_t 도메인
+
+-------------------------------------------------------------------------
+
+root@roror:/home/roror# vi /etc/httpd/conf/httpd.conf 
+125 DocumentRoot "/var/new-www"
+137 <Directory "/var/new-www">
+
+
+root@roror:/home/roror# vi /etc/httpd/conf.d/httpd-vhosts.conf 
+ 25     DocumentRoot "/var/new-www"
+
+root@roror:/home/roror# systemctl restart httpd
+root@roror:/home/roror# systemctl restart php-fpm
+
+
+- 웹 서버의 홈디렉토리를 변경해서 selinux의 정책 위반 설정
+  /var/www/html  -->  /var/new-www    
+/var/www/hrml 에 설정되어있던 정책과 /var/new-www의 정책이 다름
+
+root@roror:/var/log/httpd# audit2why < /var/log/audit/audit.log
+root@roror:/var/log/httpd# sealert -a /var/log/audit/audit.log 
+
+--------------????????
+
+type=AVC msg=audit(1766542304.660:919): avc:  denied  { getattr } for  pid=7501 comm="httpd" path="/var/new-www/index.html" dev="dm-0" ino=67651300 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:var_t:s0 tclass=file permissive=0
+
+
+type=AVC msg=audit(1766542304.660:919): avc:  denied  { getattr } for  pid=7501 comm="httpd" path="/var/new-www/index.html" dev="dm-0" ino=67651300 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:var_t:s0 tclass=file permissive=0
+
+
+
+*****  Plugin catchall (17.1 confidence) suggests   **************************
+
+If you believe that httpd should be allowed getattr access on the index.html file by default.
+Then you should report this as a bug.
+You can generate a local policy module to allow this access.
+Do
+allow this access for now by executing:
+# ausearch -c 'httpd' --raw | audit2allow -M my-httpd
+# semodule -X 300 -i my-httpd.pp
+
+
+Additional Information:
+Source Context                system_u:system_r:httpd_t:s0
+Target Context                unconfined_u:object_r:var_t:s0
+Target Objects                /var/new-www/index.html [ file ]
+Source                        httpd
+Source Path                   /usr/sbin/httpd
+Port                          <Unknown>
+Host                          <Unknown>
+Source RPM Packages           httpd-core-2.4.63-4.el10.x86_64
+Target RPM Packages           
+SELinux Policy RPM            selinux-policy-targeted-42.1.7-1.el10.noarch
+Local Policy RPM              selinux-policy-targeted-42.1.7-1.el10.noarch
+Selinux Enabled               True
+Policy Type                   targeted
+Enforcing Mode                Enforcing
+Host Name                     roror.co.kr
+Platform                      Linux roror.co.kr 6.12.0-124.13.1.el10_1.x86_64 #1
+                              SMP PREEMPT_DYNAMIC Thu Dec  4 06:13:29 EST 2025
+                              x86_64
+Alert Count                   4
+First Seen                    2025-12-24 11:11:29 KST
+Last Seen                     2025-12-24 11:11:44 KST
+Local ID                      fccf4787-f1b4-416c-b934-c25f411d4066
+
+Raw Audit Messages
+type=AVC msg=audit(1766542304.660:919): avc:  denied  { getattr } for  pid=7501 comm="httpd" path="/var/new-www/index.html" dev="dm-0" ino=67651300 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:var_t:s0 tclass=file permissive=0
+
+
+type=SYSCALL msg=audit(1766542304.660:919): arch=x86_64 syscall=newfstatat success=no exit=EACCES a0=ffffff9c a1=7f8fe80065c8 a2=7f8ff5cc3850 a3=100 items=0 ppid=7497 pid=7501 auid=4294967295 uid=48 gid=48 euid=48 suid=48 fsuid=48 egid=48 sgid=48 fsgid=48 tty=(none) ses=4294967295 comm=httpd exe=/usr/sbin/httpd subj=system_u:system_r:httpd_t:s0 key=(null)ARCH=x86_64 SYSCALL=newfstatat AUID=unset UID=apache GID=apache EUID=apache SUID=apache FSUID=apache EGID=apache SGID=apache FSGID=apache
+
+Hash: httpd,httpd_t,var_t,file,getattr
+
+
+-----------------------------------------------------------
+
+뭔소리야
+
+----------------------------------------------------------------------------------
+
+type=AVC msg=audit(1766542304.660:919): avc:  denied  { getattr } for  pid=7501 comm="httpd" path="/var/new-www/index.html" dev="dm-0" ino=67651300 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:var_t:s0 tclass=file permissive=0
+
+  1) avc:  denied  { getattr } for  pid=47701 comm="httpd" path="/var/new-html/index.html" 
+   ㄴ 오류 메시지가 avc(Access Vector Cache)  접근 거부 유형이며, 거부된 시스템 콜은 getattr이다   
+   ㄴ 시스템 콜을 호출한 프로그램(comm)은 httpd이며 뒤에는 경로를 의미한다 (즉!!! HTTPD가 index.html 접근 금지되었다.)
+   ㄴ 아파치 httpd가 콘텐츠를 서비스 하기 위해 해당 파일의 정보를 가져오는 getattr  시스템 콜을 호출했음을 알 수 있다.
+  2) scontext=system_u:system_r:httpd_t:s0 
+   ㄴ scontext는 소스 컨텍스트라는 의미, 이것은 주체인 아파치  httpd에 부여된 보안 컨텍스트를 의미하며, httpd_t라는 컨텍스트를 가지고 수행했다.
+  3) tcontext=unconfined_u:object_r:var_t:s0
+   ㄴ tcontext는 타깃 컨텍스트를 의미하며 타깃이 가진 보안 컨텍스트는 var_t임을 알 수 있다.
+
+ - httpd_t의 컨텍스트를 갖는 프로세스는 var_t의 컨텍스트의 파일이나 디렉터리를 읽을 수 없다
+ - httpd_t가 읽을 수 있는 컨텍스트는 httpd_sys_content_t 이며 이 컨텍스트가 설정되어 있지 않으면 아파치 웹서버가 소유하고 있는 파일이라도 읽을 수 없다.
+ - 웹해킹(쉘을 획득하였다고 가정하면)
+   공격자는 /home의 홈디렉터리를 읽으려고 하지만 httpd_sys_content_t 컨텍스트인 객체만 읽을 수 있으므로 user_home_dir_t 는 접근이 차단된다.
+
+
+*****  Plugin catchall (17.1 confidence) suggests   **************************
+
+If you believe that httpd should be allowed getattr access on the index.html file by default.
+Then you should report this as a bug.
+You can generate a local policy module to allow this access.
+Do
+allow this access for now by executing:
+# ausearch -c 'httpd' --raw | audit2allow -M my-httpd
+# semodule -X 300 -i my-httpd.pp
+
+
+Additional Information:
+Source Context                system_u:system_r:httpd_t:s0
+Target Context                unconfined_u:object_r:var_t:s0
+Target Objects                /var/new-www/index.html [ file ]
+Source                        httpd
+Source Path                   /usr/sbin/httpd
+Port                          <Unknown>
+Host                          <Unknown>
+Source RPM Packages           httpd-core-2.4.63-4.el10.x86_64
+Target RPM Packages           
+SELinux Policy RPM            selinux-policy-targeted-42.1.7-1.el10.noarch
+Local Policy RPM              selinux-policy-targeted-42.1.7-1.el10.noarch
+Selinux Enabled               True
+Policy Type                   targeted
+Enforcing Mode                Enforcing
+Host Name                     roror.co.kr
+Platform                      Linux roror.co.kr 6.12.0-124.13.1.el10_1.x86_64 #1
+                              SMP PREEMPT_DYNAMIC Thu Dec  4 06:13:29 EST 2025
+                              x86_64
+Alert Count                   4
+First Seen                    2025-12-24 11:11:29 KST
+Last Seen                     2025-12-24 11:11:44 KST
+Local ID                      fccf4787-f1b4-416c-b934-c25f411d4066
+
+Raw Audit Messages
+type=AVC msg=audit(1766542304.660:919): avc:  denied  { getattr } for  pid=7501 comm="httpd" path="/var/new-www/index.html" dev="dm-0" ino=67651300 scontext=system_u:system_r:httpd_t:s0 tcontext=unconfined_u:object_r:var_t:s0 tclass=file permissive=0
+
+
+type=SYSCALL msg=audit(1766542304.660:919): arch=x86_64 syscall=newfstatat success=no exit=EACCES a0=ffffff9c a1=7f8fe80065c8 a2=7f8ff5cc3850 a3=100 items=0 ppid=7497 pid=7501 auid=4294967295 uid=48 gid=48 euid=48 suid=48 fsuid=48 egid=48 sgid=48 fsgid=48 tty=(none) ses=4294967295 comm=httpd exe=/usr/sbin/httpd subj=system_u:system_r:httpd_t:s0 key=(null)ARCH=x86_64 SYSCALL=newfstatat AUID=unset UID=apache GID=apache EUID=apache SUID=apache FSUID=apache EGID=apache SGID=apache FSGID=apache
+
+Hash: httpd,httpd_t,var_t,file,getattr
+
+특정 프로세스(도메인)만 permissive로 설정
+ 1) # ps -efZ | grep httpd  (프로세스 도메인 보기, ps -ZC httpd, 데몬명 )
+ 2) # semanage permissive -a httpd_t  (sshd, vsftpd 등... 설정에 따라 정책 허용으로 변경한다.)
+ 3) # semanage permissive -l   (정책 확인, 현재 상태는 홈페이지 접속 된다.)
+ 4) # semanage permissive -d httpd_t (허용 정책 삭제)
+
+7. SELinux 오류를 처리하는 법
+  SELinux에서 오류가 발생하는 경우 해결해야 하는 사항이 있다. 다음의 4가지 일반적인 문제 중 하나일 수 있다.
+  1) 레이블이 잘못된 경우: 레이블이 올바르지 않은 경우 툴을 사용하여 레이블을 수정할 수 있다.
+  2) 정책 수정이 필요한 경우: 변경 사항에 대해 SELinux에 알려야 하거나 정책을 조정해야 할 수도 있다. 부울 또는 정책 모듈을 사용하여 이를 해결할 수 있다.
+  3) 정책에 버그가 있는 경우: 정책에 해결해야 하는 버그가 존재할 수 있다.
+  4) 시스템이 침입을 당한 경우: 대부분의 경우 SELinux가 시스템을 보호할 수는 있으나 시스템 손상이 일어날 가능성은 여전히 존재한다. 이런 상황이 의심되는 경우 즉시 조치를 취해야 한다.
+
+부울이란?
+부울(boolean)이란 SELinux의 기능에 대한 활성화/비활성화 설정입니다. 
+SELinux 기능을 켜거나 끌 수 있는 수백 가지 설정이 있으며 이 중 다수는 이미 사전 정의되어 있다. 
+getsebool -a를 실행하여 시스템에 이미 설정된 부울을 찾을 수 있다.
+
+
+
+
+setsebool -P httpd_unified 0
+setsebool -P httpd_read_user_content 0
+setsebool -P httpd_can_network_connect 0
+setsebool -P httpd_can_network_connect_db 0
+setsebool -P httpd_enable_homedirs 0
+setsebool -P domain_can_mmap_files 0
+setsebool -P nis_enabled 0
+setsebool -P httpd_execmem 0
+
+1) setsebool -P httpd_unified 1
+ (1) httpd_unified는 Apache가 실행 중일 때 httpd_t 도메인이 코드와 데이터에 동일한 접근 권한을 가지도록 허용할지를 결정한다.
+ (2) 0으로 설정 시 : Apache가 스크립트와 데이터를 분리해서 다루게 된다. 예를 들어 PHP, CGI 같은 코드 실행 위치와 일반 정적 파일의 위치를 구분해야 하며, 잘못 설정되면 실행 오류가 날 수 있다.
+
+2) setsebool -P httpd_read_user_content 1
+ (1) Apache가 사용자 홈 디렉토리(/home/사용자)에 있는 파일을 읽을 수 있는지 제어한다.
+ (2) 0으로 설정 시 : Apache는 일반 사용자의 홈 디렉토리에 있는 콘텐츠에 접근할 수 없다.
+
+3) setsebool -P httpd_can_network_connect 1
+ (1) Apache가 외부 네트워크에 접속할 수 있도록 허용할지를 설정한다. (예: 외부 API 호출 등)
+ (2) 0으로 설정 시 : Apache는 외부 네트워크로 나가는 연결을 할 수 없다. → curl, fsockopen(), 외부 API 사용 불가.
+
+4) setsebool -P httpd_can_network_connect_db 1  
+ (1) Apache가 네트워크를 통해 데이터베이스 서버(MySQL, PostgreSQL 등)에 접근할 수 있도록 허용할지를 제어한다.
+ (2) 0으로 설정 시 : 원격 DB 서버에 접속이 차단된다. → 같은 서버에 설치된 DB에는 접속 가능하지만, 외부 DB 접속은 불가하다.
+
+5) setsebool -P httpd_enable_homedirs 1
+ (1) Apache가 사용자 홈 디렉토리에서 퍼블릭 웹 콘텐츠(/home/user/public_html)를 서비스할 수 있는지 여부를 설정한다.
+ (2) 0으로 설정 시 : 사용자 디렉토리의 웹 서비스 기능이 비활성화된다.
+
+6) setsebool -P domain_can_mmap_files 1
+ (1) 도메인(프로세스 보안 컨텍스트)이 메모리 매핑(mmap)을 통해 파일에 접근할 수 있는지 제어한다.
+ (2) 0으로 설정 시 : 보안 목적상 mmap 사용이 차단된다. 일부 프로그램이나 언어 런타임(Java 등)에서 성능 저하나 오류가 발생할 수 있다.
+
+7) setsebool -P nis_enabled 1
+ (1) NIS(Network Information Service) 사용을 허용할지 설정한다.
+ (2) 0으로 설정 시 : NIS 클라이언트 기능이 비활성화된다. → NIS 기반 사용자 인증을 사용하는 환경에서는 로그인 실패 가능성 있음
+
+8) setsebool -P httpd_execmem 1
+ (1) Apache가 메모리를 실행 가능한 상태로 할당할 수 있게 허용 (JIT 방식 PHP 엔진이나 특정 PHP 확장 사용 시 필요).
+ (2) 기본값은 0 (보안을 위해 차단됨).
+
+
+
+-----------------------------------------------------------------------------
+
+
+root@roror:/var/named# ls -lZ /var/www/html/index.php 
+-rw-rw-r--. 1 apache apache unconfined_u:object_r:httpd_sys_content_t:s0 4341 10월 21일  10:35 /var/www/html/index.php
+root@roror:/var/named# chcon -R unconfined_u:object_r:httpd_sys_content_t:s0 /var/new-www
+
+root@roror:/var/named# chcon --reference=/var/www/html/index.php /var/new-www
+root@roror:/var/named# ls -ldZ /var/new-www/
+drwxr-xr-x. 2 root root unconfined_u:object_r:httpd_sys_content_t:s0 24 12월 24일  11:07 /var/new-www/
+root@roror:/var/named# ls -lZ /var/new-www/index.html 
+-rw-r--r--. 1 root root unconfined_u:object_r:var_t:s0 22 12월 24일  11:07 /var/new-www/index.html
+
+root@roror:/var/named# chcon -R --reference=/var/www/html/index.php /var/new-www
+
+
+root@roror:/var/new-www# cp --preserve=context /etc/passwd ./
+root@roror:/var/new-www# cp -a /etc/passwd ./
+--> 정책까지 복사
+-rw-r--r--. 1 root root system_u:object_r:passwd_file_t:s0    2582 12월 24일  11:04 passwd
+
+
+root@roror:/var/new-www# cp /etc/passwd ./
+--> 정책 복사 X
+-rw-r--r--. 1 root root unconfined_u:object_r:var_t:s0    2582 12월 24일  12:13 passwd
+
+----------------------------------------------------------------------
+
+- 다른 파일을 이용하여 보안 컨텍스 변경
+   unconfined_u:object_r:httpd_sys_content_t:s0
+   --reference=/var/www/html/index.php
+- 파일 복사시 컨텍스 같이 복사
+
+(참고)tar 명령을 사용해 파일을 백업할 때에도 주의가 필요하다.
+ - tar 명령을 사용하면 SELinux에서 설정한 보안 컨텍스트 내용이 유지되지 않는다.
+ - star 명령을 사용해 보안 컨텍스트를 유지하자(Rocky 는 패키지가 아직 없다)
+  # yum install star ( star 패키지 설치)
+  # star -H=exustar -xattr -cvz -f home.tar.gz /home
+  -xattr : 보안컨텍스트 유지 옵션
+  exustar : 보안컨텍스트 유지 형식
+
+---------------------------------------------------------------------------
+
+
+root@roror:/var/new-www# audit2allow -a
+root@roror:/var/new-www# audit2allow -i /var/log/audit/audit.log 
+// 이ㅓㅇㄱ 아닌거같은데
+
+root@roror:/var/new-www# ausearch -c httpd
+root@roror:/var/new-www# journalctl | grep SELinux
+root@roror:/var/new-www# semodule -l
+
+
+root@roror:/etc/selinux/targeted/contexts/users# find /etc/ -name "*" -type f -exec grep -H "httpd_sys_rw_content_t" {} \; 2>/dev/null
+
+root@roror:/etc/selinux/targeted/contexts/files# vi file_contexts
+1211 /var/www/html(/.*)?/uploads(/.*)?       system_u:object_r:httpd_sys_rw_content_t:s0
+
+
+
+root@roror:/var/www/html/pentest# restorecon -Rv ./upload
+
+/var/new-www(/.*)? 
+
+root@roror:/var# semanage fcontext -a -t httpd_sys_content_t "/var/new-www(/.*)?"
+root@roror:/var# restorecon -Rv /var/new-www/
+
+---------------------------------------------------------------------------
+
+
+- 검증, 판단!!!!!
+httpd_sys_rw_content_t
+/var/www/html(/.*)?/uploads(/.*)?
+1) /var/www/html/uploads
+2) /var/www/html/pentest/uploads
+3) /var/www/html/pentest/data/uploads
+
+1. file_contexts 수정하여 적용
+2. 명령을 이용하여 수정
+   
+httpd_sys_content_t
+semanage fcontext -a -t httpd_sys_content_t "/var/new-www(/.*)?"
+  - '-a' fcontext 객체 유형을 추가
+  - '-t TYPE' TYPE 객체에 대한 SELinux 유형
+
+# semanage fcontext -l | grep uploads
+# semanage fcontext -a -t httpd_sys_rw_content_t "/var/new-www(/.*)?/uploads(/.*)?"
+
+
+
+
+
+1. 논리 매개 변수 활용하여 설정
+   getsebool, setsebool
+
+2.  명령어를 이용하여 컨텍스트 변경
+  chcon -R system_u:object_r:public_content_t:s0 경로
+  chcon -t public_content_t 경로
+  chcon --reference=파일 경로
+  resotrecon -RFv 경로 
+
+3. 파일 복사시 정책 유지 복사 (-a, --preserve)
+
+4. 정책(로그) 검색
+ audit2why, sealert, audit2allow, ausearch, journalctl, semodule
+
+5. semanage fcontext 
+1) file_contexts 수정하여 적용
+2) 명령을 이용하여 수정
+  # semanage fcontext -a -t httpd_sys_content_t "/var/new-www(/.*)?"
+    -a : fcontext 객체 유형을 추가
+    -t : TYPE' TYPE 객체에 대한 SELinux 유형
+  # semanage fcontext -l | grep uploads
+  # semanage fcontext -a -t httpd_sys_rw_content_t "/var/new-www(/.*)?/uploads(/.*)?"
+
+
+----------------------------------------------------------------------------
+
+
+- 모든 사용자 홈디렉토리 selinux 사용자 정책  web 읽기 적용 (uploads, data 쓰기가능 적용)
+semanage fcontext -a -t httpd_sys_rw_content_t "/home(/.*)?/uploads(/.*)?"
+semanage fcontext -a -t httpd_sys_rw_content_t "/home(/.*)?/(uploads|data)(/.*)?"
+
+
+-------------------------------------------------------------------------------------
+
+1. 기본 설정
+setsebool -P httpd_unified 0
+setsebool -P httpd_read_user_content 0
+setsebool -P httpd_can_network_connect 0
+setsebool -P httpd_can_network_connect_db 0  
+setsebool -P httpd_enable_homedirs 0
+setsebool -P domain_can_mmap_files 0
+setsebool -P nis_enabled 0
+setsebool -P httpd_execmem 0
+
+2. 표준 컨텍스트(정책) 검색
+# semanage fcontext -l
+ (정책 파일) /etc/selinux/targeted/contexts/files/file_contexts
+ file_contexts 파일에는 표준 컨텍스트가 저장되어 있다.
+# restorecon -Rv 경로 (file_contexts 파일의 정책으로 변경한다.)
+
+* 참고 * file_contexts 파일의 정책을 복사(수정)해서 적용 가능하다. 
+(변경전)/var/www(/.*)?  system_u:object_r:httpd_sys_content_t:s0
+(변경후)/var/new-www(/.*)?  system_u:object_r:httpd_sys_content_t:s0
+
+3. 명령을 이용해서 적용
+ - 위의 2번과 동일하나 명령을 이용해서 적용시 file_contexts.local 파일에 저장된다.
+# semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/html(/.*)?/upload(/.*)?"
+# semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/html(/.*)?/data(/.*)?"
+# cat /etc/selinux/targeted/contexts/files/file_contexts.local
+
+
+4. 사용자 홈(실습) 정책 확인 및 적용
+# semanage fcontext -l | grep httpd_sys_content_t
+# semanage fcontext -l | grep admin_home_t
+# semanage fcontext -l | grep user_home_t:
+# semanage fcontext -l | grep httpd_.*_content_t
+
+# seinfo -t | grep httpd_user
+httpd_user_rw_content_t
+# semanage fcontext -l | grep httpd_user.*
+# semanage fcontext -a -t httpd_user_rw_content_t "/home/[^/]+/public_html(/.*)?/data"
+# cat /etc/selinux/targeted/contexts/files/file_contexts.local
+# semanage fcontext -d "/home/[^/]+/public_html(/.*)?/data"
+
+# seinfo -t | grep httpd_user
+# semanage fcontext -a -t httpd_user_rw_content_t "/home/[^/]+/((www)|(web)|(public_html))(/.+)?/(data|uploads)(/.*)?"
+
+
+php-fpm가 MySQL 소켓에 대한 연결 권한을 부여받지 못하는 문제
+ # ausearch -c 'php-fpm' --raw | audit2allow -M php-fpm-mysql-socket
+ # semodule -i php-fpm-mysql-socket.pp
+ - ausearch 사용하여 AVC 오류 로그를 검색
+ - audit2allow 명령어를 사용하여 해당 거부 사항을 허용하는데 필요한 SELinux 정책을 생성
+ - 위 명령어는 php-fpm 프로세스와 관련된 AVC 거부 로그를 추출
+ - audit2allow를 사용하여 이를 허용하는 SELinux 정책을 생성
+ - 정책 이름은 php-fpm-mysql-socket으로 지정
+ - php-fpm-mysql-socket 정책을 SELinux 정책 모듈로 설치
+ - SELinux 정책을 수정하기 전에는 잠재적인 부작용을 고려해야 한다.
+   적절한 백업과 테스트를 수행한 후 조치를 취하는 것이 좋다.
+
+
+# semanage port -l | grep -E "http|ssh|ftp"
+
+
+

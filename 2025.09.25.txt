@@ -1,0 +1,557 @@
+kali
+
+알마 ssh 접속 ssh roror@roror.co.kr  인가
+root@roror:/home/roror# vi /etc/my.cnf
+root@roror:/home/roror# cd /etc/my.cnf.d/
+root@roror:/etc/my.cnf.d# ls
+auth_gssapi.cnf           mariadb-server.cnf  provider_lzo.cnf
+charset.cnf               mysql-clients.cnf   provider_snappy.cnf
+client.cnf                provider_bzip2.cnf  spider.cnf
+enable_encryption.preset  provider_lz4.cnf
+root@roror:/etc/my.cnf.d# 
+
+root@roror:/etc/my.cnf.d# mysql
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 5
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> show variables;
+
+
+MariaDB [(none)]> show variables LIKE 'max_allowd_packet';
+Empty set (0.001 sec)
+
+MariaDB [(none)]> show variables LIKE 'secure_file_priv';
++------------------+-------+
+| Variable_name    | Value |
++------------------+-------+
+| secure_file_priv |       |
++------------------+-------+
+1 row in set (0.001 sec)
+
+MariaDB [(none)]> show variables LIKE 'general%';   // % --> 모든것, 글자 1개 _로 표현..?
++------------------+-----------+
+| Variable_name    | Value     |
++------------------+-----------+
+| general_log      | OFF       |
+| general_log_file | roror.log |
++------------------+-----------+
+2 rows in set (0.001 sec)
+
+MariaDB [(none)]> show variables LIKE '%ssl%';
++---------------------+--------------------------+
+| Variable_name       | Value                    |
++---------------------+--------------------------+
+| have_openssl        | YES                      |
+| have_ssl            | DISABLED                 |
+| ssl_ca              |                          |
+| ssl_capath          |                          |
+| ssl_cert            |                          |
+| ssl_cipher          |                          |
+| ssl_crl             |                          |
+| ssl_crlpath         |                          |
+| ssl_key             |                          |
+| version_ssl_library | OpenSSL 3.2.2 4 Jun 2024 |
++---------------------+--------------------------+
+10 rows in set (0.001 sec)
+
+MariaDB [(none)]> show variables LIKE '%ssl_cipher%';
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| ssl_cipher    |       |
++---------------+-------+
+1 row in set (0.001 sec)
+
+
+
+[ Query 로그 허용(추적) ]
+- general_log_file의 기본 경로에서 실시간으로 입력되는 쿼리 로그를 확인할 수 있습니다.
+- 에러 로그 (Error Log) : (역할) 서버 시작/종료, 충돌, 설정 오류 등 시스템 관련 문제 기록
+- 일반 쿼리 로그 (General Query Log) : (역할) 모든 접속 및 실행된 쿼리 기록 (디버깅용)
+- 슬로우 쿼리 로그 (Slow Query Log) : (역할) 일정 시간 이상 걸린 느린 쿼리만 기록 (성능 분석용)
+
+
+
+MariaDB [(none)]> show variables LIKE 'general%';
++------------------+-----------+
+| Variable_name    | Value     |
++------------------+-----------+
+| general_log      | OFF       |
+| general_log_file | roror.log |
++------------------+-----------+
+2 rows in set (0.001 sec)
+
+MariaDB [(none)]> show variables like 'log_error';
++---------------+------------------------------+
+| Variable_name | Value                        |
++---------------+------------------------------+
+| log_error     | /var/log/mariadb/mariadb.log |
++---------------+------------------------------+
+1 row in set (0.001 sec)
+
+
+
+roror@roror:~$ su
+비밀번호: 
+root@roror:/home/roror# ls
+ html5-css3-master.zip   main.zip      다운로드   비디오   음악
+ insecure.zip            public_html   문서       사진
+'main(pentest).zip'      공개          바탕화면   서식
+root@roror:/home/roror# cd /var/log/mariadb/
+root@roror:/var/log/mariadb# ls
+mariadb.log
+root@roror:/var/log/mariadb# vi mariadb.log 
+
+
+
+MariaDB [(none)]> show variables like '%slow_query_log%';
++---------------------+----------------+
+| Variable_name       | Value          |
++---------------------+----------------+
+| slow_query_log      | OFF            |
+| slow_query_log_file | roror-slow.log |
++---------------------+----------------+
+2 rows in set (0.001 sec)
+
+
+
+root@roror:/var/log/mariadb# cd /etc/my.cnf.d/
+root@roror:/etc/my.cnf.d# ls
+auth_gssapi.cnf           mariadb-server.cnf  provider_lzo.cnf
+charset.cnf               mysql-clients.cnf   provider_snappy.cnf
+client.cnf                provider_bzip2.cnf  spider.cnf
+enable_encryption.preset  provider_lz4.cnf
+root@roror:/etc/my.cnf.d# vi mariadb-server.cnf 
+
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+#log-error=/var/log/mariadb/mariadb.log  // 주석 달기
+pid-file=/run/mariadb/mariadb.pid
+// 밑에 추가
+log_error = /var/log/mysql/error.log
+general_log = 1
+general_log_file = /var/log/mysql/mysql.log
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+
+systemctl (start|stop|restart|status|reload|enable|disable) 데몬명   // 외우기..
+
+root@roror:/etc/my.cnf.d# systemctl restart mariadb
+
+root@roror:/etc/my.cnf.d# cd /var/log
+
+ctr+b, n
+
+
+MariaDB [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| pentest            |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.001 sec)
+
+
+MariaDB [(none)]> use pentest;                                                  
+Reading table information for completion of table and column names              
+You can turn off this feature to get a quicker startup with -A                  
+                                                                                
+Database changed
+MariaDB [pentest]> show tables;
++-------------------+
+| Tables_in_pentest |
++-------------------+
+| customer_info     |
+| insecure_board    |
+| members           |
++-------------------+
+3 rows in set (0.000 sec)
+
+MariaDB [pentest]> select * from members;
++-----+--------+----------------------------------+--------+--------------------+---------+
+| idx | id     | password                         | name   | email              | company |
++-----+--------+----------------------------------+--------+--------------------+---------+
+|   1 | hacker | 5e94076503481d9bd1bf5e05661aa644 | hacker | hacker@roror.co.kr |         |
++-----+--------+----------------------------------+--------+--------------------+---------+
+1 row in set (0.001 sec)
+
+MariaDB [pentest]> describe members;  // desc members;  
++----------+--------------+------+-----+---------+----------------+
+| Field    | Type         | Null | Key | Default | Extra          |
++----------+--------------+------+-----+---------+----------------+
+| idx      | int(11)      | NO   | PRI | NULL    | auto_increment |
+| id       | varchar(30)  | YES  |     | NULL    |                |
+| password | varchar(100) | YES  |     | NULL    |                |
+| name     | varchar(50)  | YES  |     | NULL    |                |
+| email    | varchar(30)  | YES  |     | NULL    |                |
+| company  | varchar(30)  | YES  |     | NULL    |                |
++----------+--------------+------+-----+---------+----------------+
+6 rows in set (0.001 sec)
+
+
+MariaDB [pentest]> select * from members;
++-----+--------+----------------------------------+--------+--------------------+---------+
+| idx | id     | password                         | name   | email              | company |
++-----+--------+----------------------------------+--------+--------------------+---------+
+|   1 | hacker | 5e94076503481d9bd1bf5e05661aa644 | hacker | hacker@roror.co.kr |         |
++-----+--------+----------------------------------+--------+--------------------+---------+
+1 row in set (0.000 sec)
+
+MariaDB [pentest]> select idx, id,password from members;
++-----+--------+----------------------------------+
+| idx | id     | password                         |
++-----+--------+----------------------------------+
+|   1 | hacker | 5e94076503481d9bd1bf5e05661aa644 |
++-----+--------+----------------------------------+
+1 row in set (0.000 sec)
+
+MariaDB [pentest]> select idx, id,password from members;
++-----+--------+----------------------------------+
+| idx | id     | password                         |
++-----+--------+----------------------------------+
+|   1 | hacker | 5e94076503481d9bd1bf5e05661aa644 |
++-----+--------+----------------------------------+
+1 row in set (0.000 sec)
+
+
+
+
+root@roror:/var/log# audit2why < /var/log/audit/audit.log   // SELinux 정책 확인
+-로그(내용) 확인하고 설정(어떻게 하하는지 명령어 가이드를 출력)
+root@roror:/var/log# getenforce
+Enforcing   // selinux 정상 작동
+root@roror:/var/log# setenforce 0   // 1:on, 0:off  임시로 셀 설정
+root@roror:/var/log# getenforce
+Permissive   // 정책만 확인, 차단하지 않는다
+
+root@roror:/var/log# systemctl restart mariadb
+
+root@roror:/var/log# mkdir /var/log/mysql
+root@roror:/var/log# touch /var/log/mysql/mysql.log /var/log/mysql/slow.log
+root@roror:/var/log# touch /var/log/mysql/error.log
+root@roror:/var/log# ps -ef | grep mysql
+root        4331    3712  0 09:33 pts/1    00:00:00 mysql
+mysql       4474       1  0 09:49 ?        00:00:00 /usr/libexec/mariadbd --basedir=/usr
+root        4526    4085  0 09:51 pts/2    00:00:00 grep --color=auto mysql
+
+root@roror:/var/log# chown -R mysql:mysql /var/log/mysql/
+root@roror:/var/log# systemctl restart mariadb
+
+
+root@roror:/etc/my.cnf.d# cd /var/log
+root@roror:/var/log# cd mysql
+root@roror:/var/log/mysql# ls
+error.log  mysql.log  slow.log
+root@roror:/var/log/mysql# ls -l
+합계 0
+-rw-r--r--. 1 mysql mysql 0  9월 25일  09:51 error.log
+-rw-r--r--. 1 mysql mysql 0  9월 25일  09:51 mysql.log
+-rw-r--r--. 1 mysql mysql 0  9월 25일  09:51 slow.log
+root@roror:/var/log/mysql# cat error.log 
+root@roror:/var/log/mysql# cat mysql.log 
+root@roror:/var/log/mysql# cat slow.log 
+
+
+- 저널링(로그, 복구) --->  ext3, 4, xfs
+
+root@roror:/var/log/mysql# journalctl -xeu mariadb
+
+root@roror:/var/log/mysql# journalctl -u mariadb  // 에러 확인함.. 뭔소린지 모르겠다..
+
+root@roror:/var/log/mysql# journalctl -u mariadb -f // 실시간 확인..  다른 창에서 systemctl restart mariadb
+하니까 로그?뜸
+
+root@roror:/var/log/mysql# audit2why < /var/log/audit/audit.log  // 이것도 로그 확인..? 에러 확인하는건가 모르겠다.. 배고프다..
+type=AVC msg=audit(1758762672.693:280): avc:  denied  { open } for  pid=4857 comm="mariadbd" path="/var/log/mysql/mysql.log" dev="dm-0" ino=1316848 scontext=system_u:system_r:mysqld_t:s0 tcontext=unconfined_u:object_r:var_log_t:s0 tclass=file permissive=0  // 뭐 권한이 잘못됐다? 차단됐다? 하는데.. 모르겠다..  
+
+프로그램이 실행이 안되는 이유 추적하는 방법 sel을 본다? 뭐.. 모르겠다.. 
+
+# tail -f 파일 (실시간으로 파일의 변화를 확인 할 수 있다.)
+
+root@roror:/var/log# tail -f /var/log/messages
+
+다른 window에서 
+root@roror:/home/roror# systemctl restart  mariadb
+하니까 로그?뭐 막 올라옴..
+
+제안  
+ **********************************#012#012네가 그렇게 생각하면 mariadbd가 허용되어야합니다. open 에 대한 액세스 mysql.log
+ file 기본적으로.#012그 다음에 이 결점를 보고해야 합니다.#012이러한 접근를 허용하기 위해 로컬 정채 모듈을 생성할 수 있습니
+다.#012Do#012다음을 실행하여 현재상태의 이 접근을 허용하세요:#012# ausearch -c 'mariadbd- - | audit2allow -M my-mariadbd#0
+12# semodule -X 300 -i my-mariadbd.pp#012
+   // 이거 복사 (약간 수정해서 붙여넣음)
+
+
+// 다른 window에서
+
+root@roror:/home/roror# ausearch -c 'mariadbd' --raw | audit2allow -M my-mariadbd
+******************** 중대한 ***********************
+이 정책 꾸러미를 활성화하려면 다음을 실행하세요:
+
+semodule -i my-mariadbd.pp
+
+root@roror:/home/roror# semodule -X 300 -i my-mariadbd.pp
+root@roror:/home/roror# systemctl restart  mariadb
+
+
+
+
+
+MariaDB [(none)]> sergse
+    -> ;
+ERROR 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near 'sergse' at line 1
+MariaDB [(none)]> quit
+Bye
+root@roror:/etc/my.cnf.d# perror 1064
+MariaDB error code 1064 (ER_PARSE_ERROR): %s near '%-.80T' at line %d
+Learn more: https://mariadb.com/kb/en/e1064/
+
+
+----------------------------------------------------------------------------------------------------------------------
+Unix Socket
+1) 같은 컴퓨터 안에서 돌아가는 프로세스끼리 통신하는 방법
+2) 일반 TCP/IP 소켓은 IP 주소 + 포트를 통해 네트워크로 통신한다..
+3) 반면 Unix 소켓은 네트워크를 거치지 않고, 파일 시스템 상의 소켓 파일을 통해 빠르게 통신한다.
+   localhost → Unix Socket (/var/lib/mysql/mysql.sock) 사용
+   127.0.0.1 → TCP/IP 사용
+4) -h localhost 를 주면 → MariaDB는 내부적으로 127.0.0.1이 아닌 "localhost" 문자열"을 특별 처리한다.
+5) localhost면 IP로 해석하기 전에 "그럼 유닉스 소켓 쓰자"는 기본 동작으로 이어진다.
+
+--> 일반계정? 에서는mysql 안됨 root에서만 mysql가능 아ㅏ 모르겠다
+일반계정에서 mysql -uroror -p 이건 됨
+----------------------------------------------------------------------------------------------------------------------
+
+//  root@roror:/var/log/mysql# ls
+error.log  mysql.log  slow.log  // 이게 뭔지..
+에러 로그, mysql로그? slow로그는 뭐야
+
+mysql로그에는 mysql실행하고 데이터베이스 바꾸고 등등.. 뭐 이런거 뜨나보네..
+slow는 뭔데..  systemctl restart mariadb 하니까 로그 뜨던데 mysql들어가서 뭐 하는건 안뜸 
+
+
+alma
+
+roror@roror:/etc/httpd/conf.d$ firewall-cmd --list-all
+
+
+kali
+
+
+root@roror:/var/log/mysql# vi /etc/my.cnf.d/mariadb-server.cnf 
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/run/mariadb/mariadb.pid
+#log_error = /var/log/mysql/error.log
+#general_log = 1
+#general_log_file = /var/log/mysql/mysql.log
+#slow_query_log = 1
+#slow_query_log_file = /var/log/mysql/slow.log
+
+root@roror:/var/log/mysql# systemctl restart mariadb
+
+
+
+
+
+
+root@roror:/var/log# mysql                                                                                                
+Welcome to the MariaDB monitor.  Commands end with ; or \g.                                                               
+Your MariaDB connection id is 3                                                                                           
+Server version: 10.11.11-MariaDB MariaDB Server                                                                           
+                                                                                                                          
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.                                                      
+                                                                                                                          
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.                                            
+                                                                                                                          
+MariaDB [(none)]> use mysql
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MariaDB [mysql]> desc user;   // host, user, password, ssl_type, ssl_cipher, plugin, authentication_string
+
+MariaDB [mysql]> SELECT host, user, password, ssl_type, ssl_cipher, plugin, authentication_string FROM user;
+
+MariaDB [mysql]> create user 'roror'@'%';  CAREATE USER 'roror'@'%' IDENTIFIED
+Query OK, 0 rows affected (0.012 sec)
+
+MariaDB [mysql]> GRANT all privileges on *.* TO 'roror'@'%';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> drop user 'roror'@'%';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> create user 'roror'@'%' identified by 'qhdks12';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> grant all privileges on *.* to 'roror'@'%';
+Query OK, 0 rows affected (0.001 sec)
+
+MariaDB [mysql]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+
+
+kali@kali:~$ mysql -uroror -p -h roror.co.kr
+Enter password: 
+ERROR 2026 (HY000): TLS/SSL error: SSL is required, but the server does not support it
+kali@kali:~$ mysql -uroror -p -h roror.co.kr --ssl-mode=DISABED
+mysql: unknown variable 'ssl-mode=DISABED'
+kali@kali:~$ mysql -uroror -p -h roror.co.kr --ssl=0           
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 5
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> quit
+Bye
+
+kali@kali:~$ mysql -uroror -p -h roror.co.kr --skip-ssl
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 6
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> exit
+
+kali@kali:~$ mysql -uroror -p -h roror.co.kr --skip-ssl-verify-server-cert
+Enter password: 
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MariaDB connection id is 7
+Server version: 10.11.11-MariaDB MariaDB Server
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MariaDB [(none)]> exit
+
+kali@kali:~$ mysql -uroror -p -h roror.co.kr                              
+Enter password: 
+ERROR 2026 (HY000): TLS/SSL error: SSL is required, but the server does not support it
+ // 이건 왜 안되는데
+
+kali@kali:~$ mysql -V                       
+mysql from 11.8.3-MariaDB, client 15.2 for debian-linux-gnu (x86_64) using  EditLine wrapper
+
+
+
+
+- Ubuntu ssh 접속
+$ sudo apt update
+$ sudo apt install openssh* 
+$ sudo apt update && sudo apt install mysql-client-core-8.0
+$ mysql -uroror -p -h 10.0.0.130
+
+roror@roror:~$ sudo hostnamectl set-hostname elk
+roror@elk:~$    // 호스트 이름 변경됨
+roror@elk:~$ sudo apt install mariadb-client-core
+
+
+
+
+
+root@roror:/home/roror# vi /etc/my.cnf.d/mariadb-server.cnf 
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/run/mariadb/mariadb.pid
+// 아래 추가
+ssl-ca=/etc/ssl/ca-key.pem
+ssl-cert=/etc/ssl/server-cert.pem
+ssl-key=/etc/ssl/server-key.pem
+require_source_transport=ON
+
+root@roror:/home/roror# cd /etc/ssl
+root@roror:/etc/ssl# ls
+README      ca.pem  cert.pem  ct_log_list.cnf  openssl.cnf      server-key.pem
+ca-key.pem  ca.srl  certs     openssl-san.cnf  server-cert.pem  server.csr
+root@roror:/etc/ssl# cp ca-key.pem server-cert.pem /etc/pki/tls/certs/
+root@roror:/etc/ssl# ls
+README      ca.pem  cert.pem  ct_log_list.cnf  openssl.cnf      server-key.pem
+ca-key.pem  ca.srl  certs     openssl-san.cnf  server-cert.pem  server.csr
+root@roror:/etc/ssl# cp ./server-key.pem /etc/pki/tls/private/
+
+root@roror:/etc/ssl# restorecon -Rv /etc/pki/tls  // selunx 초기화
+root@roror:/etc/ssl# chown mysql:mysql /etc/pki/tls/private/server-key.pem 
+root@roror:/etc/ssl# chmod 640 /etc/pki/tls/private/server-key.pem
+
+
+root@roror:/etc/ssl# cp ca.pem server-cert.pem /etc/pki/tls/certs
+cp: '/etc/pki/tls/certs/server-cert.pem'을(를) 덮어쓸까요? y
+root@roror:/etc/ssl# vi /etc/my.cnf.d/mariadb-server.cnf 
+root@roror:/etc/ssl# rm /etc/pki/tls/certs/server-cert.pem 
+rm: 일반 파일 '/etc/pki/tls/certs/server-cert.pem'을(를) 제거할까요? y
+root@roror:/etc/ssl# rm /etc/pki/tls/certs/ca.pem
+rm: 일반 파일 '/etc/pki/tls/certs/ca.pem'을(를) 제거할까요? y
+root@roror:/etc/ssl# rm /etc/pki/tls/certs/ca-key.pem
+rm: 일반 파일 '/etc/pki/tls/certs/ca-key.pem'을(를) 제거할까요? y
+root@roror:/etc/ssl# rm /etc/pki/tls/private/server-key.pem 
+rm: 일반 파일 '/etc/pki/tls/private/server-key.pem'을(를) 제거할까요? y
+
+
+root@roror:/etc/ssl# cd /etc/ssl
+root@roror:/etc/ssl# mkdir /var/lib/mysql/ssl
+root@roror:/etc/ssl# cp ca.pem server-cert.pem server-key.pem /var/lib/mysql/ssl
+
+root@roror:/etc/ssl# chown -R mysql:mysql /var/lib/mysql/ssl
+
+root@roror:/etc/ssl# vi /etc/my.cnf.d/mariadb-server.cnf
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/run/mariadb/mariadb.pid
+ssl-ca=/var/lib/mysql/ssl/ca.pem
+ssl-cert=/var/lib/mysql/ssl/server-cert.pem
+ssl-key=/var/lib/mysql/ssl/server-key.pem
+require_secure_transport=ON
+
+
+root@roror:/etc/ssl# ls -l /var/lib/mysql/ssl/ca.pem
+-rw-r--r--. 1 mysql mysql 2037  9월 25일  12:46 /var/lib/mysql/ssl/ca.pem
+root@roror:/etc/ssl# ls -l /var/lib/mysql/ssl/server-cert.pem
+-rw-r--r--. 1 mysql mysql 1744  9월 25일  12:46 /var/lib/mysql/ssl/server-cert.pem
+root@roror:/etc/ssl# ls -l /var/lib/mysql/ssl/server-key.pem
+-rw-------. 1 mysql mysql 1704  9월 25일  12:46 /var/lib/mysql/ssl/server-key.pem
+
+root@roror:/etc/ssl# systemctl restart mariadb
+
+MariaDB [mysql]> show variables like '%ssl%';
++---------------------+------------------------------------+
+| Variable_name       | Value                              |
++---------------------+------------------------------------+
+| have_openssl        | YES                                |
+| have_ssl            | YES                                |
+| ssl_ca              | /var/lib/mysql/ssl/ca.pem          |
+| ssl_capath          |                                    |
+| ssl_cert            | /var/lib/mysql/ssl/server-cert.pem |
+| ssl_cipher          |                                    |
+| ssl_crl             |                                    |
+| ssl_crlpath         |                                    |
+| ssl_key             | /var/lib/mysql/ssl/server-key.pem  |
+| version_ssl_library | OpenSSL 3.2.2 4 Jun 2024           |
++---------------------+------------------------------------+
+10 rows in set (0.001 sec)
+

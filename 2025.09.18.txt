@@ -1,0 +1,296 @@
+root@localhost:/home/roror# echo $TEST  // $TEST값 출력
+Good
+root@localhost:/home/roror# echo '$TEST'  // '' 안의 내용을 그대로 출력
+$TEST
+root@localhost:/home/roror# echo "$TEST"  // "" 사이에 변수 넣으면 변수 값 출력
+Good
+
+
+
+root@localhost:/home/roror# TEST="SET..TEST"
+root@localhost:/home/roror# export TEST1="TEST1..."  // export하면 전역변수 등록
+root@localhost:/home/roror# set | grep TEST  // 현재 shell의 변수 출력
+TEST=SET..TEST  // 현재 shell의 지역변수
+TEST1=TEST1...  // 현재 shell의 전역변수
+_=TEST1=TEST1...
+root@localhost:/home/roror# env | grep TEST
+TEST1=TEST1...
+root@localhost:/home/roror# bash  // shell 이동..?  fork방식..
+root@localhost:/home/roror# env | grep TEST  
+TEST1=TEST1...
+root@localhost:/home/roror# set | grep TEST  // 전역변수만 출력됨(현재 shell에서 지역변수 없음)
+TEST1=TEST1...
+root@localhost:/home/roror# echo $SHELL
+/bin/bash
+root@localhost:/home/roror# ps -ef | grep bash  // daemon..?(프로그램명)프로세스명 확인 실행되고 있는 프로그램 확인 할 수 있음
+roror       6708    6639  0 09:00 pts/0    00:00:00 /usr/bin/bash
+root        7289    7255  0 09:32 pts/0    00:00:00 bash
+root        7846    7289  0 10:08 pts/0    00:00:00 bash
+root        7925    7846  0 10:14 pts/0    00:00:00 grep --color=auto bash
+              PID      PPID(부모 PID)
+
+ps -ef | grep 데몬명(프로세스명)
+ps aux | grep 데몬명(프로세스명)
+
+# kill -l (프로세스 시그널 출력)
+9) SIGKILL  (강제 종료)
+# kill -9 4188  (PID 를 기반으로 종료)
+
+root@localhost:/home/roror# ps -ef | grep bash
+roror       6708    6639  0 09:00 pts/0    00:00:00 /usr/bin/bash
+root        7289    7255  0 09:32 pts/0    00:00:00 bash
+root        7846    7289  0 10:08 pts/0    00:00:00 bash
+root        8105    7846  0 10:28 pts/0    00:00:00 grep --color=auto bash
+root@localhost:/home/roror# kill -9 4531
+bash: kill: (4531) - 그런 프로세스가 없음
+root@localhost:/home/roror# kill -9 7846
+죽었음
+root@localhost:/home/roror# kill -9 7289
+죽었음
+roror@localhost:~$   // root에서 빠짐
+
+roror@localhost:~$ unset TEST  // unset할 떄는 $입력 안함
+
+
+ctr+alt+f3 // commend창? 열어주는건가
+
+
+# mkdir /cmd
+# echo "clear" > /cmd/cls
+# chmod 755 /cmd/cls
+
+/usr/bin/vi /etc/profile
+export PATH=$PATH:/cmd
+/sbin/init 6
+
+ex)
+export PATH=$PATH:/cmd
+ 1) $PATH  --->   /home/roror/.local/bin:/home/roror/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+export PATH=/home/roror/.local/bin:/home/roror/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/cmd
+
+PATH(경로) : 명령어(바이너리, 스크립트) 파일들이 있어서, 메모리에 매핑시켜 어디서든 호출이 가능하다.
+
+root@localhost:/home/roror# cat /etc/passwd
+root:x:0:0:Super User:/root:/bin/bash
+계정:shadow에서 패스워드 관리:UID:GID:코멘트(chfn):홈디렉토리:SHELL
+
+프로그램을 띄우면 메모리에 올라감 데몬? 
+
+roror@localhost:~$ mkdir backup
+roror@localhost:~$ echo "1234" > ./backup/test.txt
+roror@localhost:~$ ls -l ./backup/
+합계 4
+-rw-r--r--. 1 roror roror 5  9월 18일  12:20 test.txt
+roror@localhost:~$ su
+root@localhost:/home/roror# cp -r ./backup/ /
+root@localhost:/home/roror# ls -ld /backup/
+drwxr-xr-x. 2 root root 22  9월 18일  12:20 /backup/
+root@localhost:/home/roror# rm -rf /backup/
+root@localhost:/home/roror# cp -rp ./backup/ /
+root@localhost:/home/roror# ls -ld /backup/
+drwxr-xr-x. 2 roror roror 22  9월 18일  12:20 /backup/
+root@localhost:/home/roror# rm -rf /backup/
+root@localhost:/home/roror# cp -a ./backup/ /
+root@localhost:/home/roror# ls -ld /backup/
+drwxr-xr-x. 2 roror roror 22  9월 18일  12:20 /backup/
+root@localhost:/home/roror# 
+
+
+
+# cat /etc/passwd
+root:x:0:0:Super User:/root:/bin/bash
+계정:shadow 에서 패스워드 관리:UID:GID:코멘트(chfn):홈디렉토리:SHELL  (7개)
+
+- 리눅스에서
+-r, -R   디렉토리를 표현한다.
+-a    추가 또는 모든것을 표현한다.
+-v    자세히 출력, 버전 을 표현한다
+
+
+useradd 
+1) /etc/skel    -k /etc/skel
+ cp -a /etc/skel /etc/skel_home
+root@localhost:/home/roror# cd /etc/skel_home/
+root@localhost:/etc/skel_home# ls
+root@localhost:/etc/skel_home# ls -a
+.  ..  .bash_logout  .bash_profile  .bashrc  .mozilla
+root@localhost:/etc/skel_home# mkdir public_html
+root@localhost:/etc/skel_home# ls
+public_html
+root@localhost:/etc/skel_home# echo "Homepage" > ./public_html/index.html
+
+# useradd user
+# useradd test -k /etc/skel_home -m
+
+1) /etc/passwd
+   -s, -b.... 
+  # cat /etc/passwd | grep home
+  # useradd test2 -s /usr/sbin/nologin
+2) /etc/group
+3) /etc/shadow
+6) /var/spool/mail
+7) /var/mail	
+2) /home/계정
+--------------------------------------------
+# useradd -o -u 0 -g 0 -s /bin/bash -d /root -M hacker
+-o 중복허용
+-u uid
+-g gid
+-s shell
+-d 디렉토리
+-M 홈디렉토리 만들지않음
+# echo $?  (결과 값이 0 이면 정상 실행이다.)
+
+
+--- SSH ROOT 로그인 설정 ---
+# vi /etc/ssh/sshd_config
+   ( 주석)#PermitRootLogin prohibit-password
+   PermitRootLogin yes   (기사 에서도 자주 출제)
+# systemctl reload sshd
+$ ssh root@10.0.0.200
+SSH 에서 PermitRootLogin no 는 root 로그인 금지이다.!
+
+# vi /etc/pam.d/login
+auth       required     pam_securetty.so
+# touch /etc/securetty     ( touch 는 크기가 0 파일을 생성한다.)
+   securetty 에 설정한 리스트로 root 로그인 가능하다.
+----------------   아래는 참고 -------------------
+- 파일 이름
+# find / -name "pam_securetty.so" -type f 2>/dev/null
+# find /etc -name "*" -type f -exec grep -H pam_securetty.so {} \; 2>/dev/null
+   -exec 명령어 {} \;
+   {} 앞부분 find 에서 찾은 결과 값
+
+- 파일 내용(파일)
+# grep -r pam_securetty.so /etc/*
+# grep -r pam_securetty.so /usr/*
+
+-----------------------------------------------------------
+방화벽 : # firewall-cmd --list-all
+  kernal : netfilter(ufw,iptables), nftables(firewalld)
+  # firewall-cmd --list-service
+  # firewall-cmd --list-port
+# firewall-cmd --permanent --add-service=ftp
+# firewall-cmd --permanent --add-service={http,https}
+   firewall-cmd --permanent --remove-service={http,https}
+# firewall-cmd --permanent --add-service=dns
+# firewall-cmd --reload  (정책 새로 읽기)
+
+SElinux 설정 getenforce (활성화 : Enforcing)
+
+
+https://apache.org/
+# dnf install httpd* 
+ debian :  apache2
+ Redhat : httpd
+# systemctl enable --now httpd  (아래 1, 2를 한번에 실행)
+  1) systemctl enable httpd
+  2) systemctl start httpd
+# ps -ef | grep httpd
+# netstat -antp | grep 80
+
+sftp : ssh  ftp       22
+ftps : ftp secure    21
+'  "    : 문자열
+file : test user  --> 2개의 파라미터
+file : 'test user'  --> 1개의 파라미터
+file : "test user"
+
+# find / \( -perm -4000 -o -perm -2000 \) -type f -ls 2>/dev/null
+# unzip main(pentest).zip  --->  ( 특수한 문자로 해석 --->  unzip (해석)
+     $ (변수) --->  값(?)      \$   --->  $ 문자로 
+
+unzip -t 는 압출 해제하지 않고 내용을 출력한다. 테스트다. ???
+# unzip 'main(pentest).zip' -d /var/www/html   ( -d 는 원하는 위치에 압축해제)
+# cd  /var/www/html    
+# mv 'main(pentest)'/* ./      ('main(pentest)' 디렉토리의 모든 내용을 현재 위치로 이동)
+# rm -rf 'main(pentest)'
+
+- 관리자로 실행
+# vi /etc/httpd/conf.d/userdir.conf
+   #UserDir disabled
+   UserDir public_html
+
+- 일반 계정
+$ cd ~ 
+$ mkdir public_html
+$ chmod 711 /home/roror   (외부에서 접근)
+$ cd public_html
+$ echo "Roror Homepage" > index.html
+
+# systemctl restart httpd
+
+http://10.0.0.200/~roror/
+# audit2why < /var/log/audit/audit.log
+# setsebool -P httpd_unified 1       (selinux 정책 위반)
+# setsebool -P httpd_enable_homedirs 1
+
+$ cd ~
+$ unzip main.zip -d ./public_html/
+$ unzip html5-css3-master.zip -d ./public_html
+$ cd ./public_html
+$ mv ./html5-css3-master ./html5
+http://10.0.0.200/~roror/html5
+
+http://도메인/
+/home/계정/public_html/  (Virtual Hosting)
+
+기본 문법 형식
+<html>    </html>
+<a href="경로/사이트주소">제목</a>
+<a href="./html5" target="_blank"><h3>- HTML5</h3></a>
+
+
+# dnf install ./code-1.104.1-1758154183.el8.x86_64.rpm
+# apt install ./code_1.104.1-1758154125_amd64.deb 
+
+Lorem ipsum
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

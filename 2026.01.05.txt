@@ -1,0 +1,459 @@
+
+# curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt https://127.0.0.1:9200/_aliases?pretty
+ - _aliases API는 클러스터에서 인덱스와 연관된 alias(별칭) 정보를 조회하기 위해 사용 - ?pretty 옵션 : 반환되는 JSON 데이터를 사람이 읽기 쉽게 들여쓰기 형식으로 출력
+ - "index_name(인텍스 이름)" : { "aliases" : { "alias_name(해당 인덱스와 연결된 별칭)" : { "is_hidden" : true },
+
+
+{".security-7" : {"aliases" : {".security" : {"is_hidden" : true}}}}
+
+
+• health: 인덱스 상태 (green, yellow, red).
+• status: 인덱스 열림 상태 (open or close).
+• index: 인덱스 이름.
+• uuid: 인덱스의 고유 식별자.
+• pri: 프라이머리 샤드 수.
+• rep: 복제본 샤드 수.
+• docs.count: 저장된 문서 개수.
+• docs.deleted: 삭제된 문서 개수.
+• store.size: 인덱스의 전체 스토리지 크기.
+• pri.store.size: 프라이머리 샤드의 스토리지 크기.
+
+# curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -X POST "https://elk.roror.co.kr:9200/_security/user/elastic/_password?pretty" -H "Content-Type: application/json" -d'
+{ "password" : "qhdks12" }'
+# export ELASTIC_PASSWORD='qhdks12'
+
+# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt -X PUT "https://elk.roror.co.kr:9200/roror_index"
+# curl -u elastic:$ELASTIC_PASSWORD --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/_cat/indices?v"
+
+# curl -u elastic:$ELASTIC_PASSWORD --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/roror_index/_settings?pretty"
+
+
+
+--------------------------------------------------------------------------------------
+
+root@elk:/home/roror# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt -H "Content-Type: application/json" -X PUT "https://elk.roror.co.kr:9200/roror_index/_doc/001" -d '{
+"subject":"Test Post No.1",
+"description":"This is the initial post",
+"content":"This is the test message for using Elasticsearch"
+}'
+
+root@elk:/home/roror# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/roror_index/_mapping?pretty"
+
+
+
+--------------------------------------------------------------------------------------
+
+
+/roror_index/_settings?pretty
+_settings 엔드포인트는 Elasticsearch 인덱스의 설정을 관리하기 위한 API 엔드포인트이다. 이를 통해 인덱스 설정을 조회하고 수정할 수 있다. 이 엔드포인트는 인덱스 레벨의 설정을 조정하는 데 사용된다.
+
+
+root@elk:/etc/elasticsearch# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt \
+> -H "Content-Type: application/json" \
+> -X PUT "https://elk.roror.co.kr:9200/roror_index/_doc/001" \
+> -d '{
+> "subject":"Test Post No.1",
+> "description":"This is the initial post",
+> "content":"This is the test message for using Elasticsearch"
+> }'
+
+
+
+"roror_index" 인덱스의 매핑(mapping) 정보를 가져온다. 
+"매핑"은 Elasticsearch에서 데이터의 구조를 정의하는 방법이며 일반적으로 Elasticsearch에 데이터를 저장할 때, 각 필드의 유형(type)과 함께 각 필드가 어떤 종류의 데이터를 저장하는지를 정의해야 한다. 이러한 데이터 구조 정의를 "매핑"이라고 한다. 매핑은 Elasticsearch가 데이터를 적절히 색인하고 검색하는 데 필요한 중요한 부분이다. /_mapping 엔드포인트는 특정 인덱스의 매핑 정보를 요청하는 데 사용된다.
+
+
+----------------------------------------------------------------------------------
+
+root@elk:/home/roror# curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/roror_index/_doc/001?pretty"
+
+root@elk:/home/roror# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt -H "Content-Type: application/json" -X POST "https://elk.roror.co.kr:9200/roror_index/_update/001" -d '{ "doc": {
+"subject":"Roror Post No.1" }
+}'
+
+
+-------------------------------------------------------------------------------------
+
+
+> -X POST "https://elk.roror.co.kr:9200/roror_index/_update/001" \
+> -d '{
+> "doc": {
+> "subject":"Roror Post No.1"
+> }
+> }'
+
+▹ "doc"은 업데이트할 필드들을 포함하는 객체
+ /_update/{document_id} 엔드포인트를 사용하여 해당 문서의 ID를 지정하고 업데이트를 수행
+▹ 부분 업데이트(partial update)를 수행
+
+
+
+# curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/roror_index/_doc/001?pretty"
+
+---------------------------------------------------------------------------------------
+
+
+root@elk:/etc/elasticsearch# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/roror_index/_search?q=description:initial&pretty=true"
+
+
+root@elk:/etc/elasticsearch# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/_cat/indices/roror_index"
+
+
+root@elk:/etc/elasticsearch# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt -X DELETE "https://elk.roror.co.kr:9200/roror_index/_doc/001"
+
+root@elk:/etc/elasticsearch# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt "https://elk.roror.co.kr:9200/roror_index/_search?q=description:initial&pretty=true"
+
+
+root@elk:/etc/elasticsearch# curl -u elastic:qhdks12 --cacert /etc/elasticsearch/certs/http_ca.crt -X DELETE https://elk.roror.co.kr:9200/roror_index/
+
+
+
+---kibana
+
+root@elk:/etc/elasticsearch# vi /etc/kibana/kibana.yml 
+server.host: "0.0.0.0"
+server.publicBaseUrl: "https://elk.roror.co.kr:5601"
+server.name: "elk.roror.co.kr"
+server.ssl.enabled: true
+server.ssl.certificate: /etc/kibana/certs/server-cert.pem
+server.ssl.key: /etc/kibana/certs/server-key.pem
+
+root@elk:/etc/elasticsearch# mkdir /etc/kibana/certs/
+root@elk:/etc/elasticsearch# cp /etc/ssl/{server-cert.pem,server-key.pem} /etc/kibana/certs/
+root@elk:/etc/elasticsearch# chown kibana /etc/kibana/certs/*
+root@elk:/etc/elasticsearch# ls -l /etc/kibana/certs/
+total 8
+-rw-r--r-- 1 kibana kibana 1773 Jan  5 02:28 server-cert.pem
+-rw------- 1 kibana kibana 1704 Jan  5 02:28 server-key.pem
+root@elk:/etc/elasticsearch# chown -R kibana /etc/kibana/certs
+
+root@elk:/etc/elasticsearch# /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+// 토큰 생성
+
+-----------------------------------------------------------------------------
+
+
+- kibana 토큰 생성
+/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+Kibana를 Elasticsearch 클러스터에 연결할 때, 보안 설정이 활성화된 환경에서는 인증이 필요하다. 이 명령은 Kibana가 Elasticsearch와 안전하게 연결하고 설정을 완료할 수 있도록 하는 Enrollment Token을 생성한다.
+
+
+------------------------------------------------------------------------------
+
+root@elk:/etc/elasticsearch# /usr/share/kibana/bin/kibana-setup --enrollment-token eyJ2ZXIiOiI4LjE0LjAiLCJhZHIiOlsiMTAuMC4wLjEyMzo5MjAwIl0sImZnciI6ImEyNGY3NTE5ZGMzYjM1NDg0NDFhMTdkMDA3NmQ3NDE2YjQ3MjUyODE2YzI1ZGEyYzUyNTk1MzczZGJkYzI1ODIiLCJrZXkiOiJkcmYtaTVzQnVZQUhkT2ZoNml1aTpGb0tfTW04SnBiSlJ3Mk9mUEtMX2ZRIn0=
+// 키바나 토큰 설정(키바나 인증, 토큰 등록 과정)
+
+
+root@elk:/etc/elasticsearch# /usr/share/kibana/bin/kibana-encryption-keys generate
+
+root@elk:/etc/elasticsearch# echo "xpack.encryptedSavedObjects.encryptionKey: 74c1bd8ebfda7d7289b18eef660de3a6
+xpack.reporting.encryptionKey: 3880ed89b4943bba79bd62b14cd5035b
+xpack.security.encryptionKey: 790b290d5c9243bf7e8a5fa37321cfd6" >> /etc/kibana/kibana.yml 
+
+root@elk:/etc/elasticsearch# grep -Ev "^#|^$" /etc/kibana/kibana.yml 
+
+
+------------------------------------------------------------------------------
+
+- kibana 토큰 생성
+/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+Kibana를 Elasticsearch 클러스터에 연결할 때, 보안 설정이 활성화된 환경에서는 인증이 필요하다. 이 명령은 Kibana가 Elasticsearch와 안전하게 연결하고 설정을 완료할 수 있도록 하는 Enrollment Token을 생성한다.
+
+- 키바나 토큰 설정(키바나 인증, 토큰 등록 과정)
+/usr/share/kibana/bin/kibana-setup --enrollment-token \
+
+
+- 키바나 암호화 키 생성 및 등록
+echo "" >> /etc/kibana/kibana.yml
+/usr/share/kibana/bin/kibana-encryption-keys generate
+
+
+- json
+{  "key":"value" }
+{  "key": {  "key":"value" }  }
+
+
+POST /gijeong/_doc/1   // gijeong 는 색인할 인덱스, _doc 문서의 유형
+{
+    "name": "GO Gijeong",   
+    "address": {"daegu":"donggu"},  
+    "phone": "010-000-0000"
+}
+
+- 동일한 API를 사용하면 덮어쓰기가 된다.
+POST /gijeong/_doc/1
+{
+    "name": "KO KIJOENG"
+}
+
+
+
+GET /_cat/nodes?v
+GET /_cat/indices?pretty
+GET /_cat/aliases?v
+GET /_cat/health?pretty
+
+GET /_cat/indices?pretty
+PUT /gijeong
+POST /gijeong/_doc/1
+{
+    "name": "GO GIJEONG",
+    "address": {"city":"daegu"},
+    "phome": "010-000-0000"
+}
+POST /gijeong/_doc/2
+{
+    "name": "GO GIJEONG",
+    "address": {"city":"daegu"},
+    "phome": "010-2526-0000"
+}
+GET /gijeong/_doc/1
+POST /gijeong/_update/1
+{
+    "doc": {
+        "name": "KO KIJOENG"
+    }
+}
+GET /gijeong/_doc/1
+DELETE /gijeong
+GET /gijeong/_settings?pretty
+GET /gijeong/_mapping?pretty
+GET /gijeong/_alias?pretty
+GET /gijeong/_search?q=name:GO&pretty
+
+POST /_bulk
+{ "index": { "_index": "my_index", "_id": "0" } }
+{ "field": "value" }
+
+POST /_bulk
+{ "index": { "_index": "my_index", "_id": "1" } }
+{"name":"GO", "address":{"daegu":"donggu"}," phone":"010-2526-0970" }
+{ "index": { "_index": "my_index", "_id": "2" } }
+{"name":"KO", "address":{"daegu":"donggu"}," phone":"010-0000-0970" }
+
+POST /_bulk
+{ "update": { "_index": "my_index", "_id": "1" } }
+{ "doc": { "name": "GO UPDATED", "address": { "daegu": "bukgu" } } }
+
+POST /_bulk
+{ "delete": { "_index": "my_index", "_id": "1" } }
+{ "delete": { "_index": "my_index", "_id": "2" } }
+
+POST /_aliases  
+{                 
+  "actions": [
+    { "add": { "index": "index_1", "alias": "my_alias_name" } } 
+    { "add": { "index": "index_2", "alias": "my_alias_name" } } 
+
+
+
+PUT /index_1
+PUT /index_2
+GET /_cat/indices?pretty
+
+POST /_aliases  
+{                 
+  "actions": [
+    { "add": { "index": "index_1", "alias": "my_alias_name" } } 
+    { "add": { "index": "index_2", "alias": "my_alias_name" } } 
+  ]                  
+}
+
+POST /_aliases  
+{                 
+  "actions": [
+    { "add": { "index": "index_1", "alias": "my_alias_name", "is_write_index": true } },
+    { "add": { "index": "index_2", "alias": "my_alias_name" } } 
+  ]                  
+}
+
+- aliases 만 삭제
+POST /_aliases
+{ "actions": [ { "remove": { "index": "index_1", "alias": "alias_name" } } ] }
+
+GET /_cat/aliases
+DELETE /index_2
+
+
+--------------------------------------------------------------------------------------
+
+GET /_security/user
+PUT /_security/user/roror
+{
+    "password": "qhdks12",
+    "roles": [ "user", "viewer" ],
+    "full_name": "Gi Jeong",
+    "email": "thddmstn03@naver.com",
+    "enabled": true
+}  // 사용자 생성?
+
+POST /_security/user/roror/_password
+{
+    "password": "qhdks12"
+}  // 패스워드 변경
+
+DELETE /_security/user/roror
+// 삭제
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

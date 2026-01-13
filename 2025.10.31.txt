@@ -1,0 +1,463 @@
+
+
+cat < /etc/passwd > test.txt
+
+env : 환경변수 출력
+set : 현재 쉘의..? 환경변수를 포함한 모든 변수들과 목록 출력
+export : 지역변수를 환경변수로.
+
+fork : 종속..  복제
+exec : 새로운..
+
+자식 프로세스 살아있고 부모 프로세스 죽으면 고아..
+자식 죽고 부모 살아있으면? 부모가 기다리고있는건가 좀비
+
+- 기본적으로 알아두어야 하는 파일들 (환경변수)
+cat /etc/profile
+cat /etc/bashrc
+roror@roror:~$ cat .bash
+.bash_history  .bash_logout   .bash_profile  .bashrc 
+
+.bash_profile : 사용자의 개인 환경 설정, alias, PATH 설정 등을 포함하며 로그인 쉘 시작 시 한 번만 실행됨
+.bashrc : .bash_profile에서 설정되지 않은 환경 설정을 추가할 때 사용, 매번 새로운 쉘이 시작될 때 실행됨.
+.bash_logout : 로그아웃 시 실행. 임시파일 삭제 등을 수행
+.bash_history : 로그아웃할 때 메모리에 기억된 명령의 목록을 파일에 저장
+
+- 전역설정(부팅시)
+/etc/profile   --- // 호환성 때문에 파일을 그대로 두는 경우가 많다.
+/etc/bashrc   --- // 두개의 파일을 확인해보면 include 한다. 그런데 각각의 파일 읽어들이는 오래된 프로그램들 때문에 파일을 그대로 보존한다.
+
+
+su
+su -
+su - 계정
+차이점
+
+
+roror@roror:~$ TEST='My Server Test'
+roror@roror:~$ echo $TEST
+My Server Test
+roror@roror:~$ env | grep TEST
+roror@roror:~$ set | grep TEST
+TEST='My Server Test'
+
+roror@roror:~$ export myServer="roror server"
+roror@roror:~$ env | grep myServer
+myServer=roror server
+roror@roror:~$ set | grep myServer
+_='myServer=roror server'
+myServer='roror server'
+
+roror@roror:~$ bash
+roror@roror:~$ env | grep TEST
+roror@roror:~$ set | grep TEST
+roror@roror:~$ env | grep myServer
+myServer=roror server
+roror@roror:~$ set | grep myServer
+myServer='roror server'
+
+roror@roror:~$ unset myServer
+roror@roror:~$ set | grep myServer
+_=myServer
+
+- 명령라인 프로세싱의 순서
+1. 히스토리 치환이 수행된다.
+2. 명령라인은 토큰 또는 단어 단위이다.
+3. 히스토리가 업데이트 된다.
+4. 인용이 진행된다.
+5. 앨리아스 치환과 함수가 정의된다.
+6. 리다이렉션, 백그라운드, 파이프가 설정된다.
+7. 변수 치환($user, $name, etc.)이 수행된다.
+8. 명령 치환(echo "Today is 'date'")이 수행된다.
+9. globbing(cat abc...??, rm *.c, etc.)이라는파일명 치환이 수행된다.
+10. 명령이 실행된다.
+
+
+roror@roror:~$ chsh -l
+/bin/sh
+/bin/bash
+/usr/bin/sh
+/usr/bin/bash
+/usr/bin/tmux
+/bin/tmux
+/sbin/nologin
+roror@roror:~$ cat /etc/shells
+/bin/sh
+/bin/bash
+/usr/bin/sh
+/usr/bin/bash
+/usr/bin/tmux
+/bin/tmux
+/sbin/nologin 
+
+
+root@roror:/home/roror# echo $SHELL
+/bin/bash
+
+root@roror:/home/roror# chsh
+Changing shell for root.
+New shell [/bin/sh]: /bin/sh             
+chsh: Shell not changed.
+
+root@roror:/home/roror# su 
+sh-5.2# chsh -s /bin/bash
+Changing shell for root.
+Shell changed.
+sh-5.2# exit
+exit
+
+
+PS1 --> 1차 프롬프트 [root@localhost /root]#
+PS2 --> 2차 프롬프트 > 일부 명령어 사용시
+
+[roror@roror ~]$ PS1="[\u@\h \w]\\$ "
+[roror@roror ~]$ cd /var/log
+[roror@roror /var/log]$ PS1="[\u@\h \W]\\$ "
+[roror@roror log]$ pwd
+/var/log
+
+[roror@roror log]$ echo $HISTFILE  // 히스토리 파일 경로
+/home/roror/.bash_history
+[roror@roror log]$ echo $HISTFILESIZE  // 히스토리 저장공간 크기..? 파일크기?
+1000
+
+[roror@roror log]$ ls -al /home/roror/.bash_history
+-rw-------. 1 roror roror 7516 10월 31일  10:43 /home/roror/.bash_history
+[roror@roror log]$ echo $HISTSIZE
+1000
+[roror@roror log]$ echo $HISTFILESIZE
+1000
+[roror@roror log]$ echo $HISTFILE
+/home/roror/.bash_history
+
+
+- 터미널 에뮬레이터
+KDE : debian
+GNOME : Redhat
+
+[roror@roror log]$ shopt -os vi   // 리눅스 쉘의 기본 편집모드를 vi로 설정
+[roror@roror log]$ shopt -o vi
+vi             	on
+[roror@roror log]$ shopt -o emacs
+emacs          	off
+
+echo "", '' 차이점 정확하게 학습..
+bg, fg, jobs  +, -, %
+
+roror@roror:~$ mkdir shell
+roror@roror:~$ cd shell
+roror@roror:~/shell$ vi ex1.sh
+  1 #!/bin/bash
+  2 echo $var1
+  3 echo $var2
+  4 exit 0
+
+roror@roror:~/shell$ vi ex2.sh
+  1 #!/bin/bash
+  2 var1="지역 변수"
+  3 export var2="외부 변수"
+  4 sh ex1.sh
+  5 exit 0
+
+roror@roror:~/shell$ sh ex2.sh
+
+외부 변수
+// 실행 결과 지역 변수는 출력X 외부 변수(전역변수)만 출력됨
+
+
+roror@roror:~/shell$ vi var.sh
+ 1 #!/bin/bash
+  2 name="eunsu"
+  3 user="roror"
+  4 #export $user // false
+  5 export user
+  6 printf "지역 변수 : %s \n 전역 변수: %s" $name $user
+
+
+$0 파일이름
+$1~9 위치 파라미터
+apt -y install vim --> $0 $1 $2 $3 
+
+roror@roror:~/shell$ vi myls
+  1 echo "File Name : $0"
+  2 ls $1 $2
+
+
+
+  1 echo "File Name : $0"
+  2 echo "PID : $$"
+  3 echo "$1"
+  4 echo "$2"
+...
+ 12 echo "${10}"  // 두자리수는 {}로 묶어줘야함
+ 13 echo "${11}"
+roror@roror:~/shell$ ./myls 1 2 3 4 5 6 7 8 test name user
+File Name : ./myls
+PID : 10053
+1
+2
+...
+8
+test
+name
+user
+
+
+if 조건;then  tue 일때 내용; else false 일때 내용; fi
+if 조건
+ then
+    data
+ else
+    data
+fi
+
+for i in 변수;do  echo "내용 $i"; done:
+for i in 변수
+do
+   내용
+done
+
+
+RUID / EUID / SUID
+
+
+roror@roror:~$ id
+uid=1000(roror) gid=1000(roror) groups=1000(roror),10(wheel) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+roror@roror:~$ cd /backup
+-bash: cd: /backup: 허가 거부
+roror@roror:~$ su - roror
+최근 로그인: 금 10월 31 14:47:26 KST 2025 pts/4에
+roror@roror:~$ id
+uid=1000(roror) gid=1000(roror) groups=1000(roror),10(wheel),1002(sticky) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+roror@roror:~$ cd /backup
+roror@roror:/backup$ 
+
+roror@roror:~$ vi cmd.c
+#define _GNU_SOURCE
+  2 #include <stdio.h>
+  3 #include <stdlib.h>
+  4 #include <unistd.h>
+  5 #include <sys/types.h>
+  6 
+  7 void print_ids(const char *stage) {
+  8     uid_t ruid, euid, suid;
+  9     getresuid(&ruid, &euid, &suid);
+ 10     printf("[%s] RUID: %d | EUID: %d | SUID: %d\n", stage, ruid, euid, suid);
+ 11 }
+ 12 
+ 13 int main() {
+ 14     printf("=== UID/GID 상태 확인 ===\n");
+ 15 
+ 16     printf("Real UID : %d | Effective UID : %d\n", getuid(), geteuid());
+ 17     printf("Real GID : %d | Effective GID : %d\n\n", getgid(), getegid());
+ 18 
+ 19     print_ids("초기");
+ 20 
+ 21     // Effective UID로 UID 고정 (보통 root UID)
+ 22     setresuid(geteuid(), geteuid(), geteuid());
+ 23     print_ids("UID 고정 후");
+ 24 
+ 25     // 사용자 입력 받아 system() 실행 (취약점 부분)
+ 26     char command[100];
+ 27     printf("\n실행할 명령어 입력: ");
+ 28     fgets(command, sizeof(command), stdin);
+ 29     system(command);
+ 30 
+ 31     // 권한 원복 (UID 1000 예시)
+ 32     setuid(1000);
+ 33     print_ids("권한 원복 후");
+ 34 
+ 35     printf("=========================\n");
+ 36     return 0;
+ 37 }
+
+∙Set-UID + system("/bin/bash")bash 내부에서 Set-UID 방어, 권한 drop
+∙Set-UID + 직접 execve("/bin/sh")쉘 방어 우회 가능, root 유지
+
+∙glibc의 system() 호출 → 내부적으로 fork() + exec() 사용.
+∙자식 프로세스가 실행될 때, 일부 경우 보안상 Real UID/Saved UID를 확인.
+∙Real UID/Saved UID가 일반 사용자면, 권한을 drop하거나 제한할 수 있음.
+
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+int main() {
+    uid_t ruid, euid, suid;
+    gid_t rgid, egid, sgid;
+
+    // 현재 UID, GID 상태 확인
+    getresuid(&ruid, &euid, &suid);
+    getresgid(&rgid, &egid, &sgid);
+
+    printf("====[ Before Any Changes ]====\n");
+    printf("Real UID: %d | Effective UID: %d | Saved UID: %d\n", ruid, euid, suid);
+    printf("Real GID: %d | Effective GID: %d | Saved GID: %d\n", rgid, egid, sgid);
+
+    // Set-UID 효과 확인 (Effective UID가 root인지 확인)
+    if (euid == 0) {
+        printf("\n[+] Running with Set-UID root (Effective UID = 0)\n");
+
+        // 중요: 권한 상승을 완전히 적용하려면 Real UID, Saved UID까지 root로 맞춰야 함
+        // 일부 시스템/환경에서는 EUID만 root인 경우 system() 호출 시 권한 drop 가능성 있음
+        // 따라서 setresuid(0,0,0)로 모든 UID = 0으로 설정
+        setresuid(0, 0, 0);
+
+        printf("=> /etc/shadow 파일 접근 시도 (root 권한 확인)\n");
+        system("cat /etc/shadow | grep root");
+    }
+
+    // Set-GID 효과 확인 (Effective GID가 root group인지 확인)
+    if (egid == 0) {
+        printf("\n[+] Running with Set-GID root group (Effective GID = 0)\n");
+        setresgid(0, 0, 0);
+        printf("=> ./passwd 파일 접근 시도 (root group 권한 확인)\n");
+        system("cat ./passwd | grep root");
+    }
+
+    printf("\n====[ Program Finished ]====\n");
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

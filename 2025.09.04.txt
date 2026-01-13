@@ -1,0 +1,75 @@
+1. RRAS의 주요 역할
+ 1) 라우팅 (Routing) : 서버를 라우터처럼 사용하여 여러 네트워크를 연결, 두 개 이상의 서브넷 연결
+ 2) NAT (Network Address Translation) : 내부 사설 IP → 공인 IP로 변환하여 인터넷 연결, 사내 PC → 인터넷 접속
+ 3) VPN 서버 : 원격지 사용자들이 사내망에 안전하게 접속, 재택근무자 VPN 접속
+ 4) 원격 액세스 (Remote Access) : RDP, 파일 공유 등 원격 접속 허용, 외부 지사 → 본사 접속
+ 4) 방화벽/보안 정책 관리 : 트래픽 규칙 관리 가능, 특정 포트만 허용
+
+2. RRAS(Routing and Remote Access Service)
+ 1) Microsoft Windows Server를 라우터, NAT 장비, VPN 서버, 원격 액세스 게이트웨이 등으로 활용할 수 있게 해주는 기능
+    Windows Server를 소규모 사내 라우터 + 인터넷 게이트웨이처럼 쓸 수 있다.
+
+3. 라우팅, DirectAccess 및 VPN 개념
+ 1) DirectAccess 및 VPN (RAS)
+  - 서버를 VPN 서버 또는 DirectAccess 게이트웨이로 사용하고 싶을 때 선택
+  - 외부 사용자가 인터넷을 통해 사내망에 안전하게 접속할 수 있도록 한다.
+  - RDP, 파일 서버, 내부 웹 서비스에 원격 근무자 접속 지원
+  # 선택 시점
+  - 원격 접속(VPN)을 운영할 계획이 있을 때
+  - L2TP, SSTP, PPTP 등의 VPN 프로토콜 사용 예정 시
+
+ 2) 라우팅
+ - 서버를 라우터처럼 사용하여 여러 네트워크 간의 트래픽을 전달
+ - 특히 NAT(네트워크 주소 변환) 기능을 이 옵션에서 설정 가능
+ - ICS(인터넷 연결 공유) 대신 RRAS로 NAT 구성할 때 필수
+ # 선택 시점
+ - 사내 여러 서브넷을 연결해야 할 때
+ - 내부망 → 외부망 인터넷 연결을 RRAS에서 NAT 처리할 때
+
+ 3) 웹 응용 프로그램 프록시
+ - 외부 사용자들이 사내 웹 애플리케이션에 보안 프록시를 통해 접속하도록 해주는 기능
+ - 주로 AD FS(Active Directory Federation Services)와 함께 사용
+ - 고급 보안 시나리오에서 필요
+ # 선택 시점
+ - 사내 웹 서비스에 보안 게이트웨이 역할이 필요할 때
+ - 일반적인 NAT나 VPN 환경에서는 불필요
+
+
+NAT(Network Address Translation)은 내부 사설망의 IP 주소를 공인 IP 주소로 변환하여, 내부 PC들이 인터넷에 접속할 수 있도록 하는 핵심 기능이다.
+
+
+DNS Server : 도메인을 이용하여 IP 주소를 확인할 수 있도록 해주는 서버이다.(53번 TCP/UDP)
+
+
+
+
+- 도메인 설정(zone 에서)시 마지막에 . 을 붙여 주어야 한다. roro.co.kr.
+  .  은 root  도메인이다.
+
+@사용 X . 으로 바꿔서 사용(admin@roror.co.kr. X  admin.roror.co.kr.  O)
+@  --->  origin  용도로 사용,   admin@roror.co.kr(이미 @를 사용하므로 . 으로 변경해야 한다. 도메인에서)
+@ ---->  roror.co.kr
+
+
+- 암기
+/etc/resolv.conf   (도메인 서버 주소 저장된 파일, dns 서버 주소)
+
+
+라이센스 : (vSphere Enterprise Plus : HG00K-03H8K-48929-8K1NP-3LUJ4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

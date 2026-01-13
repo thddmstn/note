@@ -1,0 +1,342 @@
+
+- RST (Reset)
+∙ 프로세스가 비정상 종료됨
+∙ 존재하지 않는 포트로 패킷이 옴
+∙ 이미 종료된 소켓으로 데이터가 들어옴
+∙ 연결 중이던 프로그램이 강제로 닫힘 (close()나 예외 발생 등) 이때 TCP는 RST (Reset) 플래그를 보낸다.
+∙ 즉, “지금 연결은 잘못됐다. 바로 끊자.” 라는 신호다.
+
+- RST+ACK 의미
+∙RST는 리셋 신호,
+∙ACK는 “이전까지 받은 건 확인했다”는 신호이다.
+∙RST+ACK 조합은 아래처럼 해석할 수 있다
+ “이전까지 받은 건 알겠지만, 이제 이 연결은 무효야. 즉시 닫아!”
+∙즉, 상대방이 이미 연결된 세션이라고 생각하고 패킷을 보냈지만, 실제로는 그 연결이 존재하지 않거나 종료된 상태라서상대의 요청을 거부하며 연결을 강제로 끊는 것이다.
+
+- 스캔의 종류 및 특징
+nmap ip는 1000개를 자기가 알아서 스캔한다.
+
+root@kali:/home/kali# nmap -sS --top-port 10 10.0.0.200 
+root@kali:/home/kali# nmap -sS --top-port 20 10.0.0.200  
+root@kali:/home/kali# nmap -sS --top-port 20 10.0.0.200 --open  // 오픈된 포트만 스캔
+root@kali:/home/kali# nmap -p- 10.0.0.200 // 전체 스캔    
+
+root@kali:/home/kali# nmap -sS -O -T5 10.0.0.143  
+
+root@kali:/home/kali# nmap -sS -O --min-rate 1000 -T5 10.0.0.143
+
+root@kali:/home/kali# nmap -sS --packet-trace 10.0.0.200 -p 80  
+
+root@kali:/home/kali# nmap -sS 10.0.0.200 --script-trace -p 80
+
+root@kali:/home/kali# nmap -sS -sC 10.0.0.200 --script-trace -p 80
+// 스크립트 출력?
+
+- 스캔의 종류 및 특징
+nmap ip 는 1000개를 자기가 알아서 스캔한다.(half, 흔한, 드믄포트 까지 100개)
+
+
+  -Pn은 호스트 발견(핑), 80번 스캔 단계를 건너뛰고 대상이 무조건 '업(up)'이라고 처리해서 바로 포트 스캔을 수행하게 하는 옵션
+  1) 목적 : ICMP 또는 스텔스 방화벽 때문에 호스트가 ping에 응답하지 않을 때 스캔을 강제하려고 사용.
+  2) 동작 : nmap이 먼저 하는 "호스트가 살아있나 확인(ping/ARP 등)"을 하지 않음 → 곧바로 포트 스캔 실행.
+  3) 장단점: 방화벽 우회용으로 유용하지만, 응답 없는 호스트에도 스캔을 시도하므로 시간 및 네트워크 부하 증가 가능. 또한 실제로 호스트가 다운이면 무의미한 트래픽만 발생함
+  4) 참고: 예전엔 -P0로 쓰던 옵션과 동일한 역할
+
+- Network Service Probing
+ 1) 열린포트가 있는지 먼저 스캔
+ 2) 해당 포트에 프로브 패킷(신호, 문자열)을 보낸다.
+ 3) 응답 패턴을 시그니처 데이터베이스(nmap-service-probes)파일과 비교
+
+
+root@kali:/usr/share/nmap# vi nmap-service-probes   
+
+root@kali:/usr/share/nmap# nmap -sS -T4 -O -Pn 10.0.0.200 -p 80
+root@kali:/usr/share/nmap# nmap -sS -T4 -O -Pn --version-intensity 7 10.0.0.200 -p 80
+root@kali:/usr/share/nmap# nmap -sV -T4 -Pn --version-intensity 7 10.0.0.200 -p 80 
+root@kali:/usr/share/nmap# nmap -sV -T4 -Pn 10.0.0.200 -p 80 
+
+root@kali:/usr/share/nmap/scripts# nmap -sV -sC 10.0.0.200 -p 21 
+
+root@kali:/usr/share/nmap/scripts# nc 10.0.0.200 80
+root@kali:/usr/share/nmap/scripts# curl -v http://10.0.0.200
+root@kali:/usr/share/nmap/scripts# curl -I http://10.0.0.200
+root@kali:/usr/share/nmap/scripts# curl -L http://10.0.0.200
+
+root@kali:/usr/share/nmap/scripts# curl -v ftp://10.0.0.200
+root@kali:/usr/share/nmap/scripts# curl -v ftp://10.0.0.200 --user anonymous:password
+root@kali:/usr/share/nmap/scripts# curl -v ftp://10.0.0.200 --user roror:qhdks12
+
+root@kali:/usr/share/nmap/scripts# nc 10.0.0.200 21  
+USER roror
+PASS qhdks12
+// 230 Login successful.
+SYST
+FEAT
+OPTS UTF8 ON
+// 200 Always in UTF8 mode.
+PWD
+LIST
+
+
+root@kali:/usr/share/nmap/scripts# nmap -sS --source-port 80 -Pn -p 22 10.0.0.200
+
+
+
+
+--version-intensity는 -sV (서비스/버전 탐지) 와 함께 동작하는 옵션으로, 버전 탐지(서비스 식별)를 얼마나 ‘공격적·정밀’하게 할지를 숫자로 조절한다.
+▷ 형식: --version-intensity <level> : 허용값 0 — 9 (정수)
+ 기본값: 7 (nmap의 기본 정밀도)
+ 의미: 숫자가 클수록 더 많은 탐침(probe)을 보내서 정확도↑, 소음(트래픽)↑, 수행시간↑
+ 0: 거의 탐지 시도 안 함(가장 빠름, 가장 적은 소음)
+ 1–4: 가벼운/빠른 탐지(속도 우선, 정확도는 낮음)
+ 5–7: 중간 ~ 기본 수준(균형형)
+ 8–9: 매우 정밀(가능한 대부분의 probe 사용, 정확도 높지만 눈에 띄고 느림)
+
+▷ --version-light : 내부적으로 낮은 intensity, 빠르고 소음 적음. 
+ 예: nmap -sV --version-light -p 80,443 <IP>.
+
+▷ --version-all : 가능한 모든 프로브 사용(사실상 intensity 9). 
+ 예: nmap -sV --version-all <IP>.
+
+▷ 주의 : 높은 intensity(8–9)나 --version-all은 IDS/IPS 경보 유발 가능.
+필수 : --version-* 옵션은 항상 -sV와 함께 사용.
+자주 쓰는 조합 예시(한줄씩)
+빠른 확인: nmap -sV --version-light -p 22,80,443 <IP>
+일반적 사용: nmap -sV -p 1-1000 <IP>
+정밀 분석(허가된 경우): nmap -sV --version-intensity 9 -p- <IP>
+
+1. TCP Connect 스캔(TCP open) nmap –sT
+- 일반 사용자 권한으로 TCP 포트 오픈 여부를 확인(system call, 이용 방식)
+- 대상 시스템을 대상으로 TCP SYN 패킷을 전송
+- 서비스 포트가 Open 되어 있을 경우 SYN+ACK패킷을 회신후
+  스캔자는 ACK, RST+ACK 전송
+- 서비스 포트가 Close 되어 있을 경우 RST+ACK패킷회신
+
+UDP 스캔(-sU   UDP포트 스캔)
+- 대상 시스템을 대상으로 UDP 패킷을 전송
+- 서비스 포트가 Open 되어 있을경우 응답 없음
+- 서비스 포트가 Close 되어 있을경우 ICMP unreachable 회신
+- UDP 특성상 스캔은 신뢰성이 저하됨 
+- ip.src == 192.168.0.112 && ip.dst == 192.168.0.15 && udp && icmp UDP와 ICMP가 동시에 포함된 경우 접속실패로 가정할 수 있기 때문에 ICMP가 포함되지 않는 경우를 UDP 접속성공이라고 가정할 수 있다.
+- ip.src == 192.168.0.112 && ip.dst == 192.168.0.15 && udp && not(!)icmp
+
+Stealth 스캔
+- 스캔하는 대상에 단순히 로그를 남기지 않는다.
+- 공격 대상을 속이고 자신의 위치 또한 숨기는 스캔이다.
+- 종류 : TCP Half Open(TCP SYN Scan), TCP FIN Scan, TCP Xmas Scan, TCP Null Scan
+
+
+
+TCP SYN 스캔(TCP Half Open) nmap -sS IP
+- 대상 시스템을 대상으로 TCP SYN 패킷을 전송
+- 서비스 포트가 Open 되어 있을 경우 SYN+ACK패킷 회신 후 RST전송
+- 서비스 포트가 Close 되어 있을 경우 RST+ACK패킷 회신
+- 완전한 세션을 성립하지 않고 포트의 활성화를 확인하므로 로그가 남지 않음
+
+FIN 스캔(-sF   TCP FIN 스캔 (FIN 패킷을 이용한 스캔))
+- 대상 시스템을 대상으로 TCP FIN 패킷을 전송
+- 서비스 포트가 Open 되어 있을 경우 응답 없음
+- 서비스 포트가 Close 되어 있을 경우 RST+ACK패킷 회신
+
+Xmas 스캔(-sX   TCP Xmas 스캔 (FIN,PSH,URG 패킷을 이용한 스캔)) UAPRSF
+- 대상 시스템을 대상으로 TCP FIN, PSH, URG 패킷을 전송
+- 서비스 포트가 Open 되어 있을 경우 응답 없음
+- 서비스 포트가 Close 되어 있을 경우 RST+ACK패킷 회신
+
+Null 스캔(nmap -sN)
+- 대상 시스템을 대상으로 TCP Null 패킷을 전송
+- 서비스 포트가 Open 되어 있을 경우 응답없음
+- 서비스 포트가 Close 되어 있을 경우 RST+ACK패킷회신
+
+ACK 스캔(-sA)  -  정보보안 기사에 자주 출제된다.
+ - 대상 호스트의 포트 오픈 여부를 판단하는 것이 아닌 방화벽 및 침입차단시스템 등 룰셋(필터링 정책)을 검사하는데 사용
+ - 대상 호스트의 포트로 ACK 제어비트만 설정한 패킷을 전송하면 방화벽 룰셋(필터링정책)에 따라 아래와 같이 확인할 수 있다.
+# nmap -sA -p 1-1024 10.0.0.200
+1) 방화벽 차단시 - (차단시 플래그)
+2) 방화벽 허용시(unfiltered)  - (차단시 플래그)
+- 포트 상태를 정확하게 open 이로고 할 수 없다.! 방화벽의 정책 매핑에 유용하다.
+
+
+
+아이들 스캔(-sI <zombie host> [:probeport])
+ Idle(아이들) 스캔 — 좀비 호스트를 이용한 완전 은밀한 스캔. 스캐너가 목적지와 직접 통신하는 것이 금지됐을 때 사용된다.
+ 예 : nmap -sI <좀비_IP> <타깃> → 스캔 출처가 좀비로 보이게 함(추적 회피).
+ 필요조건 : 좀비의 IP ID가 예측 가능해야 함(드물고 까다로움). 법적/윤리적 위험·오탐·좀비 영향 주의.
+
+
+-sn : 호스트 탐지(핑 스캔) — 포트 스캔 없이 호스트가 살아있는지(업/다운) 만 확인.
+ 예 : nmap -sn 192.168.1.0/24 → 살아있는 호스트 목록만 반환.
+ 용도 : 네트워크 매핑, 빠른 핑스윕. -Pn과 반대(핑 무시)임.
+ -sP : 구버전 명칭(현재는 deprecated, -sn과 동일) — 예전 스크립트에 남아있을 수 있음.
+root@kali:/usr/share/nmap/scripts# nmap -sn 10.0.0.0/24
+
+
+IDS/방화벽 감지 가능성 있음 → -sI 매우 위험/탐지회피 목적이므로 조심.
+-sA는 포트가 실제 서비스 중인지 판단하려 들지 말고 필터/규칙 매핑에 사용.
+-sn은 네트워크 조사에 안전하고 자주 쓰임(포트 정보 안준다).
+
+- 저장
+-v   상세 내역 출력
+-d   debugging
+-oN <file>   결과를 일반 파일 형식으로 출력
+-oX <file>   결과를 XML 파일 형식으로 출력
+-oG <file>   결과를 Grepable(grep, awk등으로 분석하기 편한)파일 형식으로 출력
+-oA <Directory>   .nmap, .xml, grepable(.gnmap) 파일로 출력
+
+root@kali:/home/kali/nmap# nmap -sS -p 21,22,80,443 10.0.0.0/24 -oA 10.0.0.xxx.xml
+
+root@kali:/home/kali/nmap# nmap -sS -T4 -p 80 10.0.0.200 -D 1.1.1.1  
+root@kali:/home/kali/nmap# nmap -sS -T4 -p 80 10.0.0.200 -D RND -Pn
+// ip가 랜덤하게? 무슨 ip..?
+
+
+
+Decoy 스캔
+ 스캐너 주소(공격자)를 식별하기 어렵도록 위조된 주소로 스캔
+
+root@kali:/usr/share/nmap/scripts# nmap -sV --script "ftp-vsftpd-backdoor" -p 21 10.0.0.143
+
+root@kali:/usr/share/nmap/scripts# nmap -sV --script=http-enum,http-headers -p 80,443 10.0.0.200
+
+NSE(Nmap Scripting Engine)
+▷ NSE는 Nmap에 내장된 Lua 기반 스크립팅 엔진으로, 네트워크 탐지·취약점 검사·서비스 정보 수집 등을 자동화하는 도구이다.
+
+NSE(Nmap Scripting Engine) 장점
+1) 확장성 : 다양한 스크립트로 탐지·취약점·익스플로잇·정보수집 기능을 쉽게 추가 가능.
+2) 자동화 : 복잡한 검사(브루트포스, 취약점체크, 디렉터리 나열 등)를 단일 명령으로 자동 실행.
+3) 유연성 : 스크립트 선택(--script), 인자(--script-args), 타이밍(--script-timeout, -T) 제어 가능.
+4) 카테고리화 : discovery, auth, vuln, intrusive, safe 등 목적별 스크립트로 목적에 맞게 사용.
+5) 통합성 : -sV, -A, 포트옵션 등 기존 Nmap 옵션과 자연스럽게 결합되어 추가 정보 획득 용이.
+6) 커뮤니티·업데이트 : 활발한 커뮤니티로 최신 취약점 스크립트가 지속 보강됨.
+7) 재사용성: 자신만의 Lua 스크립트 작성·배포 가능(특정 환경 맞춤 검사 자동화).
+8) 빠른 취약점 스캐닝: 취약점 관련 스크립트로 알려진 CVE 체크 가능.
+9) 상세 서비스 정보: HTTP 헤더·디렉토리·SMB 공유·DNS 정보 등 심층 수집.
+10) 탐지·증거 수집: 보안점검 리포트용 상세 출력 확보.
+11 공격 표면 파악: 자동화된 디스커버리로 공격 가능한 서비스 목록 생성.
+
+주의사항
+1) 일부 스크립트는 intrusive 하여 서비스 중단을 초래할 수 있음(허가된 대상에서만 사용).
+2) IDS/IPS 경보 유발 가능 — 로그·정책 확인 후 실행 권장.
+3) 스크립트 결과는 참/거짓 판별이 아닐 수 있어 추가 수작업 검증 필요.
+
+권장 워크플로우
+1) -sV로 서비스 확인 → 2) 목적에 맞는 NSE 카테고리/스크립트로 심층 검사 → 3) 위험도 높은 스크립트는 별도 시간/허가 아래 실행.
+
+nmap --script=http-wordpress-themes --script-args http-wordpress-themes.root="/blog/",http-wordpress-themes.search=500 <targets>
+
+ nmap --script=http-wordpress-themes --script-args http-wordpress-themes.root="/blog/",http-wordpress-themes.search=500 10.0.0.200
+# nmap -sV --script=vulscan/vulscan.nse 10.0.0.200 -oA vulscan // 저장?해서 볼 수 있음..
+
+
+
+  687  nmap -sV --script=mysql-empty-password.nse 10.0.0.143 -p 3306
+  688  mysql -h 10.0.0.143 -u root -p
+  689  mysql -h 10.0.0.143 -u root -p --ssl=0
+  690  mysql -u root -p -h 10.0.0.143 --ssl=0
+  691  nmap -sV --script=http-php* 10.0.0.200 -p 80
+  692  ls *mysql*
+  693  nmap -sV --script=mysql-brute.nse 10.0.0.200 -p 3306
+  694  ls
+  695  vi mysql-users.nse
+  696  nmap -sV --script=mysql-users.nse 10.0.0.200 -p 3306
+  697  ls *wordpress*
+  698  nmap --script-update
+  699  nmap --script=http-wordpress-users.nse -p 80 -sV 10.0.0.200 -dd
+  700  nmap --script "*wordpress*" -p 80 -sV 10.0.0.200 -dd
+  701  nmap --script "*wordpress*" -p 80 -sV 10.0.0.200
+  702  git clone https://github.com/hackertarget/nmap-nse-scripts.git
+  703  ls -F | more
+  704  ls
+  705  cd wordpress
+  706  ls
+  707  cd nmap-nse-scripts
+  708  ls
+  709  vi http-wordpress-info.nse
+  710  vi http-wordpress-themes.nse
+  711  nmap --script=http-wordpress-themes.nse -p 80 -sV 10.0.0.200 -dd
+  712  vi http-wordpress-themes.nse
+  713  nmap --script=http-wordpress-themes.nse -p 80 -sV 10.0.0.200
+  714  vi http-wordpress-themes.nse
+  715  vi wp-themes.lst
+  716  ls /usr/share/nmap/nselib/data
+  717  cp ./*.lst /usr/share/nmap/nselib/data
+  718  cp *.nse ../
+  719  nmap --script-update
+  720  ls /usr/share/nmap/nselib/data
+  721  cd ..
+  722  ls *wordpress*
+  723  ls
+  724  mv nmap-nse-scripts wordpress
+  725  ls
+  726  cd wordpress
+  727  ls
+  728  cd ..
+  729  vi http-wordpress-themes.nse
+  730  nmap --script=http-wordpress-themes --script-args http-wordpress-themes.root="/blog/",http-wordpress-themes.search=500 <targets>
+  731  nmap --script=http-wordpress-themes --script-args http-wordpress-themes.root="/blog/",http-wordpress-themes.search=500 10.0.0.200
+  732  cd
+  733  ls
+  734  cutycapt --url=http://roror.co.kr --out=roror.png
+  735  cd /usr/share/nmap/scripts
+  736  git clone https://github.com/scipag/vulscan.git
+  737  cd vulscan
+  738  ls
+  739  sh ./update.sh
+  740  cd
+  741  nmap -sV --script=vulscan/vulscan.nse 10.0.0.200
+
+
+
+
+- Dnmap
+1. 명령 파일을 작성할 때 좋은 예 ( --top-ports 100 검색 포트 개수 )
+# vi dnmap.txt
+nmap -sS -T5 192.168.0.0/24 -v -n -oA 192.168.0.0
+nmap -sS -p22 192.168.1.0/24 -v -n -oA 192.168.1.0 (xml 파일 생성)
+nmap -sS -p22 192.168.2.0/24 -v -n -oA 192.168.2.0
+nmap -sS --top-ports 100 192.168.3.2 -v -n -oA 192.168.3.2.top100
+nmap -sS --top-ports 100 192.168.3.3 -v -n -oA 192.168.3.3.top100
+
+2. Dnmap 서버 주요 옵션
+-f 엔맵 명령이 저장돼 있는 파일
+-p Dnmap 클라이언트가 Dnmap 서버에 연결할 TCP포트
+-L 로그파일, 기본 값: /var/log/dnmap_server.conf
+-l 로그레벨(저장되는 로그 정보), 기본값 : info
+-v 자세히 보기 레벨(1~5 사이 지정), 기본값 : 1
+-t 클라이언트가 지정시간 동안 응답 없는 경우 다운 판단
+-s 정렬할 필드 값 지정 ( Commands, Uptime, RunCmdXMin, AvrCmdXmin, Status )
+-P TLS연결 시 사용할 pem파일 지정
+서버 사용법 : # /usr/bin/dnmap_server -f dnmap.txt
+
+3. 클라이언트 주요 옵션
+-s, —server-ip Dnmap 서버 IP
+-p, —server-port Dnmap 서버가 대기하고 있는 TCP포트
+-a, —alias 별칭
+-d, —debug 디버깅
+-m, —max-rate 엔맵 명령을 수행할 때 속도 지정
+# dnmap_client -h (사용법 및 기본 포트)
+사용법 : /usr/bin/dnmap_client -s 192.168.0.7 (서버 IP)
+
+kali@kali:~$ ssh-keygen -t rsa -b 2048  
+kali@kali:~/.ssh$ ssh-copy-id roror@roror.co.kr
+kali@kali:~/.ssh$ mousepad ./id_rsa.pub   
+roror@roror:~$ echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDAROQIGc7+zeM0zKx7hKpfo5OPlHGq2Wxvs389QGBBibm8CV7dm0Yz9O2mzxD40/O4M+C7RV0o+ayfTNAwWEwhZHkfbzYN99GIYfqQQx5WeZncw+zVG5UUTvPOrzKWFzf5RtgkTkdGlCk8ky8OF5KsCWQUvW4uPc8XxIagUrJ9Dw+GrOLMbniAlQdaOUW3itUJtJRBnqZv3JWDk4FaCl8KqjziI12ZM8/kHWB4uzGu+ORwmKPDSZ7W8+bYwzDjtouDjclfwK1sFwUYvmeWWEXSbDHEwycKddkzm/EbIB6U1VnMn9fhHiArPeFx0r5cRl32DmYccL7h2VcaLWY2BB91 kali@kali" >> .ssh/authorized_keys
+
+$ ssh-keygen -t rsa -b 2048
+
+유선연결
+
+
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCBt3ezC0RQSQ6m4KnwcrHyRfxLS7HPc9HzNLeSkXfLFSRSkaH6lR+CUHVhOjViJER9jWtE7rRnHPXvyi3FcyJDL0cRGsAdsLuHfSskXq4Ev6MFVZxOAbkj2zo5QaWAuFHdbsG75ulganlwr5tX1AWDK1lYVOQ4o+AW/Tb7Ef43XUB+pOTc1D6zaYtBWuy3UexnzkooZh40gf6v53GUmSCfitsFSKWuh2lwIN+uIK9YPJ/STu/ej5P4R7gtgNY0Sq6568Au8OgXqTgycr4NCuEmelupJh/JeAqYxTgrSMQyaQsdh6zYQejP3t5M2OhrNspMxdkb9aTbVLDjet73py2d fix1004
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,307 @@
+
+Disk Quota(디스크 쿼터)
+
+dnf install quot
+
+
+
+
+
+
+/dev/mapper/vg_home-lv_home               /home                   ext4    defaults,usrquota,grpquota      0 0
+// xfs에서는 uqouta, gquota
+
+
+quotacheck : 파일 시스템을 검사하여 쿼터 설정을 최신으로 갱신한다.
+-a : 사용자와 그룹에 대한 쿼터를 체크한다. /etc/mtab의 마운트된 시스템 검사, NFS 제외
+-m : 읽기 전용 모드 등의 이유로 마운트를 하지 못할 경우에 강제로 체크할 때 사용. (파일이 없다면 생성해줌.. 아마도)
+-f : 쿼터 파일 초기 생성시 인식하지 못하는 경우에 강제로 인식시킬 때 사용한다.
+-u : 사용자 쿼터 파일을 체크할 때 사용하는 옵션이다.
+-g : 그룹 쿼터 파일을 체크할 때 사용하는 옵션이다.
+-c : 기본의 생성된 쿼터 파일을 읽지 않고 새롭게 초기화할 때 사용한다.
+-v : 사용량 할당 작업의 진행사항을 자세히 보여준다.
+
+쿼터 시작
+quotaon
+
+쿼터 중지
+quotaoff
+
+-a : /etc/fstab에 등록되고 읽기와 쓰기 쿼터 사용으로 표시된 모든 파일 시스템에 대해 쿼터를 적용
+-g : 그룹 쿼터를 적용. -a옵션을 사용할 경우 그룹쿼터를 동시에 적용하므로 해당옵션 불필요.
+-u : 기본 옵션, 사용자에게 쿼터를 적용함.
+-v : 상세하게 출력
+quotaon 파일명 : 특정 파일 시스템에서 쿼터 활성화
+quotaon -gv /home : /home의 그룹 쿼터를 시작하면서 관런 정보를 자세히 출력.
+quotaoff /home : /home의 쿼터를 중지.
+
+root@roror:/home/roror# quotacheck -avugm
+root@roror:/home# ls
+aquota.group  aquota.user  lost+found  roror
+
+root@roror:/home# quotaoff /home
+root@roror:/home# quotaon /home
+root@roror:/home# quotaoff -ugv /home
+root@roror:/home# quotaon -ugv /home
+
+root@roror:/home# repquota -as
+root@roror:/home# repquota -g /home
+
+root@roror:/home# quota -vs roror
+root@roror:/home# quota -v roror
+
+
+root@roror:/home/roror# rsync -av /home/* /mnt/home
+
+xfs --> xfs_quota
+
+root@roror:/home/roror# xfs_qouta -x /home    // -x : 전문가용
+xfs_quota> state
+xfs_quota> report -h
+xfs_quota> limit bsoft=5g bhard=7g roror
+xfs_quota> report -h
+xfs_quota> timer -u 3days roror
+
+root@roror:/home/roror# quota -vs roror
+root@roror:/home/roror# repquota -a
+
+
+
+
+
+netfilter(커널) --->   iptables, ufw(유틸)
+nftables --->   firewalld
+
+root@elk:/etc/systemd# iptables-save > /home/iptables.conf
+root@elk:/etc/systemd# vi /home/iptables.conf
+root@elk:/etc/systemd# iptables -F
+root@elk:/etc/systemd# iptables -t nat -F
+root@elk:/etc/systemd# iptables-restore /home/iptables.conf 
+
+root@elk:/etc/systemd# vi /etc/sysctl.conf
+net.ipv4.ip_forward=1  // 1이어야 ipforward가 가능
+
+
+
+
+
+
+
+
+# apt install mono-complete
+# apt install libcanberra-gtk-module libcanberra-gtk3-module
+# apt install libpcap-dev
+
+
+vi /home/roror/.local/share/applications/NetworkMiner.desktop
+[Desktop Entry]
+Name=NetworkMiner
+Exec=mono /home/roror/NetworkMiner/NetworkMiner.exe
+Type=Application
+Terminal=false
+Icon=/home/roror/NetworkMiner/Images/NetworkMiner_logo_313x313.png
+Keywords=networkminer;
+
+vi /home/roror/.local/share/applications/HxD.desktop
+[Desktop Entry]
+Name=HxD
+Exec=wine /home/roror/NetworkMiner/HxD.exe
+Type=Application
+Terminal=false
+Icon=/home/roror/NetworkMiner/Images/HxD.png
+Keywords=HxD;
+
+root@elk:/home/roror# apt install bridge-utils
+root@elk:/home/roror# dpkg -l bridge-utils
+
+vi /etc/netplan/50-cloud-init.yaml 
+network:
+  version: 2
+  ethernets:
+    ens33:   // 첫번째 인터페이스 (외부와 연결)
+      dhcp4: no
+    ens36:   // 내부 연결 인터페이스
+      dhcp4: no
+  bridges:
+    br0:      // br0 인터페이스 생성(ens33하고 연결됨)
+      addresses:
+        - 10.0.0.222/24
+      routes:
+        - to: default
+          via: 10.0.0.1
+      nameservers:
+        addresses: [10.0.0.200,8.8.8.8]
+      interfaces:
+        - ens33
+
+
+root@elk:/etc/netplan# ip a
+
+root@elk:/home/roror# apt install iptables-persistent
+
+root@elk:/home/roror# systemctl list-unit-files --state=enabled | grep netfilter
+root@elk:/home/roror# systemctl restart netfilter-persistent
+root@elk:/home/roror# vi /etc/init.d/netfilter-persistent  // case문 있음
+root@elk:/home/roror# iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+root@elk:/home/roror# iptables -nL
+
+root@elk:/home/roror# iptables -A INPUT -i lo -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 23 -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 5000:6000 -j ACCEPT
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 1:65535 -j DROP
+root@elk:/home/roror# iptables -A INPUT -m state --state NEW -m udp -p udp --dport 1:65535 -j DROP
+
+root@elk:/home/roror# iptables -A INPUT -j REJECT --reject-with icmp-host-prohibited
+root@elk:/home/roror# iptables -A FORWARD -j REJECT --reject-with icmp-host-prohibited
+
+DROP --> 아무런 응답이 없음
+REJECT --> ICMP로 응답.   // Destination unreachable..?뭐지
+
+
+root@elk:/home/roror# iptables-save > /home/iptables.conf
+root@elk:/home/roror# cat /home/iptables.conf 
+root@elk:/home/roror# netfilter-persistent save
+root@elk:/home/roror# vi /etc/iptables/rules.v4
+
+- 두 명령은 같다. (메모리에 저장되어 있는 정책을 파일로 저장해준다.)
+- 둘다 정책을 파일에 저장해서 불러오거나, 명령을 이용해서 메모리에 로드한다.
+- 명령을 이용해서 메모리에 로드(정책적용)한것은 재부팅하면 비워진다.
+  무조건 새로운 정책을 작성했다면 파일로 저장해주면 된다.
+
+# netfilter-persistent save ----->   /etc/iptables/rule.v4 저장된다.
+# iptables-save > /etc/iptables/rule.v4
+
+# netfilter-persistent reload ---> /etc/iptables/rule.v4 의 정책을 읽어 들인다.
+# iptables-restore < /etc/iptables/rule.v4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

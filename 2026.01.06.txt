@@ -1,0 +1,551 @@
+Dev Tools 실습(생성) - _id 는 생략 불가 { "index": { "_index": "logs" } }처럼 사용시 자동 생성
+ - 일반적인 API는 /{index}/{type}/{id} 형식을 따르지만, Bulk API는 메타데이터 라인과 데이터 라인이 쌍을 이루는 구조를 가진다.
+ - 메타데이터 라인
+  1) index, create, update, delete 중 어떤 작업을 할지 정의
+     index: 문서를 새로 만들거나, 이미 같은 ID가 있다면 통째로 교체(Reindex)한다. (가장 많이 사용됨)
+     create: 문서가 존재하지 않을 때만 새로 만든다. (이미 ID가 있으면 에러 발생)
+     update: 기존 문서의 특정 필드만 수정한다.
+     delete: 해당 문서를 삭제한다.
+  2) 데이터 라인: 실제 입력할 문서의 내용을 담는다. 이때 메타데이터 라인({ "index": { "_id": "1" } }) 안에 이미 "이 작업을 수행할설정"이 포함되어 있기 때문에, URL 경로에 굳이 _doc을 명시하지 않아도 시스템이 내부적으로 처리할 수 있다.
+
+
+
+- 파일 이용
+{ "index": { "_index": "accounts", "_id": "0" } }
+{ "account_number": 0, "balance": 16623, "firstname": "Alice", "lastname": "Smith", "age": 29, "gender": "F", "address": "1234 Apple St", "employer": "TechCorp", "email": "alice.smith@techcorp.com", "city": "San Francisco", "state": "CA" }
+{ "index": { "_index": "accounts", "_id": "1" } }
+{ "account_number": 1, "balance": 12345, "firstname": "Bob", "lastname": "Johnson", "age": 35, "gender": "M", "address": "5678 Orange Ave", "employer": "InnovateLLC", "email": "bob.johnson@innovate.com", "city": "New York", "state": "NY" }
+
+---------------------------------------------------------------------------------------
+
+root@elk:/etc/elasticsearch# curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt -H 'Content-Type: application/x-ndjson' -X POST 'https://elk.roror.co.kr:9200/_bulk?pretty' --data-binary @accounts.json
+
+
+---------------------------------------------------------------------------------------
+
+
+------  dev
+POST /customer/_bulk
+{ "index": {"_id": "1"}}
+{"name": "Gi Jeong"}
+{ "index": {"_id": "2"}}
+{"name": "hacker"}
+{ "index": {"_id": "3"}}
+{"name": "roror"}
+
+GET /customer/_doc/1
+GET /customer/_search
+
+POST /customer/_bulk
+{ "update": {"_id": "1"}}
+{"doc": {"name": "GO  GiJeong"}}
+
+POST /customer/_bulk
+{ "delete": {"_id": "3"}}
+
+DELETE /customer
+
+POST /gijeong/_doc/1
+{
+    "name": "KO KIJEONG",
+    "address": {"city":"Daegu"},
+    "phone": "000-000-0000"
+}
+
+GET /gijeong/_doc/1
+
+POST /gijeong/_update/1
+{
+    "doc": {"phone": "010-2526-0970"}
+}
+
+DELETE /gijeong/_doc/1
+
+GET /_cat/indices?pretty
+GET /accounts/_search
+GET /accounts/_doc/1
+----- dev tools
+
+
+
+POST /gijeong/_bulk
+{"index":{"_id":"1"}}
+{"name":"GO GiJeong","address":{"daegu":"donggu"},"phone":"010-2526-0970"}
+{"index":{"_id":"2"}}
+{"name":"Kim Sunwoo","address":{"city":"Seoul"},"phone":"010-1234-5678"}
+{"index":{"_id":"3"}}
+{"name":"Lee Jihyun","address":{"city":"Busan"},"phone":"010-2345-6789"}
+{"index":{"_id":"4"}}
+{"name":"Park Minjae","address":{"city":"Incheon"},"phone":"010-3456-7890"}
+{"index":{"_id":"5"}}
+{"name":"Choi Soyeon","address":{"city":"Gwangju"},"phone":"010-4567-8901"}
+
+
+
+POST /gijeong/_update/1
+{
+    "doc": {"address": {"city":"donggu"}}
+}
+
+GET /gijeong/_doc/1
+
+PUT /gijeong/_doc/1
+{
+    "name": "GO GiJeong",
+    "address": {
+        "city": "donggu"
+    },
+    "phone": "010-2526-0970"
+}
+
+- DB, 프로그래밍....   A 
+ASC(Ascending) - 오름차순
+DESC(descending) - 내림차순
+
+---------------------------------------------------------------------------------
+
+GET /_cat/indices?pretty
+GET /gijeong/_mapping
+GET /gijeong/_settings
+GET /gijeong/_search
+GET /gijeong/_search?q=*
+GET /gijeong/_search?q=*&sort=phone.keyword:asc
+GET /gijeong/_search?q=*&sort=phone.keyword:desc
+
+GET /gijeong/_search?q=phone:'0970'
+
+GET /gijeong/_search
+{
+    "query": { "match_all": {} },
+    "sort": [ { "phone.keyword": { "order": "desc" } } ]
+}
+
+GET /gijeong/_search
+{
+    "query": { "match": {"phone": "010 0970"}}
+}
+
+GET /gijeong/_search
+{
+    "query": {
+        "term": {
+          "phone.keyword": "010-2526-0970"
+        }
+    }
+}
+
+GET /_cat/indices?v
+GET /kibana_sample_data_flights/_search?q=*
+GET /kibana_sample_data_flights/_mapping
+GET /kibana_sample_data_flights/_search?q=*&sort=timestamp:asc
+
+GET /kibana_sample_data_flights/_search?q=DestCountry:KR&_source=false
+GET /kibana_sample_data_flights/_search?q=DestCountry:KR&_source=DestCountry,DestWeather
+
+POST /kibana_sample_data_flights/_search
+{
+    "query": { "match_all": {}}
+}
+
+POST /kibana_sample_data_flights/_search
+{
+    "query": { "match_all": {}},
+    "size": 3
+}
+
+POST /kibana_sample_data_flights/_search
+{
+    "query": { "match_all": {}},
+    "from": 3,
+    "size": 2
+}
+
+POST /kibana_sample_data_flights/_search
+{
+    "query": { "match_all": {}},
+    "sort": [
+      { "AvgTicketPrice": { "order": "desc" }}
+    ]
+}
+
+------------------------------------------------------------------------------
+
+
+-  must 배열 안의 모든 조건을 만족해야만 문서가 반환된다.   이는 논리적 AND와 같다.
+
+GET /kibana_sample_data_flights/_search
+{
+  "query": {
+    "bool": {
+      "must_not": [    // 논리적 AND와 같다.
+        { "match": { "DestCountry": "US" } },
+        { "match": { "DestCountry": "AU" } }
+      ]
+    }
+  }
+}
+
+# must_not 가 아닌 must를 사용시.
+DestCountry 필드가 "US"와 "AU" 둘 다 동시에 만족하는 문서를 반환하려고 한다. 하지만 하나의 필드가 동시에 두 개의 다른 값을 가질 수 없으므로, 이 쿼리는 아무런 결과도 반환하지 않는다.
+
+
+
+
+- should 배열 안의 조건 중 하나라도 만족하면 문서가   반환된다. 이는 논리적 OR와 같다
+
+GET /kibana_sample_data_flights/_search
+{
+  "query": {
+    "bool": {
+      "should": [   // 논리적 OR와 같다
+        { "match": { "DestCountry": "US" } },
+        { "match": { "DestCountry": "AU" } }
+      ]
+    }
+  }
+}
+
+DestCountry 필드가 "US"이거나 "AU"인 문서를 반환한다. 따라서 DestCountry 필드가 "US" 또는 "AU" 중 하나만 만족해도 해당 문서는 결과에 포함된다.
+
+
+
+- match_phrase 쿼리는 필드 값이 정확히 지정된 구문과 일치하는 문서를 검색한다. 즉, match_phrase는 단어들의 순서와 인접성을 중요하게 여기며, 주어진 문자열이 필드 내에 정확히 존재하는 경우를 찾는다.
+
+POST /kibana_sample_data_flights/_search
+{
+ "query": { 
+	"match_phrase": 
+		{ "DestCountry": "US" } 
+	}
+ }
+
+
+- terms 쿼리는 특정 필드가 주어진 값들 중 하나를 포함하는 문서를 검색할 때 사용된다. 이 쿼리는 bool 쿼리와 달리 여러 값을 하나의 조건으로 묶어 검색할 수 있다. 예를 들어, DestCountry 필드가 "US" 또는 "AU"인 문서를 찾고자 할 때 terms 쿼리를 사용할 수 있다.
+
+GET /kibana_sample_data_flights/_search
+{
+  "query": {
+    "terms": {
+      "DestCountry": ["US", "AU"]
+    }
+  }
+}
+
+bool 쿼리의 should 조건과 비슷한 기능을 한다.
+하지만 bool 쿼리는 복잡한 논리 조건을 설정할 수 있는 반면, terms 쿼리는 단순히 하나의 필드에 대해 여러 값을 검색할 때 사용된다.
+
+---------------------------------------------------------------------------------
+
+
+root@elk:/etc/elasticsearch# vi /etc/metricbeat/metricbeat.yml 
+setup.kibana:
+  host: "https://elk.roror.co.kr:5601"
+  protocol: "https"
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+
+output.elasticsearch:
+  hosts: ["https://elk.roror.co.kr:9200"]
+  preset: balanced
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+  ssl.certificate_authorities: ["/etc/elasticsearch/certs/http_ca.crt"]
+
+root@elk:/etc/elasticsearch# metricbeat modules enable apache
+root@elk:/etc/elasticsearch# metricbeat modules enable system
+root@elk:/etc/metricbeat/modules.d# metricbeat test config -c /etc/metricbeat/metricbeat.yml --path.data /var/lib/metricbeat/ --path.home /usr/share/metricbeat/
+root@elk:/etc/metricbeat/modules.d# metricbeat test output -c /etc/metricbeat/metricbeat.yml --path.data /var/lib/metricbeat/ --path.home /usr/share/metricbeat/
+
+vi /etc/packetbeat/packetbeat.yml
+setup.kibana:
+  host: "https://elk.roror.co.kr:5601"
+  protocol: "https"
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+
+output.elasticsearch:
+  hosts: ["https://elk.roror.co.kr:9200"]
+  preset: balanced
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+  ssl.certificate_authorities: ["/etc/elasticsearch/certs/http_ca.crt"]
+
+root@elk:/etc/metricbeat/modules.d# packetbeat test config -c /etc/packetbeat/packetbeat.yml
+root@elk:/etc/metricbeat/modules.d# packetbeat test output -c /etc/packetbeat/packetbeat.yml
+root@elk:/etc/metricbeat/modules.d# systemctl enable --now packetbeat
+
+apt install filebeat
+
+root@elk:/etc/metricbeat/modules.d# vi /etc/filebeat/filebeat.yml 
+ 28   enabled: true
+setup.kibana:
+  host: "https://elk.roror.co.kr:5601"
+  protocol: "https"
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+
+output.elasticsearch:
+  hosts: ["https://elk.roror.co.kr:9200"]
+  preset: balanced
+  username: "elastic"
+  password: "qhdks12"
+  ssl.enabled: true
+  ssl.verification_mode: none
+  ssl.certificate_authorities: ["/etc/elasticsearch/certs/http_ca.crt"]
+
+root@elk:/etc/metricbeat/modules.d# filebeat test config -c /etc/filebeat/filebeat.yml
+root@elk:/etc/metricbeat/modules.d# filebeat test output -c /etc/filebeat/filebeat.yml
+root@elk:/etc/metricbeat/modules.d# systemctl enable --now filebeat
+
+root@elk:/etc/metricbeat/modules.d# apt install suricata
+
+vi /etc/suricata/suricata.yaml
+eth0 --> ens33으로
+netmap:
+   # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
+ - interface: ens33+
+ - interface: ens36+
+   # Number of capture
+rule-files:
+  - suricata.rules
+  - /etc/snort/rules/local.rules
+
+root@elk:/etc/suricata/rules# systemctl enable --now suricata
+root@elk:/etc/suricata/rules# suricata -c /etc/suricata/suricata.yaml -i ens33 -vv
+
+-------------------------------------------------------------------------------------
+
+
+
+
+
+
+https://www.elastic.co/guide/en/beats/metricbeat/current/metricbeat-modules.html
+
+- 파일 수정시 참고
+- Kibana를 사용하는 경우 주석 처리를 제거하고 출력 호스트를 지정한다.
+- Kibana에서 SSL이 활성화된 경우 호스트 이름은 인증서의 호스트 이름과 동일해야 한다.
+- [사용자 이름] 및 [password]는 관리자 사용자의 이름이다.
+- 자체 서명 인증서를 사용하는 경우 [ssl.verification_mode: none]을 지정한다.
+- [ssl.certificate_authorities]는 Elasticsearch 설치에서 생성된 cacert이다.
+
+※ 이 설정은 Filebeat의 대시보드, 인덱스 템플릿, ILM 정책 등을 Kibana를 통해 Elasticsearch에 설치할 때 사용된다.즉, 초기 설정 및 시각화 리소스 설치용이다. 예: filebeat setup 명령을 실행할 때 필요Kibana는 로그를 저장하지 않고, 단지 Elasticsearch에 있는 데이터를 시각화할 뿐이다. 운영환경에서는 보통 setup.kibana는 한 번만 쓰고, 이후엔 빼버려도 괜찮다. 정기적으로 대시보드 업데이트가 필요한 게 아니라면, Filebeat가 Kibana에 매번 접근할 필요는 없다.
+
+
+# metricbeat modules list | grep apache
+# metricbeat modules enable apache
+# metricbeat modules enable system
+
+# metricbeat test config -c /etc/metricbeat/metricbeat.yml --path.data /var/lib/metricbeat --path.home /usr/share/metricbeat
+
+# metricbeat setup --dashboards
+
+
+
+
+netmap 모듈은 고성능 패킷 캡처를 제공하며, ens160+ 설정은 해당 인터페이스의 트래픽이 수리카타와 OS 모두로 전달되도록 구성한다.
+1) IDS vs IPS:
+ • IDS 모드(ens160+)에서는 트래픽을 단순히 분석하고 모니터링한다.
+  •IPS 모드(ens160)에서는 수리카타가 트래픽을 제어하고 차단할 수 있다.
+2) 운영 체제와 네트워크 사용 여부:
+ • +를 사용하면 OS가 NIC를 계속 사용할 수 있다.
+ • +가 없으면 NIC는 수리카타가 독점한다.
+3) 테스트 환경에서는 + 사용 추천(IDS)
+ • 시스템의 정상적인 네트워크 통신을 유지하면서 수리카타 설정을 테스트할 수 있다.
+4) 실제 운영 환경에서는 +를 제거
+ • IPS 모드로 작동하며, 트래픽이 수리카타를 통해 강력히 통제되도록 설정한다.
+
+
+
+default-rule-path: /var/lib/suricata/rules
+ Suricata가 규칙 파일을 읽어올 때 기본적으로 참조하는 경로를 설정하는 옵션이다.
+ • 규칙 업데이트 도구(suricata-update)에 의해 다운로드된 최신 규칙 파일이 저장됨.
+ • Suricata는 suricata-update 명령을 통해 최신 규칙 세트를 업데이트할 수 있으며,이때 /var/lib/suricata/rules가 기본 디렉토리로 사용된다.
+ • 규칙 파일 이름 예시:
+  - emerging-threats.rules: 공개된 최신 위협 규칙.
+  - suricata.rules: Suricata 자체에서 제공하는 기본 규칙.
+
+
+튜닝(성능) 설정
+Suricata의 profile 설정은 시스템 리소스(메모리, CPU 등)의 사용량과 성능 간 균형을 조정하기 위한 설정이다. 이 설정은 Suricata가 어떤 성능 프로파일로 동작할지 결정하며, 각각의 옵션(low, medium, high, custom)은 다양한 리소스 사용 요구사항과 네트워크 환경에 맞게 조정된다.
+
+# vi /etc/suricata/suricata.yaml (참고, /var/log/suricata/stats.log 참고하여 설정)
+1399   profile: medium  ( "low", "medium", "high" or "custom")
+ • low, medium, high: 하드웨어 리소스와 네트워크 대역폭에 따라 성능과 탐지 수준을 조정.
+ • low: 최소 리소스 사용, 간단한 트래픽 분석.
+ • medium: 성능과 리소스 사용의 균형.
+ • high: 최대 성능과 탐지 기능.
+ • custom: 사용자가 직접 세부 설정을 조정하여 고유 환경에 최적화.
+
+
+alert icmp any any -> $HOME_NET any (msg:"ICMP test"; sid:1000002; rev:1;)
+alert tcp any any -> $HOME_NET any (msg:"HTTP traffic detected"; flags:S; sid:2024070503; rev:1;)
+alert http any any -> any 80 (msg:"SQL Injection Attempt"; flow:to_server,established;  pcre:"/((%27|%22)|('|\"))(\s|%20|\+)*(or|and|xor|not)(\s|%20|\+)*((%27|%22)|('|\"))?[^\s]+((%27|%22)|('|\"))?(\s|%20|\+)*=(\s|%20|\+)*((%27|%22)|('|\"))?[^\s]+((%27|%22)|('|\"))?(\s|%20|\+)*(--|#)?/i"; sid:1000004; rev:1;) 
+
+root@elk:/etc/snort/rules# suricata -c /etc/suricata/suricata.yaml -s /etc/snort/rules/local.rules -i ens33
+root@elk:/etc/snort/rules# suricata -c /etc/suricata/suricata.yaml -i ens33
+
+
+
+
+root@elk:/etc/snort/rules# vi /etc/filebeat/modules.d/apache.yml 
+
+- module: apache
+  # Access logs
+  access:
+    enabled: true
+
+    # Set custom paths for the log files. If left empty,
+    # Filebeat will choose the paths depending on your OS.
+    #var.paths:
+
+  # Error logs
+  error:
+    enabled: true
+
+root@elk:/etc/snort/rules# vi /etc/filebeat/modules.d/suricata.yml 
+- module: suricata
+  # All logs
+  eve:
+    enabled: true
+
+
+root@elk:/etc/snort/rules# vi /etc/filebeat/modules.d/system.yml 
+- module: system
+  # Syslog
+  syslog:
+    enabled: true
+
+    # Set custom paths for the log files. If left empty,
+    # Filebeat will choose the paths depending on your OS.
+    #var.paths:
+
+    # Use journald to collect system logs
+    #var.use_journald: false
+
+  # Authorization logs
+  auth:
+    enabled: true
+
+
+
+root@elk:/etc/logstash# apt install logstash
+root@elk:/etc/logstash# systemctl enable --now logstash
+
+
+output {
+  elasticsearch {
+    hosts => ["https://elk.roror.co.kr:9200"]
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+    user => "elastic"
+    password => "qhdks12"
+    ssl_enabled => true
+    ssl_verification_mode => "full"
+    ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+  }
+}
+
+
+
+
+
+
+root@kali:/home/kali# curl -X POST "http://elk.roror.co.kr:8080" \     
+> -H 'Content-Type: application/json' \
+> -d '{ "message": "Test....", "level": "info", "app": "curl-client"}'
+
+
+
+GET /_cat/indices?pretty
+GET /curl-log-2026.01.06
+GET /curl-log-2026.01.06/_mapping
+GET /curl-log-2026.01.06/_search
+
+
+
+GET / HTTP/1.1
+Host: elk.roror.co.kr:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+Priority: u=0, i
+Content-Type: application/json
+Content-Length: 75
+
+{
+    "message":"테스트중",
+    "level":"info"
+    "app":"burp"
+}
+
+
+
+-----------------------------------------------------------------------------------
+
+
+input {
+  http {
+    port => 8080
+    codec => "json"
+  }
+}
+
+filter {
+  # (선택) 필요한 파싱, 가공 작업
+  mutate {
+    add_field => { "source" => "curl-test" }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["https://elk.roror.co.kr:9200"]
+    index => "curl-log-%{+YYYY.MM.dd}"
+    ssl_certificate_authorities => ["/etc/logstash/http_ca.crt"]
+    ssl_enabled => true
+    ssl_verification_mode => "full"
+    user => "elastic"
+    password => "패스워드"
+  }
+
+  stdout {
+    codec => rubydebug  # 로그 확인용 콘솔 출력
+  }
+}
+
+
+
+# /usr/share/logstash/bin/logstash-plugin list --verbose
+# /usr/share/logstash/bin/logstash -t -f 설정파일
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

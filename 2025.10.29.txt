@@ -1,0 +1,384 @@
+
+
+rpm : 레드햇 패키지 관리자
+yum : rpm기반
+dnf : rpm기반 리눅스 배포판을 위한 패키지 관리 도구
+apt-get
+apt
+dpkg : 데비안 패키지 관리, dpkg 패키지 명 : 패키지이름_버젼-릴리즈-아키텍쳐.deb
+
+yum, dnf, apt, apt-get, zypper(SuSE linux), pacman(arch linux)
+
+rpm 설치
+-i : 새로운 채키지 설치, 같은 패키지 있으면 설치 안됨
+-U : 기존 패키지 업그래이드
+-F : 이전 버전이 설치되어 있는 경우에만 설치
+-h(hash #) : 설치 상황을? #기호로 표시해준다.
+
+rpm 옵션
+--nodeps : 의존성 무시하고 설치
+--force : 에러 무시 , 강제 설치
+--oldpackage : 새로운 패키지 삭제 구버전 설치
+--replacepkgs : 이미 있어도 다시 재설치
+
+rpm제거
+-e : 설치된 패키지 삭제
+
+rpm 질문
+-q : 이미 설치된 패키지에 대한 질의를 할 때 사용(질의 시 필수 옵션)
+-qp : 아직 설치되지 않은 rpm 파일에 대하여 질의
+-qa : 시스템에 설치된 모든 패키지 목록 출력(--all)
+-qf <file name> : 지정한 파일을 설치한 패키지 이름을 출력 
+-qi : 설치된 패키지 정보 출력 -p옵션과 같이 사용하면 rpm 패키지 파일에 대한 정보를 알 수 있다.(--info)
+-ql : 패키지의 파일을 보여줌. -p와 함께 사용하면 rpm 패키지 파일이 설치되는 목록 파일을 알 수 있다.(--list)
+-qc : 해당 패키지의 설정 파일이나 스크립트 파일을 출력
+-qd : 해당 패키지의 문서(doc.man) 파일 출력
+
+rpm검증
+-V : 검증시 사용하는 기본 옵션
+
+
+yum설치
+모드
+list [항목]
+info [패키지명]
+update [패키지명] : 패키지 업데이트할 때 사용
+search [문자열]
+
+apt update.. upgrade..?
+
+dnf 
+list
+root@roror:/home/roror# dnf list openssh
+마지막 메타자료 만료확인(0:24:13 이전): 2025년 10월 29일 (수) 오전 09시 50분 02초.
+설치된 꾸러미
+openssh.x86_64                                               9.9p1-7.el10_0                                               @anaconda
+
+search
+root@roror:/home/roror# dnf search ssh
+마지막 메타자료 만료확인(0:23:34 이전): 2025년 10월 29일 (수) 오전 09시 50분 02초.
+================================================ 이름 & 요약과 일치하는 항목: ssh =================================================
+fence-agents-ilo-ssh.noarch : Fence agents for HP iLO devices over SSH
+libssh.x86_64 : A library implementing the SSH protocol
+libssh-config.noarch : Configuration files for libssh
+libssh-devel.x86_64 : Development files for libssh
+libvirt-ssh-proxy.x86_64 : Libvirt SSH proxy
+nbdkit-ssh-plugin.x86_64 : SSH plugin for nbdkit
+openssh.x86_64 : An open source implementation of SSH protocol version 2
+openssh-askpass.x86_64 : A passphrase dialog for OpenSSH and X
+openssh-clients.x86_64 : An open source SSH client applications
+openssh-keycat.x86_64 : A mls keycat backend for openssh
+openssh-server.x86_64 : An open source SSH server daemon
+ssh-key-dir.x86_64 : sshd AuthorizedKeysCommand to read ~/.ssh/authorized_keys.d
+sshpass.x86_64 : Non-interactive SSH authentication utility
+==================================================== 이름과 일치하는 항목: ssh ====================================================
+openssh-keysign.x86_64 : A helper program used for host-based authentication
+==================================================== 요약과 일치하는 항목: ssh ====================================================
+console-login-helper-messages-issuegen.noarch : Issue generator scripts showing SSH keys and IP address
+jsch.noarch : Pure Java implementation of SSH2
+rsync-rrsync.noarch : A script to setup restricted rsync users via ssh logins
+
+
+root@roror:/home/roror# dnf info openssh
+// info list search 구분
+
+root@roror:/home/roror# dnf history
+// 설치 히스토리
+
+
+dpkg
+-I : 패키지 파일에 대한 정보 출력
+-L : 패키지가 설치한 파일 목록 출력
+-r : 패키지 제거(환경설정 파일 남겨둠)
+-P : 환경설정 파일까지 전부 제거
+-S
+--purge : remove명령을 수행할 때 환경 설정까지 같이 제거
+
+
+apt, apt-get
+Ubuntu : /etc/apt
+Redhat : /etc/yum.repo.d
+--purge : remove명령을 수행할 때 환경 설정까지 같이 제거할 때 사용
+
+root@elk:/var/cache/apt# ls
+archives  pkgcache.bin  srcpkgcache.bin
+
+root@kali:/var/cache/apt/archives# apt clean  //  주로 설치 중 오류가 발생할 때 실행
+// apt를 실행하면 Debian 서버에서 아래의 위치로 파일들을 다운로드 한다.
+/var/cache/apt/archives
+/var/lib/apt/lists
+
+root@kali:/var/cache/apt/archives# ls
+lock  partial
+
+root@elk:/var/lib/apt/lists# ls  // 각 저장소별로 받은 packages파일들이 들어 있다.
+
+root@elk:/var/lib/apt/lists# apt remove --purge mc  // 환경설정까지 같이 제거
+
+root@elk:/var/lib/apt/lists# apt -o Debug::Acquire::http=true install mc
+http://kr.archive.ubuntu.com/ubuntu/pool/universe/m/mc/mc_4.8.30-1ubuntu0.1_amd64.deb
+
+wget // web에서 바로 다운..
+root@elk:~# wget http://kr.archive.ubuntu.com/ubuntu/pool/universe/m/mc/mc_4.8.30-1ubuntu0.1_amd64.deb
+
+root@elk:~# dpkg -i mc_4.8.30-1ubuntu0.1_amd64.deb  // 확장자 .deb파일 다운로드 dpkg
+
+
+root@elk:~# apt -o Debug::Acquire::http=true install mariadb-server
+
+--purge : remove명령 수행할 때 환경설정까지 같이 제거
+update : 패키지 목록 갱신할 때 사용
+upgrade : 모든 패키지를 최신 버전으로 갱신할 때 사용
+dist-upgrade : upgrade + 새로운 버전의 패키지들과 의존성을 변경시키면서 지능적으로 관리
+install : 패키지 설치, 보통 .deb파일들이 /var/cache/apt/archive에 생성됨
+remove : 패키지 삭제
+
+
+apt autoremove   의존성 정리, 필요 없는 패키지 정리,
+atp clean all   캐시 파일 정리
+dnf --setopt=debuglevel=10 install mc
+rpm -e --nodeps mc-4.8.31-3.el10.x86_64
+
+rpm -Uvh http://mirror.siwoo.org/   ...    mc-4.8.
+
+
+root@roror:/etc/yum.repos.d# vi epel.repo 
+ 12 enabled=1
+
+
+cockpit 조종석
+http://localhost:9090
+systemctl disable --now cockpit
+
+소스 설치 방법 : 압축풀기 > 디랙토리 이동 > configure > make > make install 5단계를 거침. 의존성 검사도구인 make 등의 응용프로그램 필요
+confiugre : 실행하면 Makefile만듦.
+make install
+gcc : gcc source.c // gcc컴파일 기본  정상으로 컴파일이 되었다면 a.out 파일이 생성됨, a.out 파일 실행하면(./a.out) source.c 코드 실행됨
+gcc -c source.c // 컴파일. 목적 파일(object file) 생성 --> source.o
+gcc -o a.out source.c // 파일명 지정 컴파일(컴파일 + 링크작업)
+gcc -o a.out source.o // 링크작업
+소스 컴파일할 때 사용하는 명령어가 아닌것은?./ 뭔데
+
+
+소스 코드 작성 (Source Code)
+→ xxx.c
+
+전처리 (Preprocessing)
+→ #include, #define 등 매크로 처리
+결과: 전처리된 코드 (임시 파일, 보통 .i)
+
+컴파일 (Compilation)
+→ 전처리된 코드를 어셈블리 코드로 변환
+결과: xxx.s (어셈블리 코드)
+
+어셈블 (Assembling)
+→ 어셈블리 코드를 **목적 코드(Object Code)**로 변환
+결과: xxx.o
+
+링크 (Linking)
+→ 여러 개의 .o 파일과 라이브러리를 연결해서
+실행 가능한 실행 파일 (Executable) 생성
+결과: file (예: a.out)
+
+
+cmake : cmake 를 채택한 프로젝트
+
+
+linux shell
+sh(bourn shell)  : 가장 기본적인 쉘. 명령어 완성기능 없음
+BASH(Bourn-Again Shell)  :  자유소프트웨어재단. GNU프로젝트에 의해 개발. 명령어 완성기능
+CSH(C Shell) : UC Berkeley 대학, Bill Joy 
+KSH  : 본 쉘을 확장한 쉘
+문제 : c shell bourne shell 구분, c 사용에? 최적화된 shell (c shell) 
+
+
+전역변수 : env로 출력
+지역 변수 : set 사용하면 환경변수를 포함한 모든 변수들과 함수들의 목록을 출력
+
+
+
+apt install snort*  // IDS IPS? 만들어준다고?...
+IDS : 침입 탐지 시스템
+Host-base(HIDS) - 오탐율 높음, 최신 공격 탐지 잘 함
+Network-base(NIDS)-오탐율 적음, 최신 공격?탐지 잘 못함 , 시그니쳐(정의된 문자..?)
+
+
+root@elk:/etc/snort# snort -Z console -q -u snort -g snort -c /etc/snort/snort.conf
+
+
+
+
+
+
+root@elk:/home/roror# snort --daq-list
+Available DAQ modules:
+pcap(v3): readback live multi unpriv
+nfq(v7): live inline multi
+ipfw(v3): live inline multi unpriv
+dump(v3): readback live inline multi unpriv
+afpacket(v5): live inline multi unpriv
+
+root@kali:/home/kali# hping3 -c 3 10.0.0.222 --icmp 
+root@elk:/home/roror# snort -A console -q -u snort -g snort -c /etc/snort/snort.conf
+10/29-07:33:53.953984  [**] [1:469:3] ICMP PING NMAP [**] [Classification: Attempted Information Leak] [Priority: 2] {ICMP} 10.0.0.134 -> 10.0.0.222
+10/29-07:33:54.954323  [**] [1:469:3] ICMP PING NMAP [**] [Classification: Attempted Information Leak] [Priority: 2] {ICMP} 10.0.0.134 -> 10.0.0.222
+10/29-07:33:55.955197  [**] [1:469:3] ICMP PING NMAP [**] [Classification: Attempted Information Leak] [Priority: 2] {ICMP} 10.0.0.134 -> 10.0.0.222
+
+root@elk:/home/roror# vi /etc/snort/snort.conf
+- 주석 : 591 ~ 719
+:591,719s/^/#/
+
+
+root@elk:/etc/snort/rules# vi local.rules 
+alert icmp any any -> any any (msg:"Detected to ICMP"; sid:2025102901;)
+alert tcp any any -> 10.0.0.222 22 (msg:"Detected to Jeong Server SSH"; sid:2025102902;)
+
+root@elk:/home/roror# snort -A console -q -u snort -g snort -c /etc/snort/snort.conf
+10/29-07:48:31.022757  [**] [1:2025102902:0] Detected to Jeong Server SSH [**] [Priority: 0] {TCP} 10.0.0.134:46840 -> 10.0.0.222:22
+// IDS
+
+root@elk:/home/roror# iptables -I FORWARD -j NFQUEUE --queue-num=4
+root@elk:/home/roror# iptables -nL
+NFQUEUE    0    --  0.0.0.0/0            0.0.0.0/0            NFQUEUE num 4  // 확인
+root@elk:/home/roror# iptables-save > /etc/iptables.conf
+root@elk:/home/roror# vi /etc/iptables.conf
+
+root@elk:/home/roror# vi /etc/snort/snort.conf 
+193 config daq: nfq
+194 config daq_mode: inline
+195 config daq_var: queue=4
+196 config policy_mode: inline
+
+// 민트에서 우분투로 핑 안됨, 인터넷도 안됨
+root@elk:/home/roror# snort -A console -q -u snort -g snort -c /etc/snort/snort.conf -Q  // 이거 실행시키면 인터넷, 핑 됨
+
+root@elk:/etc/snort/rules# vi local.rules
+drop icmp any any -> any any (msg:"Detected to ICMP"; sid:2025102901;)
+drop tcp any any -> 192.168.1.100 22 (msg:"Detected to Jeong Server SSH"; content:"SSH"; sid:2025102902;)
+// 추가
+
+root@kali:/home/kali# ssh msfadmin@10.0.0.222      
+kex_exchange_identification: read: Connection reset by peer
+Connection reset by 10.0.0.222 port 22
+// ssh안되는거 확인
+
+root@elk:/home/roror# vi /etc/iptables.conf 
+  7 -A INPUT -p icmp --icmp-type echo-request -j NFQUEUE --queue-num=4  // 추가
+
+
+root@elk:/home/roror# iptables -nL
+NFQUEUE    1    --  0.0.0.0/0            0.0.0.0/0            icmptype 8 NFQUEUE num 4  // 확인
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

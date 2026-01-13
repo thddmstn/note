@@ -1,0 +1,110 @@
+
+root@elk:/home/roror# systemctl disable --now unattended-upgrades
+
+
+7JriDEGriovYWRmjg1X2
+
+
+Reset the password of the elastic built-in superuser with 
+'/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic'.
+
+Generate an enrollment token for Kibana instances with 
+ '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana'.
+
+Generate an enrollment token for Elasticsearch nodes with 
+'/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s node'.
+
+
+
+--------------------------------------------------------------------------------------
+
+
+apt-key 완전 폐기, keyrings + signed-by 방식만 허용  (저장소 서명 검증 강제)
+
+# 1. keyring 준비
+sudo mkdir -p /etc/apt/keyrings
+
+# 2. GPG 키 등록
+curl -fsSL https://artifacts.elastic.co/GPG-KEY-elasticsearch \
+| sudo gpg --dearmor -o /etc/apt/keyrings/elastic.gpg
+
+sudo chmod 644 /etc/apt/keyrings/elastic.gpg
+
+# 3. 저장소 등록
+echo "deb [signed-by=/etc/apt/keyrings/elastic.gpg] \
+https://artifacts.elastic.co/packages/9.x/apt stable main" \
+| sudo tee /etc/apt/sources.list.d/elastic-9.x.list
+
+# 4. 설치
+sudo apt update
+sudo apt install elasticsearch
+
+
+
+
+
+------------------------------------------------------------------------------------
+
+root@elk:/home/roror# apt install default-jdk
+root@elk:/home/roror# cd /etc/elasticsearch/
+root@elk:/home/roror# cd jvm.options.d
+
+
+echo -e '-Xms3g\n-Xmx3g' > /etc/elasticsearch/jvm.options.d/jvm-heap.options
+
+
+root@elk:/etc/elasticsearch/jvm.options.d# vi jvm-heap.options 
+-Xms4g
+-Xmx4g
+
+root@elk:/etc/elasticsearch/jvm.options.d# systemctl daemon-reload
+root@elk:/home/roror# systemctl enable --now elasticsearch
+
+
+root@elk:/home/roror# vi /etc/iptables/rules.v4
+ACCEPT     6    --  0.0.0.0/0            0.0.0.0/0            state NEW tcp dpt:9200
+root@elk:/home/roror# netfilter-persistent reload
+
+
+----------------------------------------------------------------------------------
+
+root@elk:/etc/elasticsearch# vi elasticsearch.yml 
+network.host: 0.0.0.0
+cluster.initial_master_nodes: ["elk.roror.co.kr"]
+http.host: 0.0.0.0
+ransport.host: 0.0.0.0
+
+
+https://elk.roror.co.kr:9200/_cat
+https://elk.roror.co.kr:9200/_cat/nodes?v
+https://elk.roror.co.kr:9200/_cat/indices?v
+https://elk.roror.co.kr:9200/_cat/health?v
+
+id : elastic
+password : Tel8-d9uA0=5xp1UFsBS
+
+root@elk:/etc/elasticsearch# curl -u elastic --cacert /etc/elasticsearch/certs/http_ca.crt https://10.0.0.222:9200
+
+https://elk.roror.co.kr:9200/_security/user/elastic/_password
+
+
+
+
+[ OpenStack 클라우드 ]
+ ├─ Attacker VM (봇)
+ │   ├─ 공격 스크립트 (유형별)
+ │   ├─ 유출 ID/PW 리스트
+ │
+ ├─ Web / Login Server VM
+ │   ├─ 일반 계정 10개
+ │   ├─ 허니계정 1~2개
+ │
+ ├─ Log / IDS / ELK VM
+ │   ├─ 로그인 로그 수집
+ │   ├─ 네트워크 트래픽 분석
+ │   └─ 이벤트 상관 분석
+
+본 연구는 OpenStack 기반 환경에서 허니계정과 로그인·네트워크 행위 분석을 결합하여 Credential Stuffing, Password Spraying, 분산 봇 공격을 포함한 다양한 인증 공격을 조기에 탐지하는 통합 침입 탐지 방안을 제안한다
+
+
+

@@ -1,0 +1,362 @@
+lsync 설명
+- lsync 는 자동으로 동기화를 해준다.
+- 출발지 서버에 있는 파일 시스템을 도착지 서버에 실시간 동기화하기 위해 설계된 daemon 이다.
+- lsyncd는 파일 시스템 이벤트 모니터링 시스템인 inotify를 통해 출발지 서버의 파일 시스템이 바뀌었을 때 rsync를 이용하여 동기화를 진행한다.
+주기적으로 변경사항을 체크하는 방식보다 네트워크 적인 면에서 효율적이다.
+Rsync 서버는 (백업파일이 저장될 서버이다) Lsync 서버는(백업파일을 보내는 서버이다.)
+
+lsync : 저장?
+rsync : 저장?
+
+
+[root@rocky roror]# dnf install rsync
+
+[root@rocky roror]# vi /etc/rsyncd.conf 
+      7 # uid = nobody
+      8 # gid = nobody
+      9 # use chroot = yes
+     10 max connections = 4
+     11 pid file = /var/run/rsyncd.pid
+     12 log file = /var/log/rsyncd.log
+     13 # exclude = lost+found/
+     14 transfer logging = yes
+     15 # timeout = 900
+     16 # ignore nonreadable = yes
+     17 # dont compress   = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
+     18 
+     19 # [ftp]
+     20 #        path = /home/ftp
+     21 #        comment = ftp export area
+     22 [backup]
+     23 path = /home/backup
+     24 hosts allow = 10.0.0.200
+     25 hosts deny = *
+     26 list = true
+     27 uid = root
+     28 gid = root
+     29 use chroot = yes
+     30 read only = false
+
+
+[root@rocky roror]# firewall-cmd --permanent --add-service=rsyncd
+[root@rocky roror]# dnf install rsync-daemon
+[root@rocky roror]# systemctl enable --now rsyncd
+
+[root@rocky roror]# getsebool -a | grep rsync
+postgresql_can_rsync --> off
+rsync_anon_write --> off
+rsync_client --> off
+rsync_export_all_ro --> off
+rsync_full_access --> off
+rsync_sys_admin --> off
+[root@rocky roror]# setsebool -P rsync_full_access on
+[root@rocky roror]# setsebool -P rsync_export_all_ro 1
+
+[root@rocky roror]# firewall-cmd --reload
+
+
+root@roror:/etc/yum.repos.d# dnf --enablerepo=epel install -y inotify-tools
+
+
+# rsync -avz --delete --exclude-from=/etc/rsync_exclude.lst /home/backup 10.0.0.201::backup
+<rsync 옵션 설명>
+-a (archive): 아카이브 모드로 파일을 전송하여 디렉토리 재귀, 심볼릭 링크, 퍼미션, 타임스탬프 등을 유지합니다.
+-v (verbose): 전송 중인 파일에 대한 자세한 정보를 출력합니다.
+-z (compress): 전송 중 데이터를 압축하여 네트워크 대역폭을 절약합니다.
+-r (recursive): 디렉토리와 그 안의 모든 하위 디렉토리를 재귀적으로 전송합니다.
+-P: 진행 상황을 보여주고 부분적으로 전송된 파일을 보존합니다.
+--delete: 대상 디렉토리에서 소스 디렉토리에 없는 파일을 삭제합니다.
+-e ssh: ssh를 통해 데이터를 전송하여 원격 서버에 안전하게 파일을 전송합니다.
+--exclude: 특정 파일 또는 디렉토리를 전송에서 제외합니다.
+--include: 특정 파일 또는 디렉토리를 전송에 포함합니다.
+--progress: 전송 중인 파일의 진행 상태를 표시합니다.
+
+
+
+inotifywait → rsync → systemd service/timer
+ - inotify-tools 를 이용하여 실시간 감시하여 변경 값이 발생시 자동으로 업데이트
+ - 디렉터리에서 발생하는 파일 변경 이벤트를 “실시간으로 감시”하는 명령어이다.
+
+inotifywait -mrq -e modify,create,delete /home/backup | while read -r path action file; do
+    echo "경로: $path"
+    echo "이벤트: $action"
+    echo "파일: $file"
+    rsync -avz --delete --exclude-from=/etc/rsync_exclude.lst /home/backup 10.0.0.201::backup
+    #rsync -az --delete /home/backup/ roror@10.0.0.201:/home/backup/
+done
+
+
+옵션 설명
+(참고)path, action, file은 inotify 이벤트 출력에서 각각 경로, 이벤트 종류, 파일명을 담는 변수이다.
+-m : 한 번만 감지하지 않고 지속적으로 감시
+-r : 하위 디렉터리까지 포함하여 감시
+-q : 불필요한 메시지를 제거하고 이벤트만 출력
+-e : 감시할 이벤트 종류 지정
+-e는 감시 대상 이벤트를 제한하는 옵션이고, --format은 감지된 이벤트를 어떻게 출력할지 정하는 옵션이다.
+-e는 이벤트 필터, --format은 출력 형식이며, 출력 개수와 read 변수 개수는 반드시 일치해야 한다.
+- 형식자, 변수, 의미
+ `%w`  path      감시 디렉터리 경로
+ `%f`  file      파일 또는 디렉터리 이름
+ `%e`  action    이벤트 종류
+ `%T`  time      이벤트 발생 시간
+ `%W`  watch     watch 디렉터리
+ `%F`  fullpath  전체 경로 (`%w%f`)
+
+create (생성) : 파일 또는 디렉터리가 새로 만들어질 때 발생하는 이벤트, 예) 신규 파일 업로드, 로그 파일 생성
+modify (수정) : 기존 파일의 내용이 변경될 때 발생하는 이벤트, 예) 파일 내용 추가, 덮어쓰기, 로그 기록
+delete (삭제) : 파일 또는 디렉터리가 삭제될 때 발생하는 이벤트, 예) 파일 제거, 로그 로테이션 시 기존 파일 삭제
+
+파일 동기화 → create,delete,move,close_write
+보안 감시(FIM) → attrib,delete,move,close_write
+로그 수집 → close_write
+
+
+#!/bin/bash
+inotifywait -mrq \
+-e create,delete,move,close_write \
+--timefmt '%F %T' \
+--format '%T %e %w%f %f' \
+/home/backup/ | while read -r time action fullpath file; do
+    echo "시간: $time"
+    echo "경로: $fullpath"
+    echo "이벤트: $action"
+    echo "파일: $file"
+    rsync -avz --delay-updates --delete --exclude-from=/etc/rsync_exclude.lst /home/backup/ 10.0.0.201::backup
+    logger "FILE_EVENT time=$time action=$action path=$fullpath"
+    #rsync -az --delete /home/backup/ roror@10.0.0.201:/home/backup/   (SSH 인증서 이용)
+done
+
+
+
+root@roror:~# vi /etc/systemd/system/inotify-rsync.service
+[Unit]
+Description=Inotify Rsync Backup Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/rsync_backup.sh
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+root@roror:~# cp rsync_backup.sh /usr/local/bin
+root@roror:~# chmod +x /usr/local/bin/rsync_backup.sh
+root@roror:~# systemctl daemon-reload
+root@roror:~# systemctl enable --now inotify-rsync
+
+
+1. 사용자(예 : 계정 3개)
+   
+2. 계정명-날짜시간(압축파일 생성) ---> 
+   사용자 추가, 삭제시 자동으로 계정만 백업 가능
+   (생략) 최근 백업 파일 이외 제거 (값에따라 조절)
+
+3. 3분 마다 백업 --> Rocky
+
+
+  7     lastuse="!!"
+  8     username=`echo $lastuse | awk -F" " '{print $2}'`
+
+  1 #!/bin/bash
+  2 inotifywait -mrq \
+  3 -e create,delete,move,close_write \
+  4 --timefmt '%F %T' \
+  5 --format '%T %e %w%f %f' \
+  6 /home | while read -r time action fullpath file; do
+  7     USERS=($(ls /home))
+  8     for USER in $USERS;do
+  9     tar cvfz /home/$USER.tar.gz /home/$USER
+ 10     rsync -avz --delay-updates --exclude-from=/etc/rsync_exclude.lst /home/backup 10.0.0.201::backup
+ 11     logger "FILE_EVENT time=$time action=$action path=$fullpath"
+ 12     #rsync -az --delete /home/backup/ roror@10.0.0.201:/home/backup/   (SSH 인증서 이용)
+ 13 done
+
+
+
+tar cvfz backup.tar.gz /home/roror
+# grep home /etc/passwd | awk -F: '{print $1}'
+
+
+# grep home /etc/passwd | awk -F: '{print "tar cvfz /home/backup/"$1".tar.gz /home/"$1}' > run.sh
+# date +%Y%m%d%H%M
+
+# grep home /etc/passwd | awk -F: '{print "tar cvfz /home/backup/'`date +%Y%m%d%H%M`'$1.tar.gz /home/"$1}' > run.sh
+# grep home /etc/passwd | awk -F: '{print "tar cvfz /home/backup/'`date +%Y%m%d%H%M`'-"$1".tar.gz /home/"$1}'
+
+
+
+# grep home /etc/passwd | awk -F: '{print "tar cvfz /home/backup/'`date +%Y%m%d%H%M`'$1.tar.gz /home/"$1}' > run.sh
+# grep home /etc/passwd | awk -F: '{print "tar cvfz /home/backup/'`date +%Y%m%d%H%M`'-"$1".tar.gz /home/"$1}'
+# tar cvfzP /home/backup/`date +%Y%m%d%H%M`-logs.tar.gz /var/log
+
+
+3. 3분 마다 백업 --> Rocky
+
+
+
+-------------------------------------------------------------------
+#!/bin/bash
+BACKUP_DIR='/home/backup'
+BACKUP_CNT='5'
+USER_DIR='/root/backup'
+DATE=$(date +%Y%m%d%H%M)
+
+[[ -d $BACKUP_DIR ]] || { echo "$BACKUP_DIR 디렉토리가 없습니다. 생성중...."; sleep 1; mkdir $BACKUP_DIR; }
+[[ -d $USER_DIR ]] || { echo "$USER_DIR 디렉토리가 없습니다. 생성중...."; sleep 1; mkdir $USER_DIR; }
+grep home /etc/passwd | awk -F: '{print "tar cvfzP '$BACKUP_DIR'/'$DATE'-"$1".tar.gz /home/"$1}' > $USER_DIR/run.sh 2>> $USER_DIR/error.log
+echo "tar cvfzP $BACKUP_DIR/$DATE-logs.tar.gz /var/log" >> $USER_DIR/run.sh 2>> $USER_DIR/error.log
+sh $USER_DIR/run.sh > /dev/null 2>> $USER_DIR/error.log
+
+
+
+
+  1 #!/bin/bash
+  2 BACKUP_DIR='/home/backup'
+  3 BACKUP_CNT='1'
+  4 USER_DIR='/root/backup'
+  5 DATE=$(date +%Y%m%d%H%M)
+  6 
+  7 [[ -d $BACKUP_DIR ]] || { echo "$BACKUP_DIR 디렉토리가 없습니다. 생성중..."; sleep 1; mkdir $BACKUP_DIR; }
+  8 [[ -d $USER_DIR ]] || { echo "$USER_DIR 디렉토리가 없습니다. 생성중..."; sleep 1; mkdir $USER_DIR; }
+  9 grep home /etc/passwd | awk -F: '{print "tar cvfzP '$BACKUP_DIR'/'$DATE'-"$1".tar.gz /home/"$1}' > $USER_DIR/run.sh 2>> $USER_DIR/error.    log
+ 10 echo "tar cvfzP $BACKUP_DIR/$DATE-logs.tar.gz /var/log" >> $USER_DIR/run.sh 2>> $USER_DIR/error.log
+ 11 sh $USER_DIR/run.sh > /dev/null 2>> $USER_DIR/error.log
+ 12 ls $BACKUP_DIR | awk -F- '{print $1}' | sort -ur > $USER_DIR/backup.txt
+ 13 CNT=`cat $USER_DIR/backup.txt | wc -l`
+ 14 echo "$BACKUP_DIR Number of files : $CNT"
+ 15 if [ $CNT -ge $BACKUP_CNT ] && [ -f $USER_DIR/backkup.txt ];
+ 16 then
+ 17         f_cnt=`sed '1,'$BACKUP_CNT'd' $USER_DIR/backup.txt`
+ 18         for f_rm in $f_cnt
+ 19         do
+ 20                 echo $f_cnt"* : delete"
+ 21                 rm $BACKUP_DIR/$f_rm*
+ 22         done
+ 23 fi
+
+
+
+
+
+
+
+
+#!/bin/bash
+BACKUP_DIR='/home/backup'
+BACKUP_CNT='4'
+USER_DIR='/root/backup'
+DATE=$(date +%Y%m%d%H%M)
+
+[[ -d $BACKUP_DIR ]] || { echo "$BACKUP_DIR 디렉토리가 없습니다. 생성중...."; sleep 1; mkdir $BACKUP_DIR; }
+[[ -d $USER_DIR ]] || { echo "$USER_DIR 디렉토리가 없습니다. 생성중...."; sleep 1; mkdir $USER_DIR; }
+grep home /etc/passwd | awk -F: '{print "tar cvfzP '$BACKUP_DIR'/'$DATE'-"$1".tar.gz /home/"$1}' > $USER_DIR/run.sh 2>> $USER_DIR/error.log
+echo "tar cvfzP $BACKUP_DIR/$DATE-logs.tar.gz /var/log" >> $USER_DIR/run.sh 2>> $USER_DIR/error.log
+sh $USER_DIR/run.sh > /dev/null 2>> $USER_DIR/error.log
+
+ls $BACKUP_DIR | awk -F- '{print $1}' | sort -ur > $USER_DIR/backup.txt
+CNT=`cat $USER_DIR/backup.txt | wc -l`
+echo "$BACKUP_DIR Number of files : $CNT"
+
+if [ $CNT -ge $BACKUP_CNT ] && [ -f $USER_DIR/backup.txt ];
+then
+        f_cnt=`sed '1,'$BACKUP_CNT'd' $USER_DIR/backup.txt`
+        for f_rm in $f_cnt
+        do
+                echo $f_cnt"* : delete"
+                rm $BACKUP_DIR/$f_rm*
+        done
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

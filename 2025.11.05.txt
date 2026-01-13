@@ -1,0 +1,525 @@
+
+nice : 프로세스 우선순외 변경하는 명령어, NI값 설정할 때 사용. NI의 기본값은 0. 지정 가능한 값의 범위는 -20~19. 값이 작을수록 우선순위 높음. 프로그램 실행하면 NI값은 0, nice를 이용하여 실행하면 NI값은 10
+
+PRI, NI
+PRI : 0~39 기본값 20. 운영체제에서 참고하는 우선순위 값. 인위적인 조작 안됨. 시스템 상황에 따라 적절히 부여됨.
+
+// nice : 실행하지 않은 프로세스의 nice값을 변경. 따라서 PID가 없음. --> 데몬명을 이용해 우선순위 변경
+// renice : 실행중인 프로세스. PID있음 --> PID를 이용해 우선순위 변경
+
+renice : 이미 실행중인 특정프로세스의 nice값을 변경하는 명령어
+
+$ nice -n -20 ping 127.0.0.1 2>/dev/null > /dev/null &   // NI 0으로 설정됨. 일반계정에서는 NI 0부터 가능(음수 불가능) 
+$ nice  ping 127.0.0.1 2 > /dev/null &  // NI값 따로 입력하지 않으면 기본값 10으로 설정됨
+$ ping 127.0.0.1 2 > /dev/null &  // nice명령어 사용하지 않으면 기본값 0으로 설정됨
+
+# nice -10 ping 127.0.0.1 2 > /dev/null &  // NI 10 (renice -10은 -10이다.)
+# nice --10 ping 127.0.0.1 2 > /dev/null &  // NI -10
+
+pkill ping
+
+일반계정에서 renice는 NI값을 증가하는 방향으로만 설정 가능하다.
+$ renice -10 6392  // 불가능 (음수)
+$ renice 1 6392  // 가능 (0 --> 1)
+$ renice 7 6392  // 가능 (1 --> 7)
+$ renice 3 6392  // 불가능 (7 --> 3)
+$ renice -n 11 6392  // 가능 (7 --> 11)
+$ renice --12 6392  // 문법 오류
+$ renice -12 7177  // 불가능 (11 --> -12)
+$ renice 12 7177  // 가능 (11 --> 12)
+
+# renice --10 6392  // 문법 오류.
+# renice -10 6392  // 가능 (12 --> -10)
+# renice -n -20 6392  // 가능 (-10 --> -20)
+
+
+kali@kali:~$ nohup ping 127.0.0.1 >/dev/null &   // nohup명령어로 실행하면 로그아웃하거나 사용중인 터미널 창이 닫혀도 계속 실행됨.
+kali@kali:~$ ps -ef | grep ping
+
+root@roror:~# date +%F
+
+root@roror:~# useradd user
+root@roror:~# tar cvfzP /backup/backup_$(date +%F).tar.gz /home/user
+
+root@roror:~# vi /etc/cron.hourly/backup.sh
+#!/bin/bash
+tar cvfzP /backup/backup_$(date +%F).tar.gz /home/user
+root@roror:~# chmod 755 $_
+root@roror:~# ls -l $_
+root@roror:~# /etc/cron.hourly/backup.sh 
+root@roror:~# ls /backup
+backup_2025-11-05.tar.gz
+
+root@roror:~# vi /etc/cron.hourly/backup.sh 
+#!/bin/bash
+tar cvfzP /backup/backup_$(date +%F_%H:%M:%S).tar.gz /home/user
+root@roror:~# /etc/cron.hourly/backup.sh 
+root@roror:~# ls /backup
+backup_2025-11-05_11:21:12.tar.gz
+
+root@roror:/etc/logrotate.d# vi wtmp
+root@roror:/etc/logrotate.d# vi /etc/crontab 
+
+`` == $()
+
+root@roror:/etc/logrotate.d# crontab -e
+*/1 * * * * echo "`date`" > ~/time.txt // 입력
+분 시 일 월 요일 사용자 명령어
+// */1 : 1분마다.   1 : 1분일 때.
+
+root@roror:/etc/logrotate.d# crontab -l
+*/1 * * * * echo "`date`" > ~/time.txt
+root@roror:/etc/logrotate.d# crontab -r
+Backup of root's previous crontab saved to /root/.cache/crontab/crontab.bak
+root@roror:/etc/logrotate.d# crontab -l
+no crontab for root
+
+root@roror:/etc/logrotate.d# crontab -e
+*/1 * * * * echo "`date`" > ~/time.txt  // 입력
+root@roror:/etc/logrotate.d# crontab -u roror -e
+*/1 * * * * echo "`date`" > ~/time.txt  // 입력
+
+
+/etc/cron.allow  -   해당 파일에 등록된 사용자만 사용 가능하도록 설정 가능, cron 
+/etc/cron.deny  -   해당 파일에 등록된 사용자만 사용 불가능하도록 설정 가능
+
+
+kali@kali:~$ nc -lvp 4444
+root@roror:/etc/logrotate.d# nc 10.0.0.134 4444
+
+*/1 * * * * echo "`date`" > ~/time.txt --> .crontab --> crontab .crontab (파일로 등록 방법)
+
+root@roror:/var/log# vi messages
+root@roror:/var/log# vi /etc/rsyslog.conf
+ 49 *.info;mail.none;authpriv.none;cron.none                /var/log/messages
+// ??
+
+저널링? 
+rsyslog가 어디에 없다고?..
+syslog?
+
+root@roror:/var/log# tail -f /var/log/secure
+
+ifconfig ens0 up|down
+ip addr show ens160
+iproute
+
+root@roror:/etc# route add default gw 10.0.0.1 dev ens160  // gw설정
+root@roror:/etc# route del default gw 10.0.0.1  // gw삭제
+
+root@roror:/etc# ss -ltnp
+// ??
+
+
+syn
+syn + ack
+ack
+
+  -- fin+ack -->
+<----- ack ----
+<-- fin+ack --
+  ----- ack ---->
+
+netstat
+traceroute
+arp // -a, -d, -s, -n, -v, -i
+
+
+
+
+[root@localhost roror]# pvremove /dev/nvme0n2p1
+[root@localhost roror]# vgremove vg_data
+
+[root@localhost roror]# pvcreate /dev/nvme0n2p1
+[root@localhost roror]# vgcreate vg_home /dev/nvme0n2p1
+[root@localhost roror]# lvcreate -l 5119 vg_home -n lv_home
+
+[root@localhost roror]# mkfs.xfs /dev/mapper/vg_home-lv_home
+[root@localhost roror]# vi /etc/fstab
+/dev/vg_home/lv_home    /home                   xfs     defaults        0 0  // 추가
+
+[root@localhost roror]# fdisk /dev/nvme0n3
+[root@localhost roror]# pvcreate /dev/nvme0n3p1
+[root@localhost roror]# vgextend vg_home /dev/nvme0n3p1
+[root@localhost roror]# lvextend -l+5119 /dev/vg_home/lv_home
+[root@localhost roror]# df -h
+/dev/mapper/vg_home-lv_home   20G  175M   20G   1% /home
+// 20G --> 아직 반영 안됨
+[root@localhost roror]# xfs_growfs /dev/vg_home/lv_home 
+[root@localhost roror]# df -h
+/dev/mapper/vg_home-lv_home   40G  318M   40G   1% /home
+// 반영됨
+
+
+*/시험/*
+lvcreate -l 5119 vg_home -n lv_home
+lvcreate -L 20G vg_home -n lv_home
+lvextend -l+5119 /dev/vg_home/lv_home
+lvextend -L+20G /dev/vg_home/lv_home
+xfs_growfs /dev/vg_home/lv_home  (논리 볼륨을 확장하면 최종적으로 시스템에 반영해준다.)
+ - resize2fs 해당 명령을 사용할때도 있었다.
+
+
+[root@localhost roror]# vgdisplay vg_home
+  VG Size               39.99 GiB
+  PE Size               4.00 MiB
+  Total PE              10238
+  Alloc PE / Size       10238 / 39.99 GiB
+  Free  PE / Size       0 / 0 
+[root@localhost roror]# pvdisplay
+  --- Physical volume ---
+  PV Name               /dev/nvme0n2p1
+  VG Name               vg_home
+  PV Size               <20.00 GiB / not usable 3.00 MiB
+  Allocatable           yes (but full)
+  PE Size               4.00 MiB
+  Total PE              5119
+  Free PE               0
+  Allocated PE          5119
+  --- Physical volume ---
+  PV Name               /dev/nvme0n3p1
+  VG Name               vg_home
+  PV Size               <20.00 GiB / not usable 3.00 MiB
+  Allocatable           yes (but full)
+  PE Size               4.00 MiB
+  Total PE              5119
+  Free PE               0
+  Allocated PE          5119
+
+[root@localhost roror]# lvdisplay
+  --- Logical volume ---
+  LV Path                /dev/vg_home/lv_home
+  LV Size                39.99 GiB
+
+
+
+[root@localhost roror]# pvs
+[root@localhost roror]# pvscan
+[root@localhost roror]# vgs
+[root@localhost roror]# vgscan
+[root@localhost roror]# lvs
+[root@localhost roror]# lvscan
+
+[root@localhost home]# dnf install rsync
+[root@localhost home]# rsync -av /home/* /data  // cp -a /home/* /data 랑 같음
+[root@localhost home]# ls -l /data
+total 0
+drwx------. 2 roror roror 83 Nov  3 16:55 roror
+
+pvcreate /dev/nvme0n2p1
+pvcreate /dev/nvme0n3p1
+vgcreate vg_home /dev/nvme0n2p1 /dev/nvme0n3p1
+lvcreate -l 10238 vg_home -n lv_home
+vi /etc/fstab 
+mkfs.xfs /dev/vg_home/lv_home
+mount /dev/vg_home/lv_home /data
+cp -a /home/* /data
+
+
+pvcreate /dev/nvme0n4p1
+[root@localhost data]# pvmove /dev/nvme0n2p1 /dev/nvme0n4p1
+  /dev/nvme0n2p1: Moved: 0.43%
+  /dev/nvme0n2p1: Moved: 100.00%
+[root@localhost data]# vgreduce vg_home /dev/nvme0n2p1
+  Removed "/dev/nvme0n2p1" from volume group "vg_home"
+[root@localhost data]# xfs_growfs /dev/mapper/vg_home-lv_home
+// xfs_growfs /dev/vg_home/lv_home --> 이렇게도 가능
+
+compress
+gzip
+bzip2
+xz
+// 위 명령어들로 압축했을 때 각 파일 확장자 외우기
+
+tar 옵션... 하 이거 진짜 안외워지는데.... 어케외움...
+
+compress, uncompress
+gzip, gunzip
+bzip2, bunzip2
+압축률 가장 좋은 옵션..? -9?
+xz, unxz
+zip, unzip
+
+zcat : gzip 패키지에 같이 들어있는 명령으로 압축되어있는 텍스트 파일의 내용을 확인할 때 사용한다.  // zcat posein.txt.gz
+
+다음 중 옳은 것은?
+tar cvfz a.tar.gz /home
+tar cvfz /home a.tar.gz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

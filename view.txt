@@ -1,0 +1,43 @@
+view "internal" {
+        match-clients {
+                localhost;
+                internal-network;
+        };
+zone "." IN {
+        type hint;
+        file "named.ca";
+};
+zone "roror.co.kr" IN {
+        type primary;
+        file "roror.co.kr.lan";
+        allow-update { none; };
+};
+zone "0.0.10.in-addr.arpa" IN {
+        type primary;
+        file "0.0.10.db";
+        allow-update { none; };
+};
+include "/etc/named.rfc1912.zones";
+include "/etc/named.root.key";
+};
+
+view  "external" {
+        match-clients { any; };
+        allow-query { any; };
+        recursion no; 
+zone "roror.co.kr" IN {
+        type primary;
+        file "roror.co.kr.zone";
+        allow-update { none; };
+};
+zone "0.0.10.in-addr.arpa" IN {
+        type primary;
+        file "0.0.10.db";
+        allow-update { none; };
+};
+include "/etc/named.rfc1912.zones";
+include "/etc/named.root.key";
+};
+
+
+

@@ -1,0 +1,496 @@
+kali에서 alma로 ssh접속
+
+root@localhost:/var/www/html# git clone https://github.com/digininja/DVWA.git DVWA
+
+root@localhost:/var/www/html/DVWA/config# ls
+config.inc.php.dist
+root@localhost:/var/www/html/DVWA/config# cp config.inc.php.dist config.inc.php
+root@localhost:/var/www/html/DVWA/config# vi config.inc.php
+ 17 $_DVWA = array();
+ 18 $_DVWA[ 'db_server' ]   = getenv('DB_SERVER') ?: '127.0.0.1';
+ 19 $_DVWA[ 'db_database' ] = getenv('DB_DATABASE') ?: 'dvwa';
+ 20 $_DVWA[ 'db_user' ]     = getenv('DB_USER') ?: 'roror';
+ 21 $_DVWA[ 'db_password' ] = getenv('DB_PASSWORD') ?: 'qhdks12';
+ 22 $_DVWA[ 'db_port']      = getenv('DB_PORT') ?: '3306';
+
+
+MariaDB [(none)]> grant all privileges on pentest.* to roror@localhost identified by 'qhdks12';
+Query OK, 0 rows affected (0.011 sec)
+
+MariaDB [(none)]> flush privileges;
+Query OK, 0 rows affected (0.001 sec)
+
+------------------------------------------------------------------------------------------------------------------------------------------
+> grant all privileges on pentest.* to roror@localhost identified by 'password';
+   create user roror@localhost identified by 'password';
+   grant all privileges on pentest.* to roror@localhost;
+
+계정 roror@localhost (roror)
+사용가능한 호스트 : localhost, %, 10.0.0.200 (% 모든것, 10.0.0.200)
+pentest.* (pentest : 데이터베이스, * 테이블, 즉 모든 테이블)
+all privileges : pentest 데이터베이스의 모든 테이블에 모든 권한을 주겠다.
+패스워드는 : password
+------------------------------------------------------------------------------------------------------------------------------------------
+
+root@localhost:/var/www/html/DVWA# cd dvwa/includes/DBMS/                       
+root@localhost:/var/www/html/DVWA/dvwa/includes/DBMS# audit2why < /var/log/audit
+/audit.log  
+
+10.0.0.200/DVWA/login.php 접속후 로그인
+Insecure CAPTCHA 에서 링크 클릭(구글 reCAPTCHA로 접속)
+뭐 만들고? 키 복사함
+
+root@roror:/var/www/html/DVWA/config# vi config.inc.php
+ 27 $_DVWA[ 'recaptcha_public_key' ]  = getenv('RECAPTCHA_PUBLIC_KEY') ?: '6LdaU    NgrAAAAAOinL45-t3cHBPygjhV49S9B6JyR';  // 사이트 키 복사해서 붙여넣음
+ 28 $_DVWA[ 'recaptcha_private_key' ] = getenv('RECAPTCHA_PRIVATE_KEY') ?: '6Lda    UNgrAAAAAL-5gmPiPXUVweGJSXhs3UjFiWUk';  // 비밀 키 복사해서 붙여넣음
+ 29 
+
+root@roror:/var/www/html/DVWA/config# vi /etc/php.ini
+
+ 518 display_errors = On  // 수정
+ 519 
+ 520 ; The display of errors which occur during PHP's startup sequence are handl     ed
+ 521 ; separately from display_errors. We strongly recommend you set this to 'of     f'
+ 522 ; for production servers to avoid leaking configuration details.
+ 523 ; Default Value: On
+ 524 ; Development Value: On
+ 525 ; Production Value: Off
+ 526 ; https://php.net/display-startup-errors
+ 527 display_startup_errors = On  // 수정
+
+--> 에러 확인..?같은거 하고 다시 Off로 수정함
+
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"  // 1
+php -r "if (hash_file('sha384', 'composer-setup.php') === 'ed0feb545ba87161262f2d45a633e34f591ebb3381f2e0063c345ebea4d228dd0043083717770234ec00c5a9f9593792') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"   // 2
+php composer-setup.php  // 3
+php -r "unlink('composer-setup.php');"  // 4
+
+root@roror:/var/www/html/pentest# php -r "copy('https://getcomposer.org/installe
+r', 'composer-setup.php');"                                                     
+root@roror:/var/www/html/pentest# php -r "if (hash_file('sha384', 'composer-setu
+p.php') === 'ed0feb545ba87161262f2d45a633e34f591ebb3381f2e0063c345ebea4d228dd004
+3083717770234ec00c5a9f9593792') { echo 'Installer verified'.PHP_EOL; } else { ec
+ho 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"       
+                                                     
+
+root@roror:/var/www/html/pentest# mv composer-setup.php ~
+root@roror:~# php -r "if (hash_file('sha384', 'composer-setup.php') === 'ed0feb545ba87161262f2d45a633e34f591ebb3381f2e0063c345ebea4d228dd0043083717770234ec00c5a9f9593792') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"  // 2복붙
+
+root@roror:~# php composer-setup.php
+root@roror:~# php -r "unlink('composer-setup.php');"
+
+
+root@roror:~# composer
+bash: composer: 명령을 찾을 수 없습니다...
+root@roror:~# ls -l
+합계 3084
+-rw-------. 1 root root     812  8월 29일  12:23 anaconda-ks.cfg
+-rwxr-xr-x. 1 root root 3125332  9월 29일  11:42 composer.phar
+-rw-r--r--. 1 root root    2319  9월 10일  15:48 passwd
+-rw-r--r--. 1 root root    1151  9월 23일  14:26 rootca_openssl.conf
+-rw-r--r--. 1 root root     132  9월 11일  11:35 run.sh
+-rw-r--r--. 1 root root    8812  9월 23일  16:44 ssl.conf
+root@roror:~# cp ./composer.phar /usr/bin/composer 
+
+root@roror:~# composer --version
+PHP Deprecated:  Directive 'allow_url_include' is deprecated in Unknown on line 0
+Do not run Composer as root/super user! See https://getcomposer.org/root for details
+Continue as root/super user [yes]? yes
+Composer version 2.8.12 2025-09-19 13:41:59
+PHP version 8.3.19 (/usr/bin/php)
+Run the "diagnose" command to get more detailed diagnostics output.
+
+-------------------------------------------------------------------------------------------------
+- 현재 위치에 파일을 생성한다.
+# cd ~
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php -r "if (hash_file('sha384', 'composer-setup.php') === 'ed0feb545ba87161262f2d45a633e34f591ebb3381f2e0063c345ebea4d228dd0043083717770234ec00c5a9f9593792') { echo 'Installer verified'.PHP_EOL; } else { echo 'Installer corrupt'.PHP_EOL; unlink('composer-setup.php'); exit(1); }"
+php composer-setup.php
+php -r "unlink('composer-setup.php');"
+
+composer-setup.php 
+- 생성된 마지막 결과물(명령어) : composer.phar
+# cp ./composer.phar /usr/bin/composer
+# composer --version
+Composer(컴포저)는 PHP 언어로 작성된 애플리케이션의 의존성(dependency) 관리 프로그램
+- 참고
+ composer.json <- 설치할 목록
+ composer.lock <- 설치된 목록
+ composer install <- 설치할 목록을 확인하고 다운로드 함.
+ composer update <- 최신 목록을 확인하고 다운로드 하고 기록함.
+ composer list
+ composer search
+ composer show
+--------------------------------------------------------------------------------------------------
+
+root@roror:/var/www/html/DVWA/vulnerabilities/api# composer install
+
+http://10.0.0.200/DVWA/setup.php  // 접속
+API
+This section is only important if you want to use the API module.
+Vendor files installed: Installed  // Installed로 바뀜
+
+root@roror:/var/www/html/DVWA/vulnerabilities/api# chown -R apache:apache /var/www/html/DVWA
+
+root@roror:/var/www/html/DVWA/vulnerabilities/api# httpd -M | grep rew
+ rewrite_module (shared)
+
+root@roror:/var/www/html/DVWA# vi setup.php 
+ 59         $out = shell_exec ("httpd -M | grep rewrite_module");
+
+root@roror:/var/www/html/DVWA# setenforce 0
+root@roror:/var/www/html/DVWA/vulnerabilities/api# vi index.php 
+ 33         $out = shell_exec ("httpd -M | grep rewrite_module");
+
+root@roror:/var/www/html/DVWA# httpd -M | grep rewrite_module > ./rewrite
+
+root@roror:/var/www/html/DVWA# vi setup.php 
+ 59         //$out = shell_exec ("httpd -M | grep rewrite_module");
+ 60         $out = shell_exec ("cat ./rewrite | grep rewrite_module");
+
+root@roror:/var/www/html/DVWA/vulnerabilities/api# vi index.php 
+ 32 if (PHP_OS == "Linux") {
+ 33         //$out = shell_exec ("httpd -M | grep rewrite_module");
+ 34         $out = shell_exec ("cat ../../rewrite | grep rewrite_module");
+
+ $out = shell_exec ("httpd -M | grep rewrite_module");      
+           // shell_exec()  ---> PHP 에서 Linux 명령을 실행 하는 함수
+           // httpd -M | grep rewrite_module    (HTTP 모듈 있다면 출력된다.)
+        if ($out == "") {
+                $mod_rewrite = "<em><span class='failure'>Not Enabled</span></em><br>";
+        } else {
+                $mod_rewrite = "<em><span class='success'>Enabled</span></em><br>";
+        }
+
+root@roror:/var/www/html/DVWA/config# vi config.inc.php
+ 33 $_DVWA[ 'default_security_level' ] = getenv('DEFAULT_SECURITY_LEVEL') ?: 'low';
+// roror.co.kr/DVWA/security.php 에서 Security level is currently: low 로 항상 설정되게 함. (DVWA Security 항목)
+ 43 $_DVWA[ 'disable_authentication' ] = getenv('DISABLE_AUTHENTICATION') ?: fal    se;   // 매번 로그인 안해도 되게? 설정
+
+
+
+--------------------------------------------------------------------------------------------------
+리눅스 문법
+root@roror:/var/www/html# wc
+asdfwe;asef
+wefjonvsf
+      2       2      22
+root@roror:/var/www/html# cat /etc/passwd | wc -l
+43
+root@roror:/var/www/html# cat /etc/passwd | wc -w
+101
+root@roror:/var/www/html# cat /etc/passwd | wc 
+     43     101    2512
+root@roror:/var/www/html# ls /etc | wc
+    258     258    2435
+root@roror:/var/www/html# ls -l /etc | wc
+    259    2344   24220
+root@roror:/var/www/html# ls -l /etc | sort -r
+
+root@roror:/var/www/html# cut -c 1-5 /etc/passwd
+root@roror:/var/www/html# cut -c 5- /etc/passwd
+root@roror:/var/www/html# cut -c -5 /etc/passwd
+
+root@roror:/var/www/html# cut -d ':' -f 1,7 /etc/passwd
+root@roror:/var/www/html# cut -d ':' -f 1,7 /etc/passwd | cut -c 1-4
+root@roror:/var/www/html# cut -d ':' -f 1,7 /etc/passwd | cut -c 1,3
+root@roror:/var/www/html# cut -f 1,3 -d: /etc/passwd
+root@roror:/var/www/html# cut -f 1,5 -d: /etc/passwd
+root@roror:/var/www/html# cut -c 1-10 /etc/passwd
+root@roror:/var/www/html# cut -c 1-9 /etc/passwd
+root@roror:/home/roror# split -l 10 /etc/passwd ./passwd
+root@roror:/home/roror# ls
+passwdaa  passwdab  passwdac  passwdad  passwdae  public_html  공개  다운로드  문서  바탕화면  비디오  사진  서식  음악
+
+root@roror:/home/roror# vi pwd  // 3줄 지움
+root@roror:/home/roror# diff ./passwd pwd
+2d1
+< bin:x:1:1:bin:/bin:/usr/sbin/nologin
+4d2
+< adm:x:3:4:adm:/var/adm:/usr/sbin/nologin
+6d3
+< sync:x:5:0:sync:/sbin:/bin/sync
+root@roror:/home/roror# cmp ./passwd pwd
+./passwd pwd 다름: 39바이트, 2행
+root@roror:/home/roror# comm passwd pwd
+
+root@roror:/home/roror# cat -n /etc/passwd > ./passwd
+root@roror:/home/roror# cat -n /etc/passwd > ./pwd
+
+root@roror:/home/roror# rm passwd pwd
+rm: 일반 파일 'passwd'을(를) 제거할까요? y
+rm: 일반 파일 'pwd'을(를) 제거할까요? y
+
+root@roror:/home/roror# vi pwd
+root@roror:/home/roror# diff passwd pwd
+2d1
+<      2	bin:x:1:1:bin:/bin:/usr/sbin/nologin
+5d3
+<      5	lp:x:4:7:lp:/var/spool/lpd:/usr/sbin/nologin
+8d5
+<      8	halt:x:7:0:halt:/sbin:/sbin/halt
+root@roror:/home/roror# diff pwd passwd
+1a2
+>      2	bin:x:1:1:bin:/bin:/usr/sbin/nologin
+3a5
+>      5	lp:x:4:7:lp:/var/spool/lpd:/usr/sbin/nologin
+5a8
+>      8	halt:x:7:0:halt:/sbin:/sbin/halt
+
+
+root@roror:/home/roror# diff ~/ssl.conf /etc/httpd/conf.d/ssl.conf 
+43,44c43,45
+< #DocumentRoot "/var/www/html"
+< #ServerName www.example.com:443
+---
+> DocumentRoot "/var/www/html"
+> ServerName roror.co.kr:443
+> ServerAlias www.roror.co.kr:443
+205a207,230
+> <VirtualHost _default_:443>
+> DocumentRoot "/home/roror/public_html"
+> ServerName web.roror.co.kr:443
+> ErrorLog logs/web_ssl_error_log
+> TransferLog logs/web_ssl_access_log
+> LogLevel warn
+> SSLEngine on
+> SSLHonorCipherOrder on
+> SSLCipherSuite PROFILE=SYSTEM
+> SSLProxyCipherSuite PROFILE=SYSTEM
+> SSLCertificateFile /etc/ssl/server-cert.pem
+> SSLCertificateKeyFile /etc/ssl/server-key.pem
+> <FilesMatch "\.(cgi|shtml|phtml|php)$">
+>     SSLOptions +StdEnvVars
+> </FilesMatch>
+> <Directory "/var/www/cgi-bin">
+>     SSLOptions +StdEnvVars
+> </Directory>
+> BrowserMatch "MSIE [2-5]" \
+>          nokeepalive ssl-unclean-shutdown \
+>          downgrade-1.0 force-response-1.0
+> CustomLog logs/ssl_request_log \
+>           "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+> </VirtualHost>
+
+root@roror:/home/roror# du
+root@roror:/home/roror# du -h
+root@roror:/home/roror# df -h
+root@roror:/home/roror# du -s /etc // -s : 전체 합, usage --> user)
+28244	/etc
+root@roror:/home/roror# du -sh /etc 
+28M	/etc
+root@roror:/home/roror# df -sh // -s 가 없음, partition --> 파티션(fa...)
+df: 부적절한 옵션 -- 's'
+자세한 정보는 'df --help'를 입력하십시오.
+// 마운트된 정보만 출력한다. 마운트된 정보는 # cat /etc/mtab 에서 확인 가능하다.
+
+
+root@roror:/home/roror# du ./pwd
+4	./pwd
+root@roror:/home/roror# ls -l ./pwd
+-rw-r--r--. 1 root root 2677  9월 29일  14:46 ./pwd
+root@roror:/home/roror# ls -lh ./pwd
+-rw-r--r--. 1 root root 2.7K  9월 29일  14:46 ./pwd
+root@roror:/home/roror# du -h ./pwd
+4.0K	./pwd
+
+root@roror:/home/roror# lsblk
+NAME               MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sr0                 11:0    1 1024M  0 rom  
+nvme0n1            259:0    0   50G  0 disk 
+├─nvme0n1p1        259:1    0    1M  0 part 
+├─nvme0n1p2        259:2    0    1G  0 part /boot
+└─nvme0n1p3        259:3    0   49G  0 part 
+  ├─almalinux-root 253:0    0   44G  0 lvm  /
+  └─almalinux-swap 253:1    0    5G  0 lvm  [SWAP]
+
+// fdisk, lsblk (마운트 안된 디스크도 출력한다.)
+
+
+root@roror:/home/roror# updatedb  // 디렉토리 주소
+root@roror:/home/roror# locate passwd
+root@roror:/home/roror# locate passwd | grep etc   // ? 모르겠다
+/etc/passwd
+/etc/passwd-
+/etc/pam.d/passwd
+/etc/security/opasswd
+
+root@roror:/home/roror# strace /usr/bin/ls
+root@roror:/home/roror# strace /usr/bin/ls | more
+
+root@roror:/home/roror# wall test
+
+root@roror:/home/roror# strace -e write /usr/bin/ls
+write(1, "passwd\tpublic_html  pwd  \352\263\265\352\260\234\t"..., 100passwd	public_html  pwd  공개	다운로드  문서	바탕화면  비디오  사진	서식  음악
+) = 100
++++ exited with 0 +++
+
+root@roror:/home/roror# strace -o ls.txt /usr/bin/ls
+root@roror:/home/roror# cat ls.txt 
+
+root@roror:/home/roror# strace /usr/bin/ls 2> ls_log.txt
+root@roror:/home/roror# cat ls_log.txt 
+
+root@roror:/home/roror# strace -p 8228 -o firefox.txt &
+[1] 8617
+root@roror:/home/roror# strace: Process 8228 attached
+root@roror:/home/roror# tail -f ./firefox.txt  // 다른 탭에서 실행
+
+root@roror:/home/roror# ldd /usr/bin/ls
+	linux-vdso.so.1 (0x00007fc941657000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007fc9415ef000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fc9415e2000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fc941409000)
+	libpcre2-8.so.0 => /lib64/libpcre2-8.so.0 (0x00007fc941369000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fc941659000)
+
+bg/fg/jobs
+
+root@roror:/home/roror# sleep 2345235
+^Z
+[1]+  멈춤                  sleep 2345235
+root@roror:/home/roror# sleep 235346 &
+[2] 8764
+root@roror:/home/roror# sleep 345346456756624 &
+[3] 8768
+root@roror:/home/roror# jobs
+[1]+  멈춤                  sleep 2345235
+[2]   실행중               sleep 235346 &
+[3]-  실행중               sleep 345346456756624 &
+root@roror:/home/roror# jobs %%
+[1]+  멈춤                  sleep 2345235
+root@roror:/home/roror# jobs -x echo %1
+8752
+root@roror:/home/roror# jobs -x echo %2
+8764
+root@roror:/home/roror# jobs -x echo %3
+8768
+root@roror:/home/roror# jobs -l
+[1]+  8752 정지됨               sleep 2345235
+[2]   8764 실행중               sleep 235346 &
+[3]-  8768 실행중               sleep 345346456756624 &
+root@roror:/home/roror# jobs %+
+[1]+  멈춤                  sleep 2345235
+root@roror:/home/roror# jobs %-
+[3]-  실행중               sleep 345346456756624 &
+
+root@roror:/home/roror# file -f /etc/passwd
+root@roror:/home/roror# file -k /etc/passwd
+/etc/passwd: ASCII text
+root@roror:/home/roror# file -z /etc/passwd
+/etc/passwd: ASCII text
+
+Bonding(Teaming)
+랜카드 여러개를 하나처럼 사용하는 기술
+
+
+
+
+
+
+
+roror@roror:~$ nmcli d
+DEVICE  TYPE      STATE          CONNECTION 
+ens160  ethernet  연결됨         ens160     
+lo      loopback  연결됨 (외부)  lo         
+ens224  ethernet  연결 끊겼음    --         
+roror@roror:~$ nmcli c
+NAME    UUID                                  TYPE      DEVICE 
+ens160  bfa24d5d-89a3-32e6-8f00-b7b2f172468f  ethernet  ens160 
+lo      73d334bc-943d-4cf5-8822-f7c57039d939  loopback  lo     
+roror@roror:~$ nmcli d up ens224
+'ens224' 장치가 '0fdfbf71-1270-445e-8807-4473116c6e5a' 통해 성공적으로 활성화되었습니다.
+roror@roror:~$ nmcli c
+NAME    UUID                                  TYPE      DEVICE 
+ens160  bfa24d5d-89a3-32e6-8f00-b7b2f172468f  ethernet  ens160 
+ens224  0fdfbf71-1270-445e-8807-4473116c6e5a  ethernet  ens224 
+lo      73d334bc-943d-4cf5-8822-f7c57039d939  loopback  lo  
+roror@roror:~$ cd /etc/NetworkManager/system-connections/
+roror@roror:/etc/NetworkManager/system-connections$ ls
+ens160.nmconnection  ens224.nmconnection
+
+root@roror:/etc/NetworkManager/system-connections# nmcli c add type bond con-name bond0 ifname bond mode active-backup
+'bond0' (8fc583ac-64f6-4beb-9fb5-9d2c4150acc6) 연결이 성공적으로 추가되었습니다.
+root@roror:/etc/NetworkManager/system-connections# nmcli connection add type bond-slave ifname ens160 master bond0
+'bond-slave-ens160' (83389e49-0631-428a-bbda-f305aee70572) 연결이 성공적으로 추가되었습니다.
+root@roror:/etc/NetworkManager/system-connections# nmcli connection add type bond-slave ifname ens224 master bond0
+'bond-slave-ens224' (cd1053f9-c96f-4af3-8f9c-3f3cc8debb8b) 연결이 성공적으로 추가되었습니다.
+root@roror:/etc/NetworkManager/system-connections# ls
+bond-slave-ens224.nmconnection  bond-slave-ens160.nmconnection  bond0.nmconnection  ens160.nmconnection  ens224.nmconnection
+
+root@roror:/etc/NetworkManager/system-connections# mv ens160.nmconnection ens224.nmconnection ~
+// 백업
+
+root@roror:/etc/NetworkManager/system-connections# nmcli c mo bond0 connection.autoconnect yes
+// 재부팅 돼도 활성화
+
+재부팅 한다음 ifconfig하면 bond만 활성화 되어있음(bond만 ip있음)
+
+roror@roror:~$ su
+root@roror:/home/roror# nmcli c
+NAME                UUID                                  TYPE      DEVICE 
+bond0               8fc583ac-64f6-4beb-9fb5-9d2c4150acc6  bond      bond   
+bond-slave-ens160   83389e49-0631-428a-bbda-f305aee70572  ethernet  ens160 
+lo                  d11c582d-2148-49b2-8673-e6ab391f6f41  loopback  lo     
+bond-slave-ens224  cd1053f9-c96f-4af3-8f9c-3f3cc8debb8b  ethernet  --     
+root@roror:/home/roror# nmcli c mo bond0 ipv4.add 10.0.0.200/24
+root@roror:/home/roror# nmcli c mo bond0 ipv4.gateway 10.0.0.1
+root@roror:/home/roror# nmcli c mo bond0 ipv4.dns 10.0.0.200,8.8.8.8
+root@roror:/home/roror# nmcli c mo bond0 ipv4.method manual 
+root@roror:/home/roror# nmcli c down bond0;nmcli c up bond0
+'bond0' 연결이 성공적으로 비활성화되었습니다 (D-Bus 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/3)
+연결이 성공적으로 활성화되었습니다 (controller waiting for ports) (D-버스 활성 경로: /org/freedesktop/NetworkManager/ActiveConnection/4)
+
+
+configure, make, make install // 소스 컴파일.. 순서..?중요한가.. 
+configure // Makefile.. 파일 만들어줌
+
+rpm -ivh mc.rpm  // rpm, 확장자 : .rpm
+dpkg -i mc.deb    // dpkg, 확장자 : deb  // .deb? 
+YaST  // 개별설치..
+yum, dnf, apt-get, apt, zypper  // ???
+arch linux -- pacman   // ????????
+
+CentOS 7까지  yum 8부터 dnf(7 이전에는 dnf없음)
+
+
+root@roror:/etc/sysconfig# dnf install tilix
+마지막 메타자료 만료확인(6:49:55 이전): 2025년 09월 29일 (월) 오전 10시 41분 49초.
+일치하는 인수가 없습니다: tilix
+오류: 일치하는 항목을 찾을 수 없습니다: tilix
+root@roror:/etc/sysconfig# dnf --enablerepo=epel install tilix
+Extra Packages for Enterprise Linux 10 - x86_64                                     10 kB/s | 7.6 kB     00:00    
+Extra Packages for Enterprise Linux 10 - x86_64                                    5.2 MB/s | 4.8 MB     00:00    
+마지막 메타자료 만료확인(0:00:01 이전): 2025년 09월 29일 (월) 오후 05시 32분 31초.
+일치하는 인수가 없습니다: tilix
+오류: 일치하는 항목을 찾을 수 없습니다: tilix
+root@roror:/home/roror# git clone https://github.com/gnunn1/tilix.git
+
+dnf install epel-release -y // epel.repo 파일 없으면 install해야함
+root@roror:/etc/yum.repos.d# vi epel.repo 
+ 11 countme=1
+ 12 enabled=1   // 0을 1로 수정(sed할 때 0으로 바꿨었음 9/23?25인가?그때 한듯?)
+ 13 
+root@roror:/etc/yum.repos.d# dnf install snapd
+root@roror:/etc/yum.repos.d# systemctl enable --now snapd.socket
+root@roror:/etc/yum.repos.d# snap install dub --classic
+
+curl -fsS https://dlang.org/install.sh | bash -s dmd // ? 하진 않았는데.. 해야되나    이게 뭐하는거지
+root@roror:/etc/yum.repos.d# curl -fsS https://dlang.org/install.sh | bash -s dmd
+Downloading https://dlang.org/d-keyring.gpg
+######################################################################## 100.0%
+Downloading https://dlang.org/install.sh
+######################################################################## 100.0%
+gpg: directory '/root/.gnupg' created
+gpg: /root/.gnupg/trustdb.gpg: trustdb created
+gpg: Signature made 2024년 04월 02일 (화) 오전 05시 02분 30초 KST
+gpg:                using RSA key E22EC04C82780970381402F4A7D4D42F8EC6A355
+gpg: Can't check signature: No public key
+Invalid signature https://dlang.org/install.sh.sig
+
+
+
+rpm  // 옵션 -i, -U, -v, -h ( U : 업그레이드 처음 설치할 때 쓸 수 있음, -i 처음 설치할 때, -v : 버전..?)
+ // 옵션 --nodeps(중요), --force, --oldpackage, --replacepkgs
+
+

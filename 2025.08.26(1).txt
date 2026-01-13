@@ -1,0 +1,71 @@
+1. Win + R (실행)
+2. cmd ( command )   관리자 권한으로(Shift + Ctrl )
+   > ipconfig /all   (help : /?)
+3. ncpa.cpl  (네트워크 환경)
+
+컴퓨터(네트워크) \\
+\\172.16.0.254 (강사 PC)
+
+- 생략(기본값) ---> 사용자
+
+가상머신
+ 
+(VMware) https://www.vmware.com/
+(VirtualBox) https://www.virtualbox.org/
+
+
+운영체제(OS, Operating System)란 
+컴퓨터 하드웨어와 소프트웨어 자원을 관리(커널 Kernel)하고, 
+사용자가 컴퓨터를 편리하게 사용할 수 있도록 도와주는 시스템 소프트웨어
+
+하드웨어와 CPU, RAM, Mainboard, SSD, HDD.....
+소프트웨어 : 시스템/응용(시스템 소프트웨어 위에 작동되는 프로그램, 한글, 크롬...)
+
+- 운영체제의 종류
+Windows : xp, 10, 11....     Server : Windows Server 2022, 2025
+ 파일이름.확장자 : hangul.exe, kali.iso, report.hwp
+ 대소문자 가리지 않는다.
+Unix : 솔라리스, FreeBSD...
+Linux (Redhat 위주로 시험) - 대략... 20% 정도의 명령어 차이점
+   Debian : Ubuntu, Kali
+   Redhat : CentOS, Redhat, Fedora, Rocky, Alma.....
+
+- 확장자 : iso, lcd --> 이미지파일(DVD,CD 를 만들 수 있는 파일)
+             과거에는 DVD,CD 를 이용해서 소프트웨어를 배포,
+             인터넷을 이용해서 배폰(이미지 파일을 이용 --> USB, DVD 제작가능)
+
+- 가상머신 사용 방법
+  가상머신에서 백업한 파일 : Metasploitable2 ---> export file
+ 
+VMware, VirtualBox  을 이용해서 OS 설치를 하면 기본디렉토리에
+파일이 생성된다. OS별 용량 10,20,40기가 이상이다.
+용량관리를 해주어야 한다. 기본 디렉토리를 변경해서 사용하면 관리하기 편하다.
+Edit -> Preferences -> Virtual Machines
+
+
+- 하드웨어(LAN CARD)
+  device(장치), driver(드라이버) - 소프트웨어(장치 인식 프로그램)
+
+
+OSI 7 Layer 5명 1조
+- 각 2개의 계층을 정리(서로 의논후 2개씩)
+ipconfig /all   (윈도우에서 랜카드 인터페이스 정보를 출력)
+
+IPv4 주소
+10.0.0.0/24(bit)  --->  10.0.0.0(IP) 255.255.255.0(subnetmask)
+NAT settings...  ----> 10.0.0.1  (gateway)
+- 컴퓨터가 인터넷을 사용하기위한 기본으로 작성해야 하는 주소
+
+Win + R (실행)    ncpa.cpl 입력후 Enter
+VMware... VMnet8 우클릭 
+
+msfadmin/msfadmin
+$   ---->    일반계정
+$ ifconfig
+
+admin/password
+
+shell --->  
+selecct * from dvwa where id='{$USER}';
+exit 
+quit

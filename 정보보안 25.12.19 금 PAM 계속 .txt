@@ -1,0 +1,1598 @@
+모듈에서 시험을 낸다.. --모듈교재 = pdf파일
+
+시험에 나오는 모듈 교재 -- 페이퍼 준거..
+
+ 
+nullok!    // 로그인 되는 지 안되는지  체크
+
+nullok // 패스워드 공백으로 입력하는 것 허용
+
+
+root@roror:/home/roror# passwd -d test1
+passwd: password changed.
+
+이렇게 해야 패스워드 공백
+
+root@roror:/home/roror# cat /etc/shadow | grep test1
+test1::20441:0:99999:7:::
+
+root@roror:/home/roror# vi /etc/ssh/sshd_config
+
+#LoginGraceTime 2m
+PermitRootLogin no
+PermitEmptyPasswords yes   // 패스워드 공백 허용을 안해주면  ssh 접근 불가
+:wq
+
+
+
+login as: test1
+Last failed login: Fri Dec 19 10:44:40 KST 2025 from 10.0.0.2 on ssh:notty
+There were 13 failed login attempts since the last successful login.
+Last login: Fri Dec 19 10:28:48 2025
+[test1@roror ~]$
+
+
+root@roror:/home/roror# systemctl restart sshd
+
+
+
+/etc/pam.d/password-auth 에서 
+auth        sufficient                                   pam_unix.so nullok
+이렇게 하더라도
+sshd 설정에 PermitEmptyPasswords yes 가 안되어 있으면 접근 불가
+
+
+
+
+
+1) CentOS 7 이후 pam_pwquality  모듈 사용
+2) credit
+ ucredit: Uppercase Letter Credit (대문자 크레딧)
+ lcredit: Lowercase Letter Credit (소문자 크레딧)
+ dcredit: Digit Credit (숫자 크레딧)
+ ocredit: Other Character Credit (기타 특수문자 크레딧)
+3) credit 값 의미 
+-1 해당 유형의 문자가 반드시 최소 1개 이상 있어야 함 (필수)
+ 0 해당 유형의 문자가 있으면 점수 1점, 없어도 됨 (필수 아님)
+ 1 이상 해당 문자가 있으면 그만큼의 추가 크레딧을 더해줌 (있으면 좋음, 없어도 됨)
+4) 예시
+minlen=8 (최소 총 크레딧이 8이어야 통과)
+dcredit=-1 ➝ 숫자가 반드시 1개 이상 있어야 함  (-N 은  N개가 있어야 함)
+ucredit=2 ➝ 대문자 2개 있으면 1점씩 크레딧 제공됨
+
+
+==== pam 실습
+
+알마
+
+
+root@roror:/etc/pam.d# egrep "pam_security" /usr/*
+grep: /usr/bin: 디렉터리입니다
+grep: /usr/games: 디렉터리입니다
+grep: /usr/include: 디렉터리입니다
+grep: /usr/lib: 디렉터리입니다
+grep: /usr/lib64: 디렉터리입니다
+grep: /usr/libexec: 디렉터리입니다
+grep: /usr/local: 디렉터리입니다
+grep: /usr/sbin: 디렉터리입니다
+grep: /usr/share: 디렉터리입니다
+grep: /usr/src: 디렉터리입니다
+grep: /usr/tmp: 디렉터리입니다
+root@roror:/etc/pam.d# egrep -r "pam_security" /usr/*
+
+
+
+root@roror:/etc/pam.d# find /usr -name "pam_securetty.so" -type f 2>/dev/null
+/usr/lib64/security/pam_securetty.so
+
+
+파일을 검색할때 어떤 ??
+파일의 어떠한 내용이 들어가 있는것
+
+roror 들어간 것 찾으면 됨
+
+roror /etc 2가지 방법 이상
+
+파일 이름 검색, 
+
+어떠한 명령어들이 있을까?
+
+
+root@roror:/etc/pam.d# find /etc -name "*roror*" -type f 2>/dev/null
+/etc/ssl/roror.co.kr.pem
+
+root@roror:/etc/pam.d# egrep -r "roror" /etc/*
+??
+
+
+선생님 버전  // 파일 내용과 디렉토리 이름// 최소 한개 이상 찾아서 쓸 수 있다.
+1.
+root@roror:/etc/pam.d# find /etc -type f -name "*" -exec grep "roror" {} \;
+
+root@roror:/etc/pam.d# find /etc -type f -name "*" -exec grep -H "roror" {} \;
+// 파일에 있던 내용까지 훑어보는것
+
+2.
+root@roror:/etc/pam.d# egrep -r "roror" /etc/* 
+root@roror:/etc/pam.d# egrep -r "roror" /etc/* 2>/dev/null
+
+
+root@roror:/etc/pam.d# find /etc -type d -name "ssh"
+/etc/ssh
+
+3.
+root@roror:/etc/pam.d# updatedb
+root@roror:/etc/pam.d# locate /etc/ssh
+
+// find가 제일 나았다.. 사용하기에
+
+===
+/usr/lib64/security/pam_securetty.so
+
+/etc/securetty (리스트 내용에 뭔가 적으면 root 접근 허용)
+
+
+root@roror:/etc/pam.d# touch /etc/securetty 
+
+- console  관리자(root) 접근 제어    // 모듈
+1) /usr/lib64/security/pam_securetty.so
+2) /etc/securetty  (리스트 내용이 있으면 root 접근허용)
+3) # vi /etc/pam.d/login
+  - SSH : PermitRootLogin no (암기) - 관리자는 접근 불가하다!!
+
+- pam_listfile.so (ssh, su)
+1) 접근제어 설정하고 점검하시오? (기능은 정상인가?)
+
+
+auth       required pam_listfile.so item=user sense=deny file=/etc/su.conf onerr=succeed
+auth       required pam_listfile.so item=user sense=allow file=/etc/ssh/sshusers onerr=succeed
+    - item=user은 기본적으로 “타겟 사용자“를 의미하게 된다. (tty, rhost, ruser, group, shell 등)
+    - onerr=succeed  // 리스트 파일 오류 시에도 인증 통과 (허용)
+    - onerr=fail   // 리스트 파일을 읽는 데 문제가 생기면 인증 실패 (차단)
+    - sense=allow : 허용할 사용자
+    - sense=deny : 거부할 사용자
+
+
+ 
+
+- Brute force 보호
+# dnf --enablerepo=epel install fail2ban
+[sshd]    (시간설정 : 1w, 1d, 1h, 1m, 60)
+enabled  = true   
+port    = 22022
+bantime = 3m (접근실패횟수가 넘어간 IP에 대해 정해진 시간만큼 접근을 원천차단한다)
+findtime = 5m (실패횟수를 체크할 시간범위)
+maxretry = 3 (IP블럭의 기준이 되는 실패횟수)
+
+
+=======
+- pam_listfile.so (ssh, su)
+1) 접근제어 설정하고 점검하시오? (기능은 정상인가?)
+
+
+root@roror:/home/roror# vi /etc/pam.d/su
+
+auth       required     pam_listfile.so item=user sense=deny file=/etc/vsftpd/ftpusers onerr=succeed
+
+/etc/vsftpd/ftpuser 파일에  roror, root 추가를 하면
+su, su - roror 작동 안함
+
+su - test 는 작동함
+
+roror@roror:~$ su -
+비밀번호: 
+su: 인증 실패
+roror@roror:~$ su - roror
+비밀번호: 
+su: 인증 실패
+roror@roror:~$ su - root
+비밀번호: 
+su: 인증 실패
+roror@roror:~$ su - test
+비밀번호: 
+최근 로그인: 금 12월 19 10:21:59 KST 2025 tty3에
+최근 실패한 로그인: 금 12월 19 10:28:44 KST 2025 pts/0에
+최근 로그인 후 로그인 시도를 1번 실패했습니다.
+
+문제:
+접근제어에 들어가 있는 사용자만 적용이됨
+
+===참고
+# vi /etc/pam.d/vsftpd
+auth       required     pam_listfile.so item=user sense=deny file=/etc/vsftpd/ftpusers onerr=succeed
+
+
+
+======
+
+---
+
+root@roror:/etc/pam.d# vi /etc/pam.d/login
+
+
+auth       substack     system-auth
+auth       include      postlogin
+auth       required     pam_securetty.so  // 추가     // root 접근 제어
+account    required     pam_nologin.so
+account    include      system-auth 
+
+
+
+root@roror:/etc/pam.d# vi /etc/securetty 
+
+tty1
+tty2
+tty3
+tty4
+console
+
+
+:wq   
+
+//  여기 있는거 지우면 로그인을 못한다.
+
+=========
+PAM (Pluggable Authentication Modules) 기반 Access 로그인 접근 제어
+tcp_wrapper : /etc/hosts.allow, /etc/hosts.deny
+access 란
+ - 누가(사용자), 어디서(호스트/TTY) 로그인 가능한지를 설정
+ - 더 정교한 조건 지정 가능(보안 정책 유연성 높음)
+password-auth
+system-auth
+login
+account    required   pam_access.so
+
+# vi /etc/security/access.conf
+    <허용/차단>:<사용자>:<접속 출처>   
+    +는 허용, -는 차단
+   (사용자)사용자 이름 또는 그룹 (그룹은 @groupname) 형식
+   (접속 출처) 호스트/IP 주소, TTY 이름 등
+-:root:ALL
+-:user:ALL
+-:user:10.0.0.100 
+-:user:ALL EXCEPT LOCAL 10.0.0.130  (LOCAL 10.0.0.130  만 허용)
+-:ALL EXCEPT @wheel:ALL
+-:ALL:ALL EXCEPT tty1 tty2
+- 여러 규칙이 존재시 위에서 아래로 차례로 적용된다.
+
+root@roror:/etc/pam.d# cd /etc/security/
+root@roror:/etc/security# ls
+access.conf    group.conf   namespace.conf  opasswd         pwquality.conf    time.conf
+chroot.conf    limits.conf  namespace.d     pam_env.conf    pwquality.conf.d
+faillock.conf  limits.d     namespace.init  pwhistory.conf  sepermit.conf
+
+
+access.conf // 애를 대신 쓰면 돔 // 사용자 엑세스 제어
+
+
+root@roror:/etc/security# egrep -r "pam_access.so" /etc/*   // 있는지 확인
+/etc/pam.d/crond:account    required   pam_access.so
+/etc/pam.d/atd:account    required    pam_access.so
+/etc/security/access.conf:# [Note, if you supply a 'fieldsep=|' argument to the pam_access.so
+root@roror:/etc/security# 
+
+
+root@roror:/etc/security# vi /etc/pam.d/login   // 하나 추가
+
+auth       required     pam_securetty.so
+auth       substack     system-auth
+auth       required     pam.access.so  // 이거 하나 추가 login에
+
+
+root@roror:/home/roror# vi /etc/pam.d/password-auth // 여기 추가
+
+auth        required                                     pam_env.so
+auth        required                                     pam_faildelay.so delay=2000000
+auth        required                                     pam.access.so
+
+# vi /etc/security/access.conf
+    <허용/차단>:<사용자>:<접속 출처>   
+    +는 허용, -는 차단
+   (사용자)사용자 이름 또는 그룹 (그룹은 @groupname) 형식
+   (접속 출처) 호스트/IP 주소, TTY 이름 등
+-:root:ALL
+-:user:ALL
+-:user:10.0.0.100 
+-:user:ALL EXCEPT LOCAL 10.0.0.130  (LOCAL 10.0.0.130  만 허용)
+-:ALL:EXCEPT @wheel:ALL   // 모든 사용자 중 wheel  그룹 제외
+-:ALL:ALL EXCEPT tty1 tty2
+-여러 규칙이 존재시 위에서 아래로 차례로 적용된다.
+
+
+root@roror:/home/roror# vi /etc/security/access.conf   // 얘를 설정하면 되겠다
+
+
+-:root:ALL  //root 차단 할꺼야 전체에서   // root로 들어가보면 퍼미션 디나이 걸림
+
+-:root:ALL
+-:test:ALL
+:wq
+
+-:root:ALL
+-:test:10.0.0.2  // 원하는 애만 차단. = 블랙 리스트  // 밖에선 안들어가지고 칼리에서 ssh 접근은 된다.
+:wq
+
+
+-:root:ALL
+-:test:ALL EXCEPT LOCAL 10.0.0.130   // local 에서 들어가지고, 칼리에서 안들어가지고, 우분투에서 들어가지고....
+
+
+
+
+
+root@roror:/etc/security# vi /etc/pam.d/login   // 하나 추가
+
+auth       required     pam_securetty.so
+auth       substack     system-auth
+auth       required     pam.access.so  // 이거 하나 추가 login에
+
+// login에만 넣어서 test는 차단이 안되는 것  // 원격 접속
+
+
+root@roror:/home/roror# vi /etc/pam.d/password-auth 
+auth        required                                     pam_env.so
+auth        required                                     pam_faildelay.so delay=2000000
+auth        required                                     pam.access.so
+
+root@roror:/home/roror# vi /etc/pam.d/system-auth
+
+
+ 
+
+============================================
+
+- 문제 1 : 관리자(root)는 로컬, 원격에서 접속 불가(ssh 로 접속후 su 이용하여 관리자 접근 금지)
+         2 : su 는  wheel group 만 사용가능
+         3 : rororlocal  사용자만 아래의 명령어 사용 가능(해당 사용자는 로컬에서만 사용 가능)
+                      1) 관리자 권한으로 실행
+                       /usr/bin/journalctl, /usr/bin/systemctl status, /usr/sbin/ss, /bin/ps
+
+                       2) 관리자 권한으로 실행 불가(지정)
+                       /lib/systemd/systemd, /usr/lib/systemd/systemd, \
+                       /sbin/init, /bin/init, /usr/bin/systemctl, \
+                       /usr/sbin/reboot, /usr/sbin/shutdown, \
+                       /bin/cat, /usr/bin/less, /usr/bin/vi, /usr/bin/nano, \
+                       /usr/bin/find, /usr/bin/wget, /usr/bin/curl, \
+                       /usr/bin/python*, /usr/bin/bash
+
+====
+
+roror@roror:~$ sudo -s
+root@roror:/home/roror# useradd rororlocal
+
+root@roror:/home/roror# vi /etc/sudoers
+
+
+## Allows people in group wheel to run all commands
+#%wheel ALL=(ALL)       ALL  //주석 담
+
+## Allow root to run any commands anywhere 
+root    ALL=(ALL)       ALL
+Cmnd_Alias USERNAME = /usr/bin/journalctl, /bin/systemctl status, /usr/bin/ss, /bin/ps, /usr/bin/safe-useradd, /usr/bin/safe-usermod, /usr/bin/userdel
+%usermgr   ALL=(ALL)       USERMGR
+roror   ALL=(ALL)       NOPASSWD: ALL
+
+
+
+### rororlocal ###
+Cmnd_Alias SAFE =  /usr/bin/journalctl, /usr/bin/systemctl status, /usr/sbin/ss, /bin/ps
+Cmnd_Alias DANGEROUS =  /lib/systemd/systemd, /usr/lib/systemd/systemd, \
+                       /sbin/init, /bin/init, /usr/bin/systemctl, \
+                       /usr/sbin/reboot, /usr/sbin/shutdown, \
+                       /bin/cat, /usr/bin/less, /usr/bin/vi, /usr/bin/nano, \
+                       /usr/bin/find, /usr/bin/wget, /usr/bin/curl, \
+                       /usr/bin/python*, /usr/bin/bash
+
+rororlocal ALL=(ALL) SAFE, !DANGEROUS
+
+:wq
+
+root@roror:/home/roror# vi /etc/pam.d/su    // su 비번 안넣고 드가는 거 주석
+root@roror:/home/roror# passwd rororlocal
+신규 비밀번호:  1234
+잘못된 비밀번호: 암호는 8 개의 문자 보다 짧습니다
+신규 비밀번호 재입력: 
+passwd: 암호를 성공적으로 업데이트했습니다
+
+
+roror@roror:~$ su - rororlocal
+비밀번호: 1234
+최근 실패한 로그인: 금 12월 19 12:36:10 KST 2025 pts/8에
+최근 로그인 후 로그인 시도를 1번 실패했습니다.
+rororlocal@roror:~$ 
+
+
+su로 로그인 가능
+
+roror@roror:~$ sudo -s
+/etc/sudoers:111:1: 완전한 경로 이름이 필요합니다
+                       /sbin/init, /bin/init, /usr/bin/systemctl, \
+^~~~
+
+root@roror:/home/roror# vi /etc/sudoers
+
+
+### rororlocal ###
+Cmnd_Alias SAFE =  /usr/bin/journalctl, /usr/bin/systemctl status, /usr/sbin/ss, /bin/ps
+Cmnd_Alias DANGEROUS =  /lib/systemd/systemd, /usr/lib/systemd/systemd, /sbin/init, /bin/init, /usr/sbin/reboot, /usr/sbin/shutdown, /bin/cat, /usr/bin/less, /usr/bin/vi, /usr/bin/nano, /usr/bin/find, /usr/bin/wget, /usr/bin/curl, /usr/bin/python*, /usr/bin/bash
+
+rororlocal ALL=(ALL) SAFE, !DANGEROUS
+
+
+//한줄로 만듬
+
+rororlocal@roror:~$ sudo cat /etc/passwd
+죄송하지만 rororlocal 사용자는 '/bin/cat /etc/passwd'을(를) roror.co.kr의 root(으)로 실행하도록 허가받지 않았습니다.
+
+
+rororlocal@roror:~$ sudo /usr/bin/vim /etc/shadow
+[sudo] rororlocal 암호: 
+죄송하지만 rororlocal 사용자는 '/usr/bin/vim /etc/shadow'을(를) roror.co.kr의 root(으)로 실행하도록 허가받지 않았습니다.
+rororlocal@roror:~$ sudo /usr/bin/vim
+[sudo] rororlocal 암호: 
+죄송하지만 rororlocal 사용자는 '/usr/bin/vim'을(를) roror.co.kr의 root(으)로 실행하도록 허가받지 않았습니다.
+
+
+rororlocal@roror:~$ sudo -s
+[sudo] rororlocal 암호: 
+죄송하지만 rororlocal 사용자는 '/bin/bash'을(를) roror.co.kr의 root(으)로 실행하도록 허가받지 않았습니다.
+
+이렇게 쓰는 이유 
+root를 못쓰게 하려는 것이 첫번째.
+관리자로 들어가면 다 수정가능
+
+root 들어가려면 su 쓰면 됨
+
+
+root@roror:/home/roror# vi /etc/security/access.conf 
+
+-:root:ALL
+-:rororlocal:ALL EXCEPT LOCAL
+
+:wq
+
+root@roror:/etc/security# vi /etc/pam.d/system-auth 
+root@roror:/etc/security# vi /etc/pam.d/login 
+root@roror:/etc/security# vi /etc/pam.d/password-auth 에 
+
+auth        required                                     pam_env.so
+auth        required                                     pam_faildelay.so delay=2000000
+auth        required                                     pam.access.so  // 이거 추가
+
+=====
+
+rororlocal -> ftp 로그인 안됨
+
+
+root@roror:/etc/security# cat /etc/group | grep wheel
+wheel:x:10:roror
+
+root@roror:/etc/security# gpasswd -d roror wheel
+사용자 roror을(를) 그룹 wheel에서 제거하는 중
+root@roror:/etc/security# cat /etc/group | grep wheel
+wheel:x:10:
+
+root@roror:/etc/security# usermod -aG wheel rororlocal
+root@roror:/etc/security# cat /etc/group | grep wheel
+wheel:x:10:rororlocal
+
+
+
+root@roror:/etc/security# vi /etc/pam.d/su
+
+# Uncomment the following line to require a user to be in the "wheel" group.
+auth            required        pam_wheel.so use_uid
+
+// 주석 품
+
+
+root@roror:/etc/security# exit
+exit
+/home/roror/Maildir에 새로운 메일이 있습니다
+roror@roror:~$ su
+비밀번호: 
+su: 권한 부여 거부
+
+rororlocal@roror:~$ su -   // 얘는 돼야함
+비밀번호: 
+su: 모듈을 알 수 없음
+rororlocal@roror:~$ 
+
+
+rororloacl --- 관리자 권한으로 일부 설정가능
+root로 로그인하려면 비밀번호 요구
+
+root로 바로 로그인 금지, 
+su 
+
+
+=====
+
+root@roror:/etc/security# vi /etc/ssh/sshd_config
+
+sshd_config  맨 밑에 추가
+
+AllowUsers roror@10.0.0.130 roror.local
+DenyUsers test
+
+root@roror:/etc/security# systemctl restart sshd
+
+
+
+=================================
+
+- Brute force 보호
+# dnf --enablerepo=epel install fail2ban
+[sshd]    (시간설정 : 1w, 1d, 1h, 1m, 60)
+enabled  = true   
+port    = 22022
+bantime = 3m (접근실패횟수가 넘어간 IP에 대해 정해진 시간만큼 접근을 원천차단한다)
+findtime = 5m (실패횟수를 체크할 시간범위)
+maxretry = 3 (IP블럭의 기준이 되는 실패횟수)
+
+
+
+# vi /etc/fail2ban/jail.conf
+root@roror:/home/roror# vi /etc/fail2ban/jail.conf
+
+[sshd]
+
+# To use more aggressive sshd modes set filter parameter "mode" in jail.local:
+# normal (default), ddos, extra or aggressive (combines all).
+# See "tests/files/logs/sshd" or "filter.d/sshd.conf" for usage example and details.
+#mode   = normal
+enabled = yes //
+bantime = 3m // 접근실패횟수가 넘어간 IP에 대해 정해진 시간만큼 접근을 원천차단한다
+findtime = 5m // 실패횟수를 체크할 시간범위
+maxretry = 3    // 실패개수, 범위
+port    = ssh
+logpath = %(sshd_log)s
+backend = %(sshd_backend)s
+
+
+root@roror:/home/roror# systemctl start fail2ban
+
+=== ssh 시도 결과 차단됨
+  2025-12-19   12:15.33   /home/mobaxterm  ssh roror@roror.co.kr
+roror@roror.co.kr's password:
+roror@roror.co.kr's password:
+roror@roror.co.kr's password:
+roror@roror.co.kr: Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
+                                                                                                        ✗
+
+  2025-12-19   14:22.04   /home/mobaxterm  ssh roror@roror.co.kr
+
+===
+root@roror:/home/roror# fail2ban-client status
+Status
+|- Number of jail:	1
+`- Jail list:	sshd
+root@roror:/home/roror# fail2ban-client status sshd
+Status for the jail: sshd
+|- Filter
+|  |- Currently failed:	0
+|  |- Total failed:	3
+|  `- Journal matches:	_SYSTEMD_UNIT=sshd.service + _COMM=sshd + _COMM=sshd-session
+`- Actions
+   |- Currently banned:	1
+   |- Total banned:	1
+   `- Banned IP list:	10.0.0.2
+
+
+root@roror:/home/roror# fail2ban-client set sshd unbanip 10.0.0.2
+1
+
+//이런 프로그램이 있구나 정도 알아야됨
+
+전체 해제 하려면
+
+root@roror:/home/roror# fail2ban-client unban --all
+0
+
+==========
+
+
+# fail2ban-client status sshd
+# fail2ban-client set sshd unbanip 10.0.0.2
+# fail2ban-client unban --all
+
+pam_faillock (pam_tailly)
+/usr/lib64/security/pam_faillock.so
+auth        required       pam_faillock.so preauth silent audit deny=3 unlock_time=600
+auth        [default=die] pam_faillock.so authfail audit
+auth        required      pam_faillock.so reset
+account     required      pam_faillock.so 
+ auth required pam_env.so 환경 변수를 설정하는 기본 모듈이다.
+ auth required pam_faillock.so preauth silent audit deny=3 unlock_time=600 : 인증 시도 전에 실패 기록을 체크하며, 3회 실패 시 600초(10분) 동안 계정을 잠근다.
+ auth sufficient pam_unix.so nullok try_first_pass : 시스템 로컬 사용자 인증을 수행하며, 패스워드가 없거나 첫 번째 패스워드 시도를 성공하면 인증을 완료한다.
+ auth [default=die] pam_faillock.so authfail audit : 인증 실패 후 pam_faillock을 호출해 실패 횟수를 기록하며, 실패하면 인증을 중단한다.
+ auth required pam_faillock.so reset : 인증이 성공할 경우 실패 횟수를 초기화한다.
+ account required pam_faillock.so : 계정의 현재 잠금 상태를 관리한다.
+
+
+# faillock 
+# faillock --user roror --reset
+ROOT 도 적용시 처음 설정값을 아래처럼 even_deny_root 추가
+   auth        required      pam_faillock.so preauth silent audit deny=3 even_deny_root unlock_time=600
+
+
+pam_tailly ---> pam_tailly2 ---> pam_faillok ---> 명령어
+pam_faillock (pam_taily{구버전}) 기억!
+
+
+알마 다시 돌림  25.12.19
+
+우선은 수동으로해보고
+
+처음에는 faillock 쓰는 방법
+
+그 이후에는 명령어를 이용하는 방법
+
+root@roror:/home/roror# find /usr -type f -name "pam_faillock.so" 2>/dev/null
+/usr/lib64/security/pam_faillock.so
+
+
+root@roror:/home/roror# vi /etc/pam.d/password-auth 
+
+추가
+
+auth        required                                     pam_env.so
+auth        required                                     pam_faillock.so preauth silent audit deny=3 unlock_time=600
+auth        required                                     pam_faildelay.so delay=2000000
+auth        sufficient                                   pam_unix.so nullok
+auth        required                                     pam_deny.so
+auth        [default=die]                                pam_faillock.so authfail audit
+auth        required                                     pam_faillock.so reset
+account     required                                     pam_faillock.so
+
+:wq
+
+=====
+# Generated by authselect
+# Do not modify this file manually, use authselect instead. Any user changes will be overwritten.
+# You can stop authselect from managing your configuration by calling 'authselect opt-out'.
+# See authselect(8) for more details.
+
+auth        required                                     pam_env.so
+auth        required                                     pam_faillock.so preauth silent audit deny=3 unlock_time=600
+auth        required                                     pam_faildelay.so delay=2000000
+auth        sufficient                                   pam_unix.so nullok
+auth        [default=die]                                pam_faillock.so authfail audit
+auth        required                                     pam_faillock.so reset
+auth        required                                     pam_deny.so
+
+account     required                                     pam_faillock.so
+account     required                                     pam_unix.so
+
+
+=====
+
+root@roror:/home/roror# faillock
+roror:
+When                Type  Source                                           Valid
+2025-12-19 14:51:52 RHOST 10.0.0.2                                             V
+2025-12-19 14:51:59 RHOST 10.0.0.2                                             V
+2025-12-19 14:52:03 RHOST 10.0.0.2                                             V
+
+root@roror:/home/roror# faillock --user roror --reset
+root@roror:/home/roror# faillock
+roror:
+When                Type  Source                                           Valid
+
+
+
+root@roror:/home/roror# authselect list  // 프로파일 검은색
+- local  	 Local users only
+- sssd   	 Enable SSSD for system authentication (also for local users only)
+- winbind	 Enable winbind for system authentication
+
+# authselect list 
+# authselect list-features --help
+# authselect list-features sssd
+# authselect current
+    - minimal – 로컬 사용자 인증만 사용하는 최소 구성(/etc/passwd 만 인증 허용)
+    - sssd – SSSD를 통한 중앙 인증(LDAP/AD 등) + 로컬 사용자 인증
+    - winbind – Windows 도메인(AD)과 연동된 인증 방식
+
+
+# authselect create-profile -b sssd security-profile
+/etc/authselect/custom/security-profile  (복사본 생성)
+
+
+# authselect select custom/security-profile with-fingerprint with-silent-lastlog
+# authselect list
+# authselect select local --force  (강제로 변경)
+# authselect enable-feature with-fingerprint
+# authselect enable-feature with-silent-lastlog
+# authselect disable-feature with-silent-lastlog
+with-fingerprint : 지문 인식 장치를 통한 사용자 인증을 활성화하는 기능이다.
+with-silent-lastlog : 로그인할 때 “마지막 로그인 시간” 정보를 사용자에게 표시하지 않고 조용히 넘어가게 하는 기능이다.
+
+
+
+root@roror:/home/roror# authselect current // 현재 우리가 쓰고 있는것 : 로컬
+프로필 ID : local
+사용 가능한 기능 :
+- with-fingerprint
+
+
+프로파일 하나 만들 것
+    - sssd – SSSD를 통한 중앙 인증(LDAP/AD 등) + 로컬 사용자 인증
+
+
+root@roror:/home/roror# authselect --help
+
+
+root@roror:/home/roror# authselect create-profile -b sssd security-profile
+/etc/authselect/custom/security-profile에 새 프로필을 만들었습니다.
+
+
+root@roror:/home/roror# cd /etc/authselect/custom/
+root@roror:/etc/authselect/custom# ls
+security-profile
+root@roror:/etc/authselect/custom# cd ..
+root@roror:/etc/authselect# ls
+authselect.conf  dconf-db     fingerprint-auth  password-auth  smartcard-auth
+custom           dconf-locks  nsswitch.conf     postlogin      system-auth
+root@roror:/etc/authselect# pwd
+/etc/authselect
+
+root@roror:/etc/authselect# cd custom/
+root@roror:/etc/authselect/custom# ls
+security-profile
+root@roror:/etc/authselect/custom# cd security-profile/
+root@roror:/etc/authselect/custom/security-profile# ls
+README        dconf-db     fingerprint-auth  password-auth  smartcard-auth
+REQUIREMENTS  dconf-locks  nsswitch.conf     postlogin      system-auth
+
+
+
+password auth를 보면
+
+
+지우려면
+
+root@roror:/etc/authselect/custom/security-profile# cd ..
+root@roror:/etc/authselect/custom# ls
+security-profile
+root@roror:/etc/authselect/custom# rm -rf ./*
+root@roror:/etc/authselect/custom# ls
+root@roror:/etc/authselect/custom# authselect current
+프로필 ID : local
+사용 가능한 기능 :
+- with-fingerprint
+root@roror:/etc/authselect/custom# authselect create-profile -b sssd security-profile
+/etc/authselect/custom/security-profile에 새 프로필을 만들었습니다.
+root@roror:/etc/authselect/custom# cd security-profile/
+root@roror:/etc/authselect/custom/security-profile# ls
+README        dconf-db     fingerprint-auth  password-auth  smartcard-auth
+REQUIREMENTS  dconf-locks  nsswitch.conf     postlogin      system-auth
+
+
+===============================================
+
+
+사용자 만드는데 
+sssd를 베이스로 한 시큐리티 파일
+root@roror:/home/roror# cd /etc/authselect/custom/security-profile/   // 여기에 파일 위치
+
+root@roror:/etc/authselect/custom# ls
+security-profile
+
+
+root@roror:/etc/authselect/custom# authselect select custom/security-profile 
+
+
+root@roror:/etc/authselect/custom# authselect list-features --help
+사용법: authselect list-features PROFILE-ID [<옵션>...]
+
+명령 옵션:
+
+일반 옵션:
+      --debug      오류 메시지 출력
+      --trace      추적 메시지 인쇄
+      --warn       경고 메시지 인쇄
+
+도움말 선택:
+  -?, --help       이 도움말을 보여줍니다
+      --usage      간단한 사용법을 보여줍니다
+
+root@roror:/etc/authselect/custom# authselect list-features custom/security-profile 
+with-altfiles
+with-faillock
+with-files-access-provider
+with-fingerprint
+with-gssapi
+with-libvirt
+with-mdns4
+with-mdns6
+with-mkhomedir
+with-pam-gnome-keyring
+with-pam-u2f
+with-pam-u2f-2fa
+with-pamaccess
+with-pwhistory
+with-silent-lastlog
+with-smartcard
+with-smartcard-lock-on-removal
+with-smartcard-required
+with-subid
+with-sudo
+with-tlog
+without-nullok
+without-pam-u2f-nouserok
+
+// 내가 쓸수 있는 리스트 나옴
+
+
+root@roror:/etc/authselect/custom# authselect current
+프로필 ID : local
+사용 가능한 기능 :
+- with-fingerprint
+
+root@roror:/etc/authselect/custom# authselect select custom/security-profile with-silent-lastlog
+
+"custom/security-profile"프로필을 선택했습니다.
+
+Make sure that SSSD service is configured and enabled. See SSSD documentation for more information.
+
+
+
+root@roror:/etc/authselect/custom# authselect list
+
+- local                  	 Local users only
+- sssd                   	 Enable SSSD for system authentication (also for local users only)
+- winbind                	 Enable winbind for system authentication
+- custom/security-profile	 Enable SSSD for system authentication (also for local users only)
+
+
+root@roror:/etc/authselect/custom# authselect current 
+프로필 ID : custom/security-profile   // local에서 바꼈음
+사용 가능한 기능 :
+- with-silent-lastlog
+
+root@roror:/etc/authselect/custom# authselect select local --force
+/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn에 저장한 백업
+"local"프로필을 선택했습니다.
+
+// force는 강제로 변경
+
+root@roror:/etc/authselect/custom# authselect current 
+프로필 ID : local
+사용 가능한 기능 : 없음   // 기능이 없음
+
+기능이 없기에 변경해주면 됨
+
+root@roror:/etc/authselect/custom# authselect enable-feature with-fingerprint
+ 
+- with-fingerprint is selected, make sure fprintd service is configured and enabled
+
+root@roror:/etc/authselect/custom# authselect enable-feature with-silent-lastlog
+
+root@roror:/etc/authselect/custom# authselect current   // 따로따로 넣어줘야됨
+프로필 ID : local
+사용 가능한 기능 :
+- with-fingerprint
+- with-silent-lastlog
+
+root@roror:/etc/authselect/custom# authselect list-features local  // 쓸수 있는애 나옴
+with-altfiles
+with-ecryptfs
+with-faillock
+with-fingerprint
+with-libvirt
+with-mdns4
+with-mdns6
+with-mkhomedir
+with-pam-gnome-keyring
+with-pam-u2f
+with-pam-u2f-2fa
+with-pamaccess
+with-pwhistory
+with-silent-lastlog
+without-nullok
+without-pam-u2f-nouserok
+
+
+root@roror:/etc/authselect/custom# authselect disable-feature with-silent-lastlog   // 지울 수 도 있다.
+root@roror:/etc/authselect/custom# authselect current 
+프로필 ID : local
+사용 가능한 기능 :
+- with-fingerprint
+
+
+root@roror:/etc/authselect/custom# authselect select custom/security-profile with-fingerprint with-silent-lastlog
+"custom/security-profile"프로필을 선택했습니다.
+
+Make sure that SSSD service is configured and enabled. See SSSD documentation for more information.
+ 
+- with-fingerprint is selected, make sure fprintd service is configured and enabled
+
+root@roror:/etc/authselect/custom# cd /var/lib/authselect/
+root@roror:/var/lib/authselect# ls
+backups
+root@roror:/var/lib/authselect# cd backups/
+
+root@roror:/var/lib/authselect/backups# ls
+2025-12-19-06-21-19.h7khyn
+
+
+root@roror:/var/lib/authselect/backups# cd 2025-12-19-06-21-19.h7khyn/
+root@roror:/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn# ls
+authselect.conf  dconf-locks       nsswitch.conf  postlogin       system-auth
+dconf-db         fingerprint-auth  password-auth  smartcard-auth
+
+
+root@roror:/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn# find /var -name "system-auth" -type f 2>/dev/null
+/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn/system-auth
+
+
+
+root@roror:/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn# find / -name "system-auth" -type f 2>/dev/null
+/etc/authselect/custom/security-profile/system-auth
+/etc/authselect/system-auth
+/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn/system-auth
+/usr/share/authselect/default/local/system-auth
+/usr/share/authselect/default/sssd/system-auth
+/usr/share/authselect/default/winbind/system-auth
+/usr/share/factory/etc/pam.d/system-auth
+/backup/etc/authselect/system-auth
+
+
+
+
+root@roror:/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn# ls
+authselect.conf  dconf-locks       nsswitch.conf  postlogin       system-auth
+dconf-db         fingerprint-auth  password-auth  smartcard-auth
+root@roror:/var/lib/authselect/backups/2025-12-19-06-21-19.h7khyn# cat password-auth 
+
+root@roror:/usr/share# cd authselect/
+root@roror:/usr/share/authselect# ls
+default  vendor
+root@roror:/usr/share/authselect# cd default/
+root@roror:/usr/share/authselect/default# ls
+local  sssd  winbind
+
+root@roror:/usr/share/authselect/default/sssd# ls
+README        dconf-db     fingerprint-auth  password-auth  smartcard-auth
+REQUIREMENTS  dconf-locks  nsswitch.conf     postlogin      system-auth
+
+root@roror:/usr/share/authselect/default/sssd# diff ./password-auth  /etc/authselect/custom/security-profile/password-auth   // 두 파일을 비교를 해보면 똑같은 파일이라는 걸 알 수 있다.
+
+root@roror:/usr/share/authselect/default/sssd# authselect current 
+프로필 ID : custom/security-profile
+사용 가능한 기능 :
+- with-fingerprint
+- with-silent-lastlog
+
+// 현재는 커스텀으로 되어 있다.
+
+=== 여기까지 오는것 정리
+1) 리스트 확인
+# authselect list 
+# authselect list-features --help
+# authselect list-features sssd
+
+2) 현재 정책 확인
+# authselect current
+    - minimal – 로컬 사용자 인증만 사용하는 최소 구성(/etc/passwd 만 인증 허용)
+    - sssd – SSSD를 통한 중앙 인증(LDAP/AD 등) + 로컬 사용자 인증
+    - winbind – Windows 도메인(AD)과 연동된 인증 방식
+
+3) 정책 복사(생성)
+# authselect create-profile -b sssd security-profile
+/etc/authselect/custom/security-profile  (복사본 생성)
+
+4) 정책 적용
+# authselect select custom/security-profile with-fingerprint with-silent-lastlog
+# authselect list
+# authselect select local --force  (강제로 변경)
+# authselect enable-feature with-fingerprint
+# authselect enable-feature with-silent-lastlog
+# authselect disable-feature with-silent-lastlog
+with-fingerprint : 지문 인식 장치를 통한 사용자 인증을 활성화하는 기능이다.
+with-silent-lastlog : 로그인할 때 “마지막 로그인 시간” 정보를 사용자에게 표시하지 않고 조용히 넘어가게 하는 기능이다.
+
+
+
+# authselect list-features custom/security-profile | grep fail
+# authselect enable-feature with-faillock
+# cat password-auth | grep fail
+# authselect current
+# vi /etc/security/faillock.conf
+# authselect apply-changes
+
+  (1) 현재 선택된 authselect 프로파일의 설정을 다시 시스템에 적용한다.
+  (2) /etc/pam.d/ 아래의 인증 설정 파일(system-auth, password-auth 등)을 새로 생성하거나 업데이트한다.
+  (3) /etc/nsswitch.conf 파일을 프로파일에 맞게 재구성할 수 있다.
+  (4) pam, nsswitch.conf, 기타 인증 관련 설정을 선택한 프로파일 기준으로 다시 덮어쓴다.
+  (5) 프로파일 파일(/etc/authselect/custom/프로파일명/)을 수정했을 때 그 변경 내용을 반영하려면 반드시 실행해야 한다.
+  (6) authselect 프로파일을 복제해서 수정했을 경우, 적용되지 않은 변경사항을 반영하는 명령이다.
+  (7) authselect select 명령어를 새로 실행하지 않고도 수정 사항을 활성화할 수 있다.
+=====
+
+
+root@roror:/usr/share/authselect/default/sssd# authselect list-features custom/security-profile | grep fail
+with-faillock
+
+root@roror:/usr/share/authselect/default/sssd# authselect enable-feature with-faillock
+Make sure that SSSD service is configured and enabled. See SSSD documentation for more information.
+
+root@roror:/usr/share/authselect/default/sssd# authselect current
+프로필 ID : custom/security-profile
+사용 가능한 기능 :
+- with-fingerprint
+- with-silent-lastlog
+- with-faillock
+
+
+root@roror:/usr/share/authselect/default/sssd# vi /etc/security/faillock.conf 
+
+
+
+root@roror:/usr/share/authselect/default/sssd# cd /etc/authselect/custom/
+root@roror:/etc/authselect/custom# ls
+security-profile
+root@roror:/etc/authselect/custom# cd security-profile/
+root@roror:/etc/authselect/custom/security-profile# cat password-auth | grep fail
+auth        required                                     pam_faildelay.so delay=2000000
+auth        required                                     pam_faillock.so preauth silent                         {include if "with-faillock"}
+auth        required                                     pam_faillock.so authfail                               {include if "with-faillock"}
+account     required                                     pam_faillock.so                                        {include if "with-faillock"}
+
+
+
+root@roror:/etc/authselect/custom/security-profile# authselect disable-feature with-faillock
+root@roror:/etc/authselect/custom/security-profile# cat password-auth | grep fail
+auth        required                                     pam_faildelay.so delay=2000000
+auth        required                                     pam_faillock.so preauth silent                         {include if "with-faillock"}
+auth        required                                     pam_faillock.so authfail                               {include if "with-faillock"}
+account     required                                     pam_faillock.so                                        {include if "with-faillock"}
+
+
+// 다른쪽에 옵션이 있거나.. 다른데 변경된게 있을 것임
+
+
+root@roror:/etc/authselect/custom/security-profile# authselect enable-feature with-faillock
+Make sure that SSSD service is configured and enabled. See SSSD documentation for more information.
+
+root@roror:/etc/authselect/custom/security-profile# authselect current
+프로필 ID : custom/security-profile
+사용 가능한 기능 :
+- with-fingerprint
+- with-silent-lastlog
+- with-faillock
+
+root@roror:/etc/authselect/custom/security-profile# vi /etc/security/faillock.conf 
+
+# The directory where the user files with the failure records are kept.
+# The default is /var/run/faillock.
+ dir = /var/run/faillock   // 기록 저장해주는것
+
+# Will log the user name into the system log if the user is not found.
+# Enabled if option is present.
+ audit  // 
+
+# Don't print informative messages.
+# Enabled if option is present.
+ silent //
+
+# Deny access if the number of consecutive authentication failures
+# for this user during the recent interval exceeds n tries.
+# The default is 3.
+ deny = 3 //
+
+
+# The access will be re-enabled after n seconds after the lock out.
+# The value 0 has the same meaning as value `never` - the access
+# will not be re-enabled without resetting the faillock
+# entries by the `faillock` command.
+# The default is 600 (10 minutes).
+ unlock_time = 600  //
+
+:wq
+
+root@roror:/etc/authselect/custom/security-profile# authselect apply-changes 
+바뀐 설정 적용에 성공했습니다.
+
+root@roror:/etc/authselect/custom/security-profile# cat system-auth | grep fail
+auth        required                                     pam_faildelay.so delay=2000000
+auth        required                                     pam_faillock.so preauth silent                         {include if "with-faillock"}
+auth        required                                     pam_faillock.so authfail                               {include if "with-faillock"}
+account     required                                     pam_faillock.so                                        {include if "with-faillock"}
+
+
+접근 시도 해보자 칼리에서
+
+
+root@kali:/home/kali# exit                                          
+kali@kali:~$ ssh roror@roror.co.kr
+roror@roror.co.kr's password: 
+Permission denied, please try again.
+roror@roror.co.kr's password: 
+Permission denied, please try again.
+roror@roror.co.kr's password: 
+roror@roror.co.kr: Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
+kali@kali:~$ ssh roror@roror.co.kr
+roror@roror.co.kr's password: 
+Permission denied, please try again.
+roror@roror.co.kr's password: 
+Permission denied, please try again.
+roror@roror.co.kr's password: 
+
+// 틀리다가 제대로된 비번 쳐도 안들어감
+ 
+root@roror:/etc/authselect/custom/security-profile# faillock
+roror:
+When                Type  Source                                           Valid
+2025-12-19 15:37:10 RHOST 10.0.0.130                                           V
+2025-12-19 15:37:13 RHOST 10.0.0.130                                           V
+2025-12-19 15:37:16 RHOST 10.0.0.130                                           V
+
+root@roror:/etc/authselect/custom/security-profile# faillock --user roror --reset
+root@roror:/etc/authselect/custom/security-profile# faillock
+roror:
+When                Type  Source                                           Valid
+
+
+//차단된거 풀림
+
+
+
+root@roror:/etc/authselect/custom/security-profile# authselect select local with-fingerprint 
+"local"프로필을 선택했습니다.
+
+ 
+- with-fingerprint is selected, make sure fprintd service is configured and enabled
+
+root@roror:/etc/authselect/custom/security-profile# authselect apply-changes 
+바뀐 설정 적용에 성공했습니다.
+root@roror:/etc/authselect/custom/security-profile# authselect current 
+프로필 ID : local
+사용 가능한 기능 :
+- with-fingerprint
+
+// 이제 비번 틀려도 faillock, 차단되지 않는다. 아래를 보면 알 수 있다.
+
+kali@kali:~$ ssh roror@roror.co.kr
+roror@roror.co.kr's password: 
+asdflkjasldkfPermission denied, please try again.
+roror@roror.co.kr's password: 
+Permission denied, please try again.
+roror@roror.co.kr's password: 
+roror@roror.co.kr: Permission denied (publickey,gssapi-keyex,gssapi-with-mic,password).
+kali@kali:~$ ssh roror@roror.co.kr
+roror@roror.co.kr's password: 
+Web console: https://roror.co.kr:9090/ or https://10.0.0.200:9090/
+
+Last failed login: Fri Dec 19 15:41:08 KST 2025 from 10.0.0.130 on ssh:notty
+There were 14 failed login attempts since the last successful login.
+Last login: Fri Dec 19 14:50:59 2025 from 10.0.0.2
+roror@roror:~$ 
+
+
+
+=============
+LDAP(Lightweight Directory Access Protoco)(faillock, suthselect 실습)
+
+
+------------------------------  // LDAP, Kerberos(커버로스), SSO 보안산기 시험에 나온 적 있음
+1) LDAP 구축(Windows Server)
+2) Windows 11, Linux 에서 동일한 ID/PW로 접속하고 허가된 사용자에게 특정 디렉토리를 공유한다.
+3) realm
+ - 리눅스 환경에서 realm은 SSSD(System Security Services Daemon)와 함께 도메인 가입 및 인증을 관리하는 명령줄 도구이다. 특히 Active Directory(AD)-윈도우, Kerberos, LDAP 기반의 네트워크 환경에 시스템을 통합할 때 사용된다. 즉 리눅스 시스템을 Kerberos 기반의 AD(Active Directory) 또는 IPA 서버에 간단히 가입(join) 시켜주는 유틸리티이다
+4) Kerberos
+- Kerberos는 비밀번호를 직접 보내지 않고, 암호화된 티켓을 이용해 안전하게 로그인과 서비스 접근을 가능하게 하는 인증 프로토콜
+- Kerberos는 사용자가 인증서(티켓)를 미리 받아두고, 그걸 서버에 제출해서 인증받는 안전한 시스템이다.
+- Kerberos 특징
+ (1) 중앙 인증 서버 	Key Distribution Center (KDC)
+ (2) 암호화 방식 	대칭키 기반
+ (3) 티켓 기반		사용자 인증 후 서비스 접근 시마다 티켓 사용
+ (4) 비밀번호 직접 전송 X	네트워크 상에 비밀번호가 노출되지 않음
+ (5) 시간 동기화 필수	클라이언트와 서버 간 시간이 어긋나면 인증 실패
+5) (참고) - 외부 접근시(공인IP)
+ (1) AD 서버가 외부에서 접근 가능해야 함
+  - 고정 공인 IP 또는 VPN을 통해 접근 가능해야 함
+  - 방화벽에서 포트 개방 (예: 389, 636, 88, 445, 135, 139 등)
+ (2) DNS 문제 해결
+  - 클라이언트가 AD 도메인 이름(예: ad.domain.com)을 정상적으로 해석(DNS)할 수 있어야 함
+  - 외부 DNS 또는 /etc/hosts, 내부 DNS 포워딩 설정 등 필요
+ (3) Kerberos 및 시간 동기화 필수
+  - 리눅스/윈도우 모두 NTP 동기화로 AD와 시각 차이 5분 이내 유지
+ (4) 디렉터리 공유는 SMB 기반
+  - Windows 서버에서 공유 디렉터리는 SMB/CIFS 프로토콜로 공유
+  - 리눅스는 cifs-utils 설치 후 mount -t cifs로 접근 가능
+ (5) 기본 포트
+  - LDAP/LDAPS: 389 / 636, Kerberos: 88, DNS: 53, SMB: 445
+6) 외부 접근 결론
+ - Windows 11에서 다른 네트워크에서도 LDAP(AD) 계정으로 로그인하고 SMB 공유에 접근하려면, AD 서버가 외부에서 접근 가능해야 하며, 일반적으로 VPN이나 가상 네트워크(VPN 연결 또는 ZeroTier 사용)를 통해 안전하게 연결해야 한다.
+7) 참고사항(참고만)
+ - SSH - GSSAPIAuthentication yes
+ - 접속 - ssh -K roror@linuxhost
+ - sudo - %domain\ admins@lsof.co.kr ALL=(ALL) ALL
+ - log - journalctl -u sssd -f, journalctl -xe | grep krb
+ - pam_sss.so(password-auth)  SSSD를 통해 인증 처리 (SSSD 내부에서 LDAP, Kerberos 등 사용)
+8) SSO (Single Sign-On)
+ - 한 번 로그인하면, 추가 로그인 없이 여러 시스템이나 서비스에 자동으로 인증되는 방식이다.
+ - Windows/리눅스 내부 : Kerberos(Kerberos는 SSO를 구현하는 핵심 기술 중 하나, SSO를 가능하게 만드는 인증 방식 (티켓 기반))
+   (1) Kerberos로 TGT (티켓) 발급   (2) 이후 파일 서버, 메일 서버, 내부 웹사이트 등에 추가 로그인 없이 접속   (3) 이 전체 흐름이 SSO이며, 내부 동작은 Kerberos 기반
+ - 웹 기반 SSO : SAML, OAuth, OpenID Connect
+
+
+======================
+윈도우 11 비밀번호
+
+윈도우 서버 할 예정  고정ip 10.0.0.111
+
+active directory (AD)  pdf 26/45
+
+
+
+서버관리자 - 대시보드 - 역할 및 기능 추가 마법사 - active directory 도메인 서비스 추가 후 설치
+
+AD DS가 생김 -- 오른쪽 보면 자세히가 있음 -- 이 서버를 도메인 컨트롤러로.. 승격 클릭
+
+--> Active Directory 도메인 서비스 구성 마법사 > 새 포리스트를 추가합니다. 클릭
+
+
+-- lsof.com
+비번 보안!2
+
+
+
+(참고)AD DS가 설치되면 "로컬 로그인"이 어떻게 되는가?
+● 도메인 컨트롤러(AD DS 설치된 서버)는 로컬 사용자 계정을 더 이상 사용하지 않는다.
+● AD DS가 설치되면 이 서버는 도메인 컨트롤러 역할을 하게 된다.
+● 로컬 SAM 데이터베이스(Local user DB)는 더 이상 사용되지 않는다.
+● 즉, "로컬 계정"이라는 개념이 사라지고, 모든 로그인은 도메인 기반으로만 이루어져야 한다.
+● 일반 사용자 계정(roror 등)은 도메인에 가입된 일반 PC에 로그인하도록 설정하고, 도메인 컨트롤러(서버)에는 관리자만 로그인할 수 있도록 설정해둔다.
+
+
+관리자로 로그인 : 
+
+
+도구 - > active directory 사용자 및 컴퓨터
+
+- dns가 자동으로뜸
+
+user에서  새로만들기 roror 만들기
+
+
+계정에서 
+사용자 로그온 이름 
+roror@lsof.co,kr
+
+추가
+
+
+roror 암호 다시 설정 ---> 
+
+
+윈도우즈 11.
+
+시스템 속성 -> 고급 시스템설정 - 도메인 또는 작업영역
+
+npca.cpl -> ipv4 도메인 10.0.0.111(윈도우 11 서버)로 바꾸고 
+
+roror@lsof.com
+
+qhdks!2 로 바꿈
+
+===
+
+사용자 ad 서버 기준.. 
+
+
+\\myserver\backup
+
+
+(참고)AD DS가 설치되면 "로컬 로그인"이 어떻게 되는가?
+● 도메인 컨트롤러(AD DS 설치된 서버)는 로컬 사용자 계정을 더 이상 사용하지 않는다.
+● AD DS가 설치되면 이 서버는 도메인 컨트롤러 역할을 하게 된다.
+● 로컬 SAM 데이터베이스(Local user DB)는 더 이상 사용되지 않는다.
+● 즉, "로컬 계정"이라는 개념이 사라지고, 모든 로그인은 도메인 기반으로만 이루어져야 한다.
+● 일반 사용자 계정(roror 등)은 도메인에 가입된 일반 PC에 로그인하도록 설정하고, 도메인 컨트롤러(서버)에는 관리자만 로그인할 수 있도록 설정해둔다.
+
+
+
+@echo off
+net use Z: /delete /yes
+net use Z: \\서버이름\공유이름 /persistent:yes
+Z:는 연결할 드라이브 문자. 
+서버이름은 공유 폴더가 위치한 서버의 이름이고, 공유이름은 공유 폴더의 공유 이름이다.
+/persistent:yes는 사용자가 로그온할 때마다 이 연결이 지속되도록 하는 옵션이다.
+
+
+===========알마---
+dnf install -y realmd sssd oddjob oddjob-mkhomedir adcli samba-common-tools krb5-workstation
+
+
+root@roror:/home/roror# dnf install -y realmd sssd oddjob oddjob-mkhomedir adcli samba-common-tools krb5-workstation
+
+설치되었습니다:
+  krb5-pkinit-1.21.3-8.el10_0.x86_64         krb5-workstation-1.21.3-8.el10_0.x86_64        
+  oddjob-0.34.7-14.el10.x86_64               oddjob-mkhomedir-0.34.7-14.el10.x86_64         
+
+완료되었습니다!
+root@roror:/home/roror# 
+
+
+== 록키
+
+[root@rocky ~]# dnf install -y realmd sssd oddjob oddjob-mkhomedir adcli samba-common-tools krb5-workstation
+
+
+[root@rocky ~]# vi /etc/resolv.conf 
+
+
+# Generated by NetworkManager
+search co.kr
+nameserver 10.0.0.111
+nameserver 10.0.0.200
+nameserver 8.8.8.8
+
+알마====
+root@roror:/etc/authselect/custom/security-profile# vi /etc/resolv.conf 
+
+# Generated by NetworkManager
+search co.kr
+nameserver 10.0.0.111
+nameserver 10.0.0.200
+nameserver 8.8.8.8
+~                       
+
+
+dig lsof.com
+
+;; ANSWER SECTION:
+lsof.com.		600	IN	A	10.0.0.111
+
+
+알마에====
+
+# realm discover lsof.com  // 도메인 찾기
+- 처음에 관리자 계정을 성공적으로 조인한 다음 일반 계정도 권한을 부여
+# realm join -U Administrator lsof.com 
+# vi /etc/sssd/sssd.conf // 기본 설정 저장
+# getent passwd 'roror@lsof.com' // 도메인 사용자 로그인 확인
+# realm leave lsof.com -U Administrator // 해당되는 도메인 탈퇴
+
+root@roror:/etc/authselect/custom/security-profile# id roror@lsof.co.kr
+id: ‘roror@lsof.co.kr’: no such user
+root@roror:/etc/authselect/custom/security-profile# realm join -U Administrator lsof.co.kr
+Password for Administrator@LSOF.CO.KR: 
+root@roror:/etc/authselect/custom/security-profile# id roror@lsof.co.kr
+uid=376201000(roror@lsof.co.kr) gid=376200513(domain users@lsof.co.kr) groups=376200513(domain users@lsof.co.kr)
+root@roror:/etc/authselect/custom/security-profile# id administrator@lsof.co.kr
+uid=376200500(administrator@lsof.co.kr) gid=376200513(domain users@lsof.co.kr) groups=376200513(domain users@lsof.co.kr),376200519(enterprise admins@lsof.co.kr),376200512(domain admins@lsof.co.kr),376200572(denied rodc password replication group@lsof.co.kr),376200518(schema admins@lsof.co.kr),376200520(group policy creator owners@lsof.co.kr)
+
+# authselect create-profile -b sssd security-profile
+# authselect select custom/security-profile with-fingerprint with-silent-lastlog with-mkhomedir
+# authselect apply-changes
+# systemctl restart sssd
+# systemctl enable --now oddjobd
+ - Oddjob Daemon : 비특권(non-root) 사용자나 다른 서비스가 시스템 수준 작업(예: 디렉터리 생성)을 요청할 수 있도록 해주는 D-Bus 기반의 서비스이다. 주로 SSSD, realmd, pam_mkhomedir.so 등에서 함께 사용한다.
+
+
+
+$ ssh administrator@lsof.co.kr@roror.co.kr
+$ ssh roror@lsof.co.kr@roror.co.kr
+$ realm list
+$ getent passwd roror@lsof.co.kr
+$ kinit roror@LSOF.CO.KR   // kerberos 티켓 유무 확인
+$ klist  // 티켓 확인
+
+Linux (realm/sssd 사용) : administrator@lsof.co.kr만 가능 ← UPN만 인식함
+- realm join 이후 sssd는 Kerberos 기반으로 인증함
+- Kerberos는 "realm"을 반드시 포함한 형태 (user@REALM) 를 사용함
+- 그래서 리눅스에서는 무조건 UPN 형식으로 로그인해야 됨
+- UPN = 이메일 같은 로그인 ID
+- sAMAccountName = 윈도우용 짧은 ID
+
+# dnf install cifs-utils
+# dnf install samba-client
+$ smbclient -L //10.0.0.111 -U roror
+# mkdir /backup
+$ su -c "mount -t cifs //10.0.0.111/backup /backup -o username=roror,domain=lsof.co.kr,sec=ntlmssp"
+- NTLMSSP는 윈도우 기반 인증 방식인 NTLM 프로토콜을 수행하는 인증 메커니즘으로, 주로 Samba나 AD 연동 시 사용한다.
+- NTLMSSP는 패스워드를 평문으로 보내지 않는 Windows 인증 방식이지만, Kerberos보다 보안성이 낮아 가능하면 NTLMv2 이상만 사용하고 Kerberos를 우선하는 것이 권장한다.
+$ su -c "mount -a"
+$ su -c "umount //10.0.0.111/backup"
+둘 다 암호화 통신을 지원하므로, 내부망이라면 큰 차이 없이 사용할 수 있다
+
+fstab 등록
+예) //10.0.0.111/backup  /backup  cifs  username=hacker,password=비밀번호,domain=lsof.co.kr,sec=ntlmssp,iocharset=utf8,nofail  0  0
+(1) /root/.smbcredentials 파일 만들기
+# vi /root/.smbcredentials
+username=hacker
+password=비밀번호
+domain=lsof.co.kr
+(2) # chmod 600 /root/.smbcredentials
+(3) /etc/fstab 수정
+//10.0.0.111/backup  /backup  cifs  credentials=/root/.smbcredentials,sec=ntlmssp,iocharset=utf8,nofail  0  0
+=== 실습==
+
+root@roror:/etc/authselect/custom/security-profile# realm discover lsof.com
+lsof.com
+  type: kerberos
+  realm-name: LSOF.COM
+  domain-name: lsof.com
+  configured: no
+  server-software: active-directory
+  client-software: sssd
+  required-package: sssd-common
+  required-package: oddjob
+  required-package: oddjob-mkhomedir
+  required-package: sssd-ad
+  required-package: adcli
+  required-package: samba-common-tools
+
+
+root@roror:/etc/authselect/custom/security-profile# realm discover lsof.co.kr
+realm: 영역을 찾을 수 없음: lsof.co.kr
+Please check
+    https://red.ht/support_rhel_ad 
+to get help for common issues.
+
+# realm join -U Administrator lsof.com 
+root@roror:/etc/authselect/custom/security-profile# realm join -U Administrator lsof.com
+Password for Administrator@LSOF.COM:  fsdsd~
+
+
+
+root@roror:/etc/authselect/custom/security-profile# vi /etc/sssd/sssd.conf
+
+root@roror:/etc/authselect/custom/security-profile# getent passwd 'roror@lsof.com'
+roror@lsof.com:*:397801000:397800513:roror:/home/roror@lsof.com:/bin/bash
+
+// 비슷
+root@roror:/etc/authselect/custom/security-profile# cat /etc/passwd | grep roror
+roror:x:1000:1000:roror:/home/roror:/bin/bash
+root@roror:/etc/authselect/custom/security-profile# getent passwd 'roror@lsof.com'
+roror@lsof.com:*:397801000:397800513:roror:/home/roror@lsof.com:/bin/bash
+
+root@roror:/etc/authselect/custom/security-profile# realm leave lsof.com -U Administrator
+Password for Administrator@LSOF.COM: 
+
+
+root@roror:/etc/authselect/custom/security-profile# id roror@lsof.com
+id: `roror@lsof.com': 이 사용자는 없습니다
+
+root@roror:/etc/authselect/custom/security-profile# realm join -U Administrator lsof.com 
+Password for Administrator@LSOF.COM: 
+root@roror:/etc/authselect/custom/security-profile# id roror@lsof.com
+uid=397801000(roror@lsof.com) gid=397800513(domain users@lsof.com) groups=397800513(domain users@lsof.com)
+
+
+root@roror:/etc/authselect/custom/security-profile# id administrator@lsof.com
+uid=397800500(administrator@lsof.com) gid=397800513(domain users@lsof.com) groups=397800513(domain users@lsof.com),397800520(group policy creator owners@lsof.com),397800519(enterprise admins@lsof.com),397800512(domain admins@lsof.com),397800572(denied rodc password replication group@lsof.com),397800518(schema admins@lsof.com)
+
+root@roror:/etc/authselect/custom/security-profile# setenforce 0
+
+// 도메인 이용해서 공부하는거 보기 위한거라 일단 놔둠
+
+root@roror:/etc/authselect/custom/security-profile# authselect current 
+프로필 ID : sssd
+사용 가능한 기능 :
+- with-mkhomedir
+
+복사를 해주고
+
+root@roror:/etc/authselect/custom# ls
+security-profile
+root@roror:/etc/authselect/custom# rm -rf ./*
+root@roror:/etc/authselect/custom# ls
+
+
+root@roror:/etc/authselect/custom# authselect create-profile -b sssd security-profile
+/etc/authselect/custom/security-profile에 새 프로필을 만들었습니다.
+root@roror:/etc/authselect/custom# ls
+security-profile
+
+root@roror:/etc/authselect/custom# authselect list-features custom/security-profile 
+
+
+with-fingerprint with-silent-lastlog with-mkhomedir
+
+
+root@roror:/etc/authselect/custom# authselect select custom/security-profile with-fingerprint with-silent-lastlog with-mkhomedir
+"custom/security-profile"프로필을 선택했습니다.
+
+Make sure that SSSD service is configured and enabled. See SSSD documentation for more information.
+ 
+- with-fingerprint is selected, make sure fprintd service is configured and enabled
+ 
+- with-mkhomedir is selected, make sure pam_oddjob_mkhomedir module
+  is present and oddjobd service is enabled and active
+  - systemctl enable --now oddjobd.service
+
+root@roror:/etc/authselect/custom# authselect current
+프로필 ID : custom/security-profile
+사용 가능한 기능 :
+- with-fingerprint
+- with-silent-lastlog
+- with-mkhomedir
+
+root@roror:/etc/authselect/custom# authselect apply-changes 
+바뀐 설정 적용에 성공했습니다.
+
+
+root@roror:/etc/authselect/custom# systemctl restart sssd
+root@roror:/etc/authselect/custom# systemctl enable --now oddjobd
+
+
+== 칼리
+
+kali@kali:~$ ssh administrator@lsof.com@roror.co.kr 
+administrator@lsof.com@roror.co.kr's password: 
+Permission denied, please try again.
+administrator@lsof.com@roror.co.kr's password: 
+Last failed login: Fri Dec 19 17:45:11 KST 2025 from 10.0.0.130 on ssh:notty
+There was 1 failed login attempt since the last successful login.
+administrator@lsof.com@roror:~$ 
+
+
+administrator@lsof.com@roror:~$ realm list
+lsof.com
+  type: kerberos
+  realm-name: LSOF.COM
+  domain-name: lsof.com
+  configured: kerberos-member
+  server-software: active-directory
+  client-software: sssd
+  required-package: sssd-common
+  required-package: oddjob
+  required-package: oddjob-mkhomedir
+  required-package: sssd-ad
+  required-package: adcli
+  required-package: samba-common-tools
+  login-formats: %U@lsof.com
+  login-policy: allow-realm-logins
+.00
+0
+==administrator@lsof.com@roror:~$ getent passwd roror@lsof.com
+roror@lsof.com:*:397801000:397800513:roror:/home/roror@lsof.com:/bin/bash
+
+administrator@lsof.com@roror:~$ kinit roror@LSOF.COM
+Password for roror@LSOF.COM: 보안!2
+administrator@lsof.com@roror:~$ klist
+Ticket cache: KCM:397800500:5472
+Default principal: roror@LSOF.COM
+
+Valid starting       Expires              Service principal
+2025-12-19T17:47:59  2025-12-20T03:47:59  krbtgt/LSOF.COM@LSOF.COM
+	renew until 2025-12-26T17:47:57
+
+administrator@lsof.com@roror:~$ smbclient -L //10.0.0.111 -U roror
+Password for [roror]:보안!2
+
+	Sharename       Type      Comment
+	---------       ----      -------
+	ADMIN$          Disk      원격 관리
+	backup          Disk      
+	C$              Disk      기본 공유
+	IPC$            IPC       원격 IPC
+	NETLOGON        Disk      Logon server share 
+	SYSVOL          Disk      Logon server share 
+SMB1 disabled -- no workgroup available
+
+계정을 윈도에서 만들면 리눅스에서 다 접속이되는 것
+
+
+administrator@lsof.com@roror:~$ ls /home   //  현재 칼리에서 알마로 좁속한 상태
+
+
+administrator@lsof.com  chroot  roror  share  test.tar.gz
+backup                  nfs     sec    test   test1
+
+
+
+접근하는 거까지
+
+
+
+
+
+알마로 ---
+root@roror:/etc/authselect/custom# dnf install cifs-utils
+

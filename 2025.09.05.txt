@@ -1,0 +1,46 @@
+- pfsense(UTM) : 방화벽이란.... IDS/IPS란...
+ 1) IDS/IPS Ubuntu, vpn, proxy.... (구축, 프로토톨분석,,, 장비, 통합로그시스템)
+
+
+host.only = net
+-> 인터넷 연결 X
+    내부 네트워크
+    DHCP(수정.중지?)
+
+Len segment
+    host-only
+    DHCP.작동안함
+    여러개를 동시에 만들수있다(group생성)
+    인터넷x(외부 연결x)
+    ip할당 안하면 자기들끼리도 통신x
+    
+gateway
+ex) nat(vmware):10.0.0.0/24 (1~254)
+     gateway:10.0.0.2 (기본적으로 뒷번호 2)
+     1번은? windows
+     gateway를 1번주고 windows를 2번줌 왜바꿨지..
+	실무에서 gateway를 1번을 잘 줘서 바꿈.. 별 의미 없네
+	g/w바꾸고 window안바꾸면(ip같아지면) 충돌(인터넷안됨)
+
+
+bridge랑 Lan segment랑 nat랑 뭐가 뭔지....
+
+랜카드
+vm -> install -> 가상의 랜카드
+랜? 인터페이스
+ipconfig : 랜카드정보보여줌
+
+host-only에서 DHCP사용을 해제?하면 Lan segment랑 같아짐...(그룹은 못만듦)
+
+랜카드를 달면 통신이 된다?
+Lan segment는 스위치. 네이버랑 연결된?
+
+
+
+
+
+
+
+
+
+
