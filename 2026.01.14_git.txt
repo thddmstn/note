@@ -1,0 +1,195 @@
+[Pull Request] - 기존의 소스를 수정하거나 추가 한경우  원본자에게  합치기를 요청 할 수 있다.
+GitHub에서 요청을 할경우 우선 Fork 를 이용하여 나의 깃허브로 복제를 해 와야 한다.
+로컬로 다운받아서 해당 파일을 수정하거나, 원격을 이용하여 파일을 수정하자
+
+[특정 깃허브 복제 및 수정, 푸쉬하기]
+[tortoisegit]
+마우스 오른쪽 > 클론 선택(복제)
+
+[tortoisegit] - 장점
+파일 수정후   > 오른쪽 마우스 > commit 후 > 동기화, 또는 Push 를 하면 간단하게 사용
+
+
+[터미널에서 다운로드 및 커밋] 
+git clone https://github.com/docker/machine.git  (다운로드)
+(machine.git  에서 machine 명의 디렉토리 이름 생성후 다운로드)
+
+git log  (로그를 확인 해보면  commits 와 같다)
+파일 수정후(각자의 에디터)
+git status
+git add README.md (commits 가능 파일로 만든다)
+git commit -m “수정 내용”
+
+업로드는 불가(fork 후 업로드는 가능하다)
+오픈소스라도 가지고 오는건 가능하나 업로드는 마음대로 할 수 없다.
+즉 contributors 등록 사용자만 등록 가능하다.
+
+- 참고
+New Pull Request 버튼을 이용하여 요청
+Create Pull Request 버튼을 이용하여 요청 사항 작성
+
+
+
+
+명령어 설명
+Init  : GIT 레포지터리 초기화
+Status : GIT 레포지터리 상태 조회
+Add : Working Directory -> Stagin Area 로 추가
+Commit : Stagin Area -> Repository 로 추가
+Log : 이전에 작성한 변경 이력 추적
+Diff : 디렉터리 및 파일등 변경 이력 비교
+Branch : 개발을 병렬적으로 하기 위해 ( 가지치기 )
+Tag : 특정 시점의 태그
+Checkout : 브랜치 이동, 특정파일 다운등
+Merge : 병렬 브랜치를 하나의 브랜치로
+
+$ git init
+master : GIT 에서 기본적으로 생성한 브랜치 ( git branch -l )
+git config user.name : 로컬 사용자 생성( tortoiseGIT 설정도 확인 해보자 )
+.git/config : 사용자 옵션 설정 파일
+$ git config user.name fix1004
+$ git config user.email fix1004@naver.com
+
+- 
+ git config --global user.name fix1004    
+ git config --global user.email fix1004@naver.com
+
+
+설정 파일 위치] 
+시스템 전역 경로  
+%USER_HOME%\.gitconfig     ->   /c/users/jeong   -> global file  ( 홈디렉터리 )
+Working 디렉토리 경로   /WORKING_DIRECTORY/.git/config   ( 저장소 및 클론시 생성시 생성된다 )
+우선순위 3 -> 2 -> 1
+
+
+git add .   (git add -i )
+git rm --cached <file>...
+git remote add origin git@github.com:fix1004/roror.git
+git remote -v
+git push -u origin master
+
+
+.gitignore : 기본적으로 생성되는 OS파일등 필요가 없는 파일 제외
+ https://github.com/github/gitignore (샘플 파일 제공)
+1) *.a  :  확장자가 .a인 파일 무시
+2) ! 사용시(!lib.a ) 확장자가 .a인 파일은 무시하지만 lib.a는 제외
+3) build/  :  build/ 디렉토리에 있는 모든 파일은 무시
+4) doc/*.txt  :  doc/notes.txt 파일은 무시하고 doc/server/arch.txt 파일은 무시하지 않음
+5) doc/**/*.txt  :  doc 디렉토리 아래의 모든 .txt 파일을 무시
+
+1. commit
+1) git commit  :  에디터가 출력되고 에디터에서 메시지를 입력한후 저장하면 커밋
+2) git commit -m "커밋 메시지" 파일이름  :  타이틀 만으로 기록하고 싶을 경우에 사용 (주로 사용)
+  git commit –m “내용수정” 
+  git commit –m “내용수정” test.txt (ADD는 생략가능)
+  git commit –m “내용수정” .
+  git commit -a -m "커밋 메시지"  : Repository 에 올라가 있는 파일에 기록 (해당 방법은  ADD를 하지 않아도 된다)
+  ( 해당 명령어는 모든 파일을 타일틀만 동시에 커밋해준다, 파일지정 설정 불가)
+3) git commit --amend  (어멘드는 커밋후 바로 이전 커밋을 수정하고 싶을때 사용)
+ - 커밋된 파일이 여러 파일이면 동시에 수정된다
+  $git commit --amend 
+  $git commit --amend -m "수정" test.html
+
+2. git log 주요 옵션(복사후 실습)  - ( git reflog --help )
+git log : 커밋 이력 상세 조회
+git log --oneline :  커밋 이력중 ID,Title 메시지만 조회
+git log --oneline --decorate --graph --all : 모든 브랜치 커밋 이력 조회
+git log -- <파일명> : 특정 파일의 커밋 조회
+git log --stat 옵션으로 각 커밋의 통계 정보를 조회
+git log -p -2   (-p : diff 도 보여준다, -2 두개만 출력)
+git log --pretty=oneline   (short, full, fuller 여러 정보 출력)
+git log --pretty=format:"%h %s" --graph
+git log --pretty=format:"%h - %an, %ar : %s"   (포맷 형식으로 출력)
+- 옵션 설명
+%H 커밋 해시
+%h 짧은 길이 커밋 해시
+%T 트리 해시
+%t 짧은 길이 트리 해시
+%P 부모 해시
+%p 짧은 길이 부모 해시
+%an 저자 이름
+%ae 저자 메일
+%ad 저자 시각 (형식은 –date= 옵션 참고)
+%ar 저자 상대적 시각
+%cn 커미터 이름
+%ce 커미터 메일
+%cd 커미터 시각
+%cr 커미터 상대적 시각
+%s 요약
+
+git log 조회 범위를 제한하는 옵션
+-(n) 최근 n 개의 커밋만 조회한다.
+--since, --after 명시한 날짜 이후의 커밋만 검색한다.
+--until, --before 명시한 날짜 이전의 커밋만 조회한다.
+--author 입력한 저자의 커밋만 보여준다.
+--committer 입력한 커미터의 커밋만 보여준다.
+--grep 커밋 메시지 안의 텍스트를 검색한다.
+-S 커밋 변경(추가/삭제) 내용 안의 텍스트를 검색한다.
+
+
+1. 차이점 비교
+$ git log --oneline  
+$ git reflog (간단한 해시 출력과, 변경 이력을 자세히 출력한다.)
+$ git log -p index.html   (로그 정보와 내용을 출력, 해시로도 출력 가능)
+$ git diff 680981b 98bf91b
+$ git diff 98bf91b -- index.html
+$ git log -p -2 index.html
+
+- 커밋전 내용 확인
+$ git add index.html
+$ git diff --cached   ($ git diff --staged)
+$ git diff --cached index.html   
+
+
+- branch
+$ git branch -a
+$ git branch main  (추가)
+$ git branch develop
+$ git branch -d develop   (삭제)
+$ git branch -m develop main   (변경)
+
+
+Checkout : (브랜치 별로 서로 다른 워킹 디렉터리가 생성)
+- 부모는 master -> develop, release 브랜치로 파생되어 나간다.  
+- 변경 사항이 있다면 항상 해당 브랜치에서 commit를 하고 checkout를 해야 한다. 
+
+$ git checkout main
+$ git branch -l
+$ git checkout master -- index.php   (파일 복사)
+$ git reset --hard (작업 폴더 복구)
+
+
+
+$ git reflog index.php
+$ git log --oneline index.php
+$ git show 328ff4d:index.php
+$ git checkout master
+$ git checkout c301be5
+$ git show 680981b:index.html
+
+
+branch 관련 명령어
+git branch -a  ( 현재 존재하는 브랜치 정보 모두 출력 )
+git checkout -b test_branch   // 브랜치 생성 및 이동
+git push origin test_branch   // 리모트브랜치 생성 및 추가 
+git branch --remote ( remote 에 존재하는 브랜치만 확인 )
+git remote update ( 모든 리모트 정보 업데이트, fetch를 수행 )
+git remote prune origin ( git 리모트 브랜치 최신 정보로 업데이트하기 )
+현재 자신의 로컬에 있는 리모트 브랜치 정보를 최신으로 업데이트 합니다. 새로 추가되었거나 삭제된 리모트 브랜치의 정보들을 최신으로 업데이트할 수 있게됩니다. 아래의 커맨드와 동작은 같으나 리모트를 선택하여 반영, 업데이트 할 수 있습니다.
+git fetch --prune ( git 리모트 정보를 동기화하여 로컬에 반영하기 )
+git push origin :test_branchgit ( 리모트 브랜치 삭제하기 )
+
+
+$ git branch -l
+$ git reflog index.html
+$ git checkout 98bf91b -- index.html
+$ git commit -m "Last File" index.html
+$ git branch -D main
+
+
+
+$ git branch -l
+* main
+$ git merge main
+
+
